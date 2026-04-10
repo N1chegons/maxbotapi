@@ -33,7 +33,7 @@ dp = Dispatcher()
 #
 # scheduler.start()
 
-
+# Command
 @dp.message_created(Command('change_theme'))
 async def change_topic(event: MessageCreated, context: MemoryContext):
     user_id = event.from_user.user_id
@@ -120,7 +120,7 @@ async def help_command(event: MessageCreated):
         text=help_text
     )
 
-
+# logic
 @dp.bot_started()
 async def bot_started(event: BotStarted, context: MemoryContext):
     user_id = event.user.user_id
