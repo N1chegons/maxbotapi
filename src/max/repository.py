@@ -1,9 +1,7 @@
-import aiohttp
 from sqlalchemy import select, update, insert
 
-from src.config import settings
 from src.db import async_session
-from src.max.models import Session, Message, Request, Mark
+from src.max.models import Session, Message, Request, Feedback
 
 
 class MaxService:
@@ -70,30 +68,46 @@ class MaxService:
     @classmethod
     async def get_request(cls, client_id: int):
         async with async_session() as session:
-            query = select(Session).filter_by(client_id=client_id)
+            query = select(Request).filter_by(client_id=client_id)
             result = await session.execute(query)
             res = result.scalar_one_or_none()
             return res
 
     @classmethod
-    async def add_request(cls, client_id: int, username: str):
+    async def add_request(cls, client_id: int, contact: str, messages: str):
         async with async_session() as session:
             stmt = insert(Request).values(
                 client_id=client_id,
-                contact=username
+                contact=contact,
+                messages=messages,
             )
             await session.execute(stmt)
             await session.commit()
 
-    #mark section
     @classmethod
-    async def add_mark(cls, client_id: int, fragment: str, session_topic: str = None, next_topic: str = None):
+    async def get_last_messages(cls, client_id: int, limit: int = 20) -> list:
         async with async_session() as session:
-            stmt = insert(Mark).values(
+            stmt = (
+                select(Message)
+                .filter_by(client_id=client_id)
+                .order_by(Message.created_at.desc())
+                .limit(limit)
+            )
+            result = await session.execute(stmt)
+            messages = result.scalars().all()
+            return list(reversed(messages))
+
+            #mark section
+    @classmethod
+    async def add_feedback(cls, client_id: int, fragment: str, is_positive: bool = True, session_topic: str = None,
+                           next_topic: str = None):
+        async with async_session() as session:
+            stmt = insert(Feedback).values(
                 client_id=client_id,
                 fragment=fragment,
-                session_topic=session_topic,
-                next_topic=next_topic
+                is_positive=is_positive,
+                next_topic=next_topic,
+                session_topic = session_topic
             )
             await session.execute(stmt)
             await session.commit()

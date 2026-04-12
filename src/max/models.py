@@ -18,8 +18,8 @@ class Session(Base):
     topic: Mapped[str]
 
 
-class Mark(Base):
-    __tablename__ = "marks"
+class Feedback(Base):
+    __tablename__ = "feedbacks"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     client_id: Mapped[int] = mapped_column(index=True)
@@ -28,6 +28,7 @@ class Mark(Base):
             "TIMEZONE('utc', now())")
     )
     fragment: Mapped[str]
+    is_positive: Mapped[bool] = mapped_column(default=True)
     next_topic: Mapped[str | None]
     session_topic: Mapped[str | None]
 
@@ -36,12 +37,13 @@ class Request(Base):
     __tablename__ = "requests"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    client_id: Mapped[int] = mapped_column(unique=True, index=True)
+    client_id: Mapped[int] = mapped_column(index=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
         server_default=text(
             "TIMEZONE('utc', now())")
     )
     contact: Mapped[str] = mapped_column(nullable=True, default="Не указан")
+    messages: Mapped[str] = mapped_column(nullable=True)
 
 
 class Message(Base):
@@ -58,3 +60,6 @@ class Message(Base):
 
 class ThemeChoice(StatesGroup):
     first_choice = State()
+
+class ConsultChoice(StatesGroup):
+    ant_choice = State()
