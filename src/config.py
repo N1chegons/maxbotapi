@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     YC_FOLDER_ID: str
     YC_API_KEY: str
 
+    YC_API_SPEECHKIT: str
     @property
     def DB_URL(self):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"

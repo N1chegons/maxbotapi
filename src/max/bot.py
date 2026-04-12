@@ -3,14 +3,13 @@ import logging
 
 from maxapi import Bot, Dispatcher, F
 from maxapi.context import MemoryContext
-from maxapi.exceptions import MaxApiError
 from maxapi.filters.command import Command
 from maxapi.types import MessageCreated, BotStarted, MessageButton
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
 from src.config import settings
 from src.max.models import ThemeChoice
-from src.max.repository import MaxService, AudioService
+from src.max.repository import MaxService
 from src.yandexai.config import THEMES_INDEXES
 from src.yandexai.orchestrator import ask_ai_with_index
 
@@ -21,20 +20,8 @@ TOKEN = settings.MAX_BOT_TOKEN
 bot = Bot(TOKEN)
 dp = Dispatcher()
 
-# scheduler = AsyncIOScheduler()
-#
-# scheduler.add_job(
-#     send_daily_report,
-#     "cron",
-#     hour=21,
-#     minute=59,
-#     id="daily_report"
-# )
-#
-# scheduler.start()
-
 # Command
-@dp.message_created(Command('change_theme'))
+@dp.message_created(Command('new'))
 async def change_topic(event: MessageCreated, context: MemoryContext):
     user_id = event.from_user.user_id
 
@@ -135,7 +122,7 @@ async def bot_started(event: BotStarted, context: MemoryContext):
                 f"📚 Вы работаете с темой: **{already_topic.topic}**\n\n"
                 "✅ **Что делать дальше?**\n"
                 "• Продолжить диалог — просто напишите, что вас беспокоит\n"
-                "• Сменить тему — отправьте \n/change_theme\n"
+                "• Сменить тему — отправьте \n/new\n"
                 "• Посмотреть команды — отправьте /help\n\n"
                 "Я здесь, чтобы помочь. Расскажите, что происходит."
             )
@@ -188,7 +175,7 @@ async def theme_choice_handler(event: MessageCreated, context: MemoryContext):
                                     f"✅ Тема выбрана: **{data_choice}**\n\n"
                                     "Теперь просто напишите, что вас беспокоит.\n"
                                     "Я буду задавать уточняющие вопросы и предлагать гипотезы.\n\n"
-                                    "🔁 Если захотите сменить тему — отправьте /change_theme\n"
+                                    "🔁 Если захотите сменить тему — отправьте /new\n"
                                     "📌 Чтобы отметить важное сообщение — отправьте /mark\n"
                                     "📞 Чтобы записаться на консультацию — отправьте /consult"
                                 ),
@@ -243,8 +230,6 @@ async def handle_message(event: MessageCreated, context: MemoryContext):
             user_id=user_id,
             text="⚠️ Не удалось получить ответ. Попробуйте позже."
         )
-
-
 
 async def main():
     await dp.start_polling(bot)
