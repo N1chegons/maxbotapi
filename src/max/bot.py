@@ -233,10 +233,10 @@ async def theme_choice_handler(event: MessageCreated, context: MemoryContext):
             )
         elif data_choice == "Мировоззрение":
             text = (
-                "Ты ступил на горячую землю с острыми темами 🔥\n\n"
-                "Уходи, пока не захлестнули эмоции!\n"
-                "Или ты готов к горячему диалогу?\n\n"
-                "Чтобы поменять тему — напиши /new"
+                "Ты ступил на горячую землю с острыми вопросами 🔥\n\n"
+                "Вокруг нас постоянно что-то происходит, не всегда получается в этом разобраться.\n"
+                "Иногда что-то или кто-то с экрана начинает прямо таки БЕСИТЬ 😡\n\n"
+                "Давай обсудим! Расскажи, что тебя раздражает в окружающем мире?\n\n"
             )
         else:
             text = (f"Не могу понять тему: {data_choice}\n\n"
@@ -253,9 +253,6 @@ async def theme_choice_handler(event: MessageCreated, context: MemoryContext):
 async def igor_confirm(event: MessageCreated, context: MemoryContext):
     user_id = event.from_user.user_id
     answer = event.message.body.text.strip()
-
-
-
 
     if answer in ["✅ ДА", "ДА", "YES", "Да", "да"]:
         username = event.from_user.username or f"user_{user_id}"
