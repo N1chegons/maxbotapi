@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-from aiofiles import tempfile
 from maxapi import Bot, Dispatcher, F
 from maxapi.connection.base import BaseConnection
 from maxapi.context import MemoryContext
@@ -334,18 +333,15 @@ async def handle_message(event: MessageCreated, context: MemoryContext):
         )
 
 
-# --------------------------------------------------->
-import tempfile
-
-tmp_dir = tempfile.gettempdir()
-file_path_tmp = os.path.join(tmp_dir, "voice.ogg")
+# ---------------------------------------------------
+DOWNLOAD_DIR = os.path.expanduser("~/maxbot_downloads")
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 
 @dp.message_created(F.message.body.attachments)
 async def handle_voice_message(event: MessageCreated):
     user_id = event.from_user.user_id
 
-    # Находим аудио
     audio_attachment = None
     for att in event.message.body.attachments:
         if att.type == "audio":
@@ -356,15 +352,24 @@ async def handle_voice_message(event: MessageCreated):
         return
 
     audio_url = audio_attachment.payload.url
+
     await bot.send_message(user_id=user_id, text="🎤 Распознаю...")
 
     try:
+        import time
+        filename = f"voice_{user_id}_{int(time.time())}.ogg"
+        file_path = os.path.join(DOWNLOAD_DIR, filename)
+
         conn = BaseConnection()
-        file_path = await conn.upload_file(
+        await conn.upload_file(
             url=audio_url,
-            path=file_path_tmp,
+            path=file_path,
             type="audio"
         )
+
+        # Проверяем, что файл создался
+        if not os.path.exists(file_path):
+            raise Exception("Файл не создан")
 
         with open(file_path, "rb") as f:
             audio_data = f.read()
@@ -372,11 +377,12 @@ async def handle_voice_message(event: MessageCreated):
         text = AudioService.transcribe_audio_bytes(audio_data)
         await bot.send_message(user_id=user_id, text=f"📝 {text}")
 
+        # Удаляем файл после обработки
         os.remove(file_path)
 
     except Exception as e:
-        print(">>>>>>>>ERROR:",e)
-        await bot.send_message(user_id=user_id, text="❌ Ошибка")
+        print(f"Error: {e}")
+        await bot.send_message(user_id=user_id, text="❌ Ошибка обработки голосового")
 
 async def main():
     await dp.start_polling(bot)
