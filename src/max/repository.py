@@ -118,4 +118,34 @@ class MaxService:
             await session.commit()
 
 class AudioService:
-    ...
+    @classmethod
+    def recognize_from_s3(cls, filelink: str, api_key: str) -> str:
+        import requests, time
+        POST = 'https://transcribe.api.cloud.yandex.net/speech/stt/v2/longRunningRecognize'
+        body = {
+            "config": {
+                "specification": {
+                    "languageCode": "ru-RU",
+                    "audioEncoding": "MP3"  # ← ключевое изменение
+                }
+            },
+            "audio": {"uri": filelink}
+        }
+        headers = {'Authorization': f'Api-Key {api_key}'}
+
+        resp = requests.post(POST, headers=headers, json=body)
+        if resp.status_code != 200:
+            raise Exception(f"Ошибка старта: {resp.status_code} - {resp.text}")
+
+        data = resp.json()
+        operation_id = data['id']
+
+        while True:
+            time.sleep(5)
+            resp = requests.get(f'https://operation.api.cloud.yandex.net/operations/{operation_id}', headers=headers)
+            data = resp.json()
+            if data.get('done'):
+                break
+
+        texts = [chunk['alternatives'][0]['text'] for chunk in data['response']['chunks']]
+        return ' '.join(texts)

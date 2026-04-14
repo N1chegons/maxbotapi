@@ -14,6 +14,7 @@ from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 from src.config import settings
 from src.max.models import ThemeChoice, ConsultChoice
 from src.max.repository import MaxService, AudioService
+from src.max.utils import upload_to_s3
 from src.yandexai.config import THEMES_INDEXES
 from src.yandexai.orchestrator import ask_ai_with_index
 
@@ -334,6 +335,69 @@ async def handle_message(event: MessageCreated, context: MemoryContext):
             user_id=user_id,
             text="⚠️ Не удалось получить ответ. Попробуйте позже."
         )
+
+@dp.message_created(F.message.body.attachments)
+async def handle_voice_message(event: MessageCreated, context: MemoryContext):
+    user_id = event.from_user.user_id
+
+    session = await MaxService.get_session(user_id)
+    selected_topic = session.topic
+    index_id = THEMES_INDEXES.get(selected_topic)
+    history = await MaxService.get_history(user_id, limit=10)
+
+    if not index_id:
+        await bot.send_message(
+            user_id=user_id,
+            text="⚠️ Ошибка: индекс для этой темы не найден"
+        )
+        return
+
+
+    audio_attachment = None
+    for att in event.message.body.attachments:
+        if att.type == "audio":
+            audio_attachment = att
+            break
+    if not audio_attachment:
+        return
+    audio_url = audio_attachment.payload.url
+
+    try:
+        headers = {"User-Agent": "MAX/1.0", "Referer": "https://max.ru/"}
+        async with aiohttp.ClientSession() as session_audio:
+            async with session_audio.get(audio_url, headers=headers) as resp:
+                audio_data = await resp.read()
+
+        s3_url = await upload_to_s3(audio_data)
+
+        recognized_text = AudioService.recognize_from_s3(s3_url, settings.YC_API_KEY)
+
+        answer = ask_ai_with_index(index_id=index_id, query=recognized_text, selected_topic=selected_topic, history=history)
+        if answer:
+            last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
+            await context.update_data(
+                last_exchange=last_exchange,
+                last_topic=selected_topic
+            )
+
+            await MaxService.add_message(user_id, "user", recognized_text)
+            await MaxService.add_message(user_id, "assistant", answer)
+
+            await context.update_data(
+                last_exchange=f"Клиент: {recognized_text}\n\nБот: {answer}",
+                last_topic=selected_topic
+            )
+
+            await bot.send_message(user_id=user_id, text=answer)
+        else:
+            await bot.send_message(
+                user_id=user_id,
+                text="⚠️ Не удалось получить ответ. Попробуйте позже."
+            )
+
+    except Exception as e:
+        print(f"Ошибка: {e}")
+        await bot.send_message(user_id=user_id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
 
 
 async def main():

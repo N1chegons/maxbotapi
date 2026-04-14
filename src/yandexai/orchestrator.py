@@ -1,8 +1,6 @@
 from src.config import settings
 from src.yandexai.config import yandex_client, THEMES_DESCRIPTIONS
 
-
-
 def ask_ai_with_index(index_id: str, query: str, selected_topic: str, history: list = None):
     messages_yandex = []
 
@@ -262,8 +260,6 @@ def ask_ai_with_index(index_id: str, query: str, selected_topic: str, history: l
             model = f"gpt://{settings.YC_FOLDER_ID}/deepseek-v32/latest"
         else:
             model = f"gpt://{settings.YC_FOLDER_ID}/yandexgpt"
-
-
         response = yandex_client.responses.create(
             model=model,
             input=messages_yandex,
