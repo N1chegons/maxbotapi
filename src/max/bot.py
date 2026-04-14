@@ -360,6 +360,9 @@ async def handle_voice_message(event: MessageCreated):
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = os.path.join(tmpdir, "voice.ogg")
 
+            print(f"Папка существует: {os.path.exists(tmpdir)}")
+            print(f"Можно писать: {os.access(tmpdir, os.W_OK)}")
+
             conn = BaseConnection()
             real_path = await conn.upload_file(
                 url=audio_url,
@@ -367,8 +370,7 @@ async def handle_voice_message(event: MessageCreated):
                 type="audio"
             )
 
-            print(f"Путь от upload_file: {real_path}")
-            print(f"Мой путь: {file_path}")
+            print(f"Файл существует: {os.path.exists(file_path)}")
 
             # Используй тот путь, который вернул upload_file
             if real_path and os.path.exists(real_path):
