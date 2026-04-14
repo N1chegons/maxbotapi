@@ -338,6 +338,8 @@ async def handle_message(event: MessageCreated, context: MemoryContext):
 import tempfile
 
 tmp_dir = tempfile.gettempdir()
+file_path_tmp = os.path.join(tmp_dir, "voice.ogg")
+
 
 @dp.message_created(F.message.body.attachments)
 async def handle_voice_message(event: MessageCreated):
@@ -354,14 +356,13 @@ async def handle_voice_message(event: MessageCreated):
         return
 
     audio_url = audio_attachment.payload.url
-
     await bot.send_message(user_id=user_id, text="🎤 Распознаю...")
 
     try:
         conn = BaseConnection()
         file_path = await conn.upload_file(
             url=audio_url,
-            path=tempfile.gettempdir(),
+            path=file_path_tmp,
             type="audio"
         )
 
