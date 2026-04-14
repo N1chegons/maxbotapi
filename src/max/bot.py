@@ -358,29 +358,33 @@ async def handle_voice_message(event: MessageCreated):
 
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
-            file_path = os.path.join(tmpdir, "voice.ogg")
+            # Переходим во временную папку
+            original_dir = os.getcwd()
+            os.chdir(tmpdir)
 
-            print(f"Папка существует: {os.path.exists(tmpdir)}")
-            print(f"Можно писать: {os.access(tmpdir, os.W_OK)}")
+            try:
+                conn = BaseConnection()
+                result = await conn.upload_file(
+                    url=audio_url,
+                    path="voice.ogg",  # только имя файла
+                    type="audio"
+                )
 
-            conn = BaseConnection()
-            real_path = await conn.upload_file(
-                url=audio_url,
-                path=file_path,  # или tmpdir
-                type="audio"
-            )
+                # Файл сохранился в tmpdir
+                file_path = os.path.join(tmpdir, "voice.ogg")
 
-            print(f"Файл существует: {os.path.exists(file_path)}")
+                if not os.path.exists(file_path):
+                    raise Exception("Файл не создан")
 
-            # Используй тот путь, который вернул upload_file
-            if real_path and os.path.exists(real_path):
-                with open(real_path, "rb") as f:
+                with open(file_path, "rb") as f:
                     audio_data = f.read()
-            else:
-                raise Exception(f"Файл не найден: {real_path}")
 
-            text = AudioService.transcribe_audio_bytes(audio_data)
-            await bot.send_message(user_id=user_id, text=f"📝 {text}")
+                text = AudioService.transcribe_audio_bytes(audio_data)
+                await bot.send_message(user_id=user_id, text=f"📝 {text}")
+
+            finally:
+                # Возвращаемся обратно
+                os.chdir(original_dir)
 
     except Exception as e:
         print(f"Ошибка: {e}")
