@@ -337,7 +337,6 @@ async def handle_message(event: MessageCreated, context: MemoryContext):
 DOWNLOAD_DIR = os.path.expanduser("~/maxbot_downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-
 @dp.message_created(F.message.body.attachments)
 async def handle_voice_message(event: MessageCreated):
     user_id = event.from_user.user_id
