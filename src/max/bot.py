@@ -334,12 +334,8 @@ async def handle_message(event: MessageCreated, context: MemoryContext):
 
 
 # ---------------------------------------------------
+import tempfile
 import os
-import aiohttp
-
-# Папка для файлов
-DOWNLOAD_DIR = os.path.expanduser("~/maxbot_downloads")
-os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 
 @dp.message_created(F.message.body.attachments)
@@ -358,37 +354,27 @@ async def handle_voice_message(event: MessageCreated):
 
     audio_url = audio_attachment.payload.url
 
-    await bot.send_message(user_id=user_id, text="🎤 Распознаю голосовое...")
+    await bot.send_message(user_id=user_id, text="🎤 Распознаю голосовое сообщение...")
 
     try:
-        # Уникальное имя файла
-        import time
-        filename = f"voice_{user_id}_{int(time.time())}.ogg"
-        file_path = os.path.join(DOWNLOAD_DIR, filename)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = os.path.join(tmpdir, "voice.ogg")
 
-        # Скачиваем файл (без BaseConnection)
-        async with aiohttp.ClientSession() as session:
-            async with session.get(audio_url) as resp:
-                if resp.status != 200:
-                    raise Exception(f"Download failed: {resp.status}")
-                with open(file_path, "wb") as f:
-                    f.write(await resp.read())
+            conn = BaseConnection()
+            await conn.upload_file(
+                url=audio_url,
+                path=file_path,
+                type="audio"
+            )
 
-        # Проверяем
-        if not os.path.exists(file_path):
-            raise Exception("Файл не создан")
+            with open(file_path, "rb") as f:
+                audio_data = f.read()
 
-        with open(file_path, "rb") as f:
-            audio_data = f.read()
-
-        text = AudioService.transcribe_audio_bytes(audio_data)
-        await bot.send_message(user_id=user_id, text=f"📝 {text}")
-
-        # Удаляем файл
-        os.remove(file_path)
+            text = AudioService.transcribe_audio_bytes(audio_data)
+            await bot.send_message(user_id=user_id, text=f"📝 {text}")
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Ошибка: {e}")
         await bot.send_message(user_id=user_id, text="❌ Ошибка обработки голосового")
 
 async def main():
