@@ -334,13 +334,19 @@ async def handle_message(event: MessageCreated, context: MemoryContext):
 
 
 # ---------------------------------------------------
+import os
+import aiohttp
+
+# Папка для файлов
 DOWNLOAD_DIR = os.path.expanduser("~/maxbot_downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
 
 @dp.message_created(F.message.body.attachments)
 async def handle_voice_message(event: MessageCreated):
     user_id = event.from_user.user_id
 
+    # Находим аудио
     audio_attachment = None
     for att in event.message.body.attachments:
         if att.type == "audio":
@@ -352,21 +358,23 @@ async def handle_voice_message(event: MessageCreated):
 
     audio_url = audio_attachment.payload.url
 
-    await bot.send_message(user_id=user_id, text="🎤 Распознаю...")
+    await bot.send_message(user_id=user_id, text="🎤 Распознаю голосовое...")
 
     try:
+        # Уникальное имя файла
         import time
         filename = f"voice_{user_id}_{int(time.time())}.ogg"
         file_path = os.path.join(DOWNLOAD_DIR, filename)
 
-        conn = BaseConnection()
-        await conn.upload_file(
-            url=audio_url,
-            path=file_path,
-            type="audio"
-        )
+        # Скачиваем файл (без BaseConnection)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(audio_url) as resp:
+                if resp.status != 200:
+                    raise Exception(f"Download failed: {resp.status}")
+                with open(file_path, "wb") as f:
+                    f.write(await resp.read())
 
-        # Проверяем, что файл создался
+        # Проверяем
         if not os.path.exists(file_path):
             raise Exception("Файл не создан")
 
@@ -376,7 +384,7 @@ async def handle_voice_message(event: MessageCreated):
         text = AudioService.transcribe_audio_bytes(audio_data)
         await bot.send_message(user_id=user_id, text=f"📝 {text}")
 
-        # Удаляем файл после обработки
+        # Удаляем файл
         os.remove(file_path)
 
     except Exception as e:
