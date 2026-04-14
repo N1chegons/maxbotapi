@@ -336,54 +336,6 @@ async def handle_message(event: MessageCreated, context: MemoryContext):
         )
 
 
-# ---------------------------------------------------
-import tempfile
-import os
-
-
-@dp.message_created(F.message.body.attachments)
-async def handle_voice_message(event: MessageCreated):
-    user_id = event.from_user.user_id
-
-    # Находим аудио-вложение
-    audio_attachment = None
-    for att in event.message.body.attachments:
-        if att.type == "audio":
-            audio_attachment = att
-            break
-
-    if not audio_attachment:
-        return
-
-    audio_url = audio_attachment.payload.url
-
-    await bot.send_message(user_id=user_id, text="🎤 Распознаю голосовое сообщение...")
-
-    try:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            file_path = os.path.join(tmpdir, "voice.ogg")
-
-            conn = BaseConnection()
-            await conn.upload_file(
-                url=audio_url,
-                path=file_path,
-                type=UploadType.AUDIO
-            )
-
-            # Проверяем, что файл не пустой
-            if os.path.getsize(file_path) == 0:
-                raise Exception("Файл пустой, upload_file не записал данные")
-
-            with open(file_path, "rb") as f:
-                audio_data = f.read()
-
-            text = AudioService.transcribe_audio_bytes(audio_data)
-            await bot.send_message(user_id=user_id, text=f"📝 {text}")
-
-    except Exception as e:
-        print(f"Ошибка: {e}")
-        await bot.send_message(user_id=user_id, text="❌ Ошибка обработки голосового")
-
 async def main():
     await dp.start_polling(bot)
 

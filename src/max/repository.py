@@ -118,23 +118,4 @@ class MaxService:
             await session.commit()
 
 class AudioService:
-    @classmethod
-    def transcribe_audio_bytes(cls, audio_data: bytes) -> str:
-        params = "&".join([
-            "topic=general",
-            "folderId=%s" % FOLDER_ID,
-            "lang=ru-RU"
-        ])
-
-        url = urllib.request.Request("https://stt.api.cloud.yandex.net/speech/v1/stt:recognize?%s" % params,
-                                     data=audio_data)
-        url.add_header("Authorization", "Api-key %s" % API_KEY)
-
-        responseData = urllib.request.urlopen(url).read().decode('UTF-8')
-        decodedData = json.loads(responseData)
-
-        if decodedData.get("error_code") is None:
-            return decodedData.get("result", "")
-        else:
-            return "ERROR"
-
+    ...
