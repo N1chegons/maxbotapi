@@ -356,6 +356,7 @@ async def handle_voice_message(event: MessageCreated):
 
     await bot.send_message(user_id=user_id, text="🎤 Распознаю голосовое сообщение...")
 
+
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Переходим во временную папку
