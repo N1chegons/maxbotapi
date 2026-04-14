@@ -361,17 +361,21 @@ async def handle_voice_message(event: MessageCreated):
             file_path = os.path.join(tmpdir, "voice.ogg")
 
             conn = BaseConnection()
-            await conn.upload_file(
+            real_path = await conn.upload_file(
                 url=audio_url,
-                path=file_path,
+                path=file_path,  # или tmpdir
                 type="audio"
             )
 
-            if not os.path.exists(file_path):
-                raise Exception(f"upload_file не создал файл: {file_path}")
+            print(f"Путь от upload_file: {real_path}")
+            print(f"Мой путь: {file_path}")
 
-            with open(file_path, "rb") as f:
-                audio_data = f.read()
+            # Используй тот путь, который вернул upload_file
+            if real_path and os.path.exists(real_path):
+                with open(real_path, "rb") as f:
+                    audio_data = f.read()
+            else:
+                raise Exception(f"Файл не найден: {real_path}")
 
             text = AudioService.transcribe_audio_bytes(audio_data)
             await bot.send_message(user_id=user_id, text=f"📝 {text}")
