@@ -367,6 +367,9 @@ async def handle_voice_message(event: MessageCreated):
                 type="audio"
             )
 
+            if not os.path.exists(file_path):
+                raise Exception(f"upload_file не создал файл: {file_path}")
+
             with open(file_path, "rb") as f:
                 audio_data = f.read()
 
