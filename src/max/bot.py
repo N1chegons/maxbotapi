@@ -366,7 +366,7 @@ async def handle_voice_message(event: MessageCreated):
             # Создаём пустой файл (чтобы путь существовал)
             open(file_path, "a").close()
 
-            conn = BaseConnection()
+            conn = BaseConnection(bot=bot)
             await conn.upload_file(
                 url=audio_url,
                 path=file_path,
