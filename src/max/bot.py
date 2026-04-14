@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import os
+
+import aiohttp
 from maxapi import Bot, Dispatcher, F
 from maxapi.connection.base import BaseConnection
 from maxapi.context import MemoryContext
@@ -359,34 +361,21 @@ async def handle_voice_message(event: MessageCreated):
 
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Переходим во временную папку
-            original_dir = os.getcwd()
-            os.chdir(tmpdir)
+            file_path = os.path.join(tmpdir, "voice.ogg")
 
-            try:
-                conn = BaseConnection()
-                result = await conn.upload_file(
-                    url=audio_url,
-                    path="voice.ogg",  # только имя файла
-                    type="audio"
-                )
+            # Скачиваем напрямую
+            async with aiohttp.ClientSession() as session:
+                async with session.get(audio_url) as resp:
+                    if resp.status != 200:
+                        raise Exception(f"Download failed: {resp.status}")
+                    with open(file_path, "wb") as f:
+                        f.write(await resp.read())
 
-                # Файл сохранился в tmpdir
-                file_path = os.path.join(tmpdir, "voice.ogg")
+            with open(file_path, "rb") as f:
+                audio_data = f.read()
 
-                if not os.path.exists(file_path):
-                    raise Exception("Файл не создан")
-
-                with open(file_path, "rb") as f:
-                    audio_data = f.read()
-
-                text = AudioService.transcribe_audio_bytes(audio_data)
-                await bot.send_message(user_id=user_id, text=f"📝 {text}")
-
-            finally:
-                # Возвращаемся обратно
-                os.chdir(original_dir)
-
+            text = AudioService.transcribe_audio_bytes(audio_data)
+            await bot.send_message(user_id=user_id, text=f"📝 {text}")
     except Exception as e:
         print(f"Ошибка: {e}")
         await bot.send_message(user_id=user_id, text="❌ Ошибка обработки голосового")
