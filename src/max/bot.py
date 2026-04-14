@@ -6,6 +6,7 @@ import aiohttp
 from maxapi import Bot, Dispatcher, F
 from maxapi.connection.base import BaseConnection
 from maxapi.context import MemoryContext
+from maxapi.enums.upload_type import UploadType
 from maxapi.filters.command import Command
 from maxapi.types import MessageCreated, BotStarted, MessageButton
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
@@ -369,7 +370,7 @@ async def handle_voice_message(event: MessageCreated):
             await conn.upload_file(
                 url=audio_url,
                 path=file_path,
-                type="audio"
+                type=UploadType.AUDIO
             )
 
             # Проверяем, что файл не пустой
