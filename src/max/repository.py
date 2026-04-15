@@ -1,5 +1,3 @@
-import urllib.request
-import json
 from sqlalchemy import select, update, insert
 
 from src.config import settings
