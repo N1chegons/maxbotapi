@@ -216,7 +216,6 @@ async def theme_choice_handler(event: MessageCreated, context: MemoryContext):
         else:
             await MaxService.create_session(user_id, data_choice)
 
-        await context.set_state(None)
 
         if data_choice == "Путь":
             text = (
@@ -253,6 +252,7 @@ async def theme_choice_handler(event: MessageCreated, context: MemoryContext):
                     f"Пожайлуста выберите из приведенных ниже тем: Путь, Консультации, Теория, Мировоззрение")
 
         await bot.send_message(user_id=user_id, text=text)
+
     except Exception as e:
         await bot.send_message(user_id=user_id,
                                text=f"Ошибка на стороне сервера",
