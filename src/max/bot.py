@@ -210,13 +210,13 @@ async def theme_choice_handler(event: MessageCreated, context: MemoryContext):
     data_choice = data['first_choice']
     user_id = event.from_user.user_id
 
+    if session:
+        await MaxService.update_session(user_id, data_choice)
+    else:
+        await MaxService.create_session(user_id, data_choice)
+
+    await context.set_state(None)
     try:
-        if session:
-            await MaxService.update_session(user_id, data_choice)
-        else:
-            await MaxService.create_session(user_id, data_choice)
-
-
         if data_choice == "Путь":
             text = (
                 "Добро пожаловать на мой путь 😊\n"
