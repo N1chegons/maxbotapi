@@ -201,14 +201,20 @@ async def bot_started(event: BotStarted, context: MemoryContext):
 # --Theme choice
 @dp.message_created(ThemeChoice.first_choice)
 async def theme_choice_handler(event: MessageCreated, context: MemoryContext):
+    user_id = event.from_user.user_id
+
     await context.update_data(first_choice=event.message.body.text)
+    session = await MaxService.get_session(user_id)
 
     data = await context.get_data()
     data_choice = data['first_choice']
     user_id = event.from_user.user_id
 
     try:
-        new_session = await MaxService.create_session(user_id, data_choice)
+        if session:
+            await MaxService.update_session(user_id, data_choice)
+        else:
+            await MaxService.create_session(user_id, data_choice)
 
         await context.set_state(None)
 
@@ -312,7 +318,7 @@ async def handle_message(event: MessageCreated, context: MemoryContext):
     history = await MaxService.get_history(user_id, limit=10)
     await MaxService.add_message(user_id, "user", text)
 
-    answer = ask_ai_with_index(index_id, text, selected_topic, history)
+    answer = ask_ai_with_index(index_id=index_id, query=text, selected_topic=selected_topic, history=history)
 
     already_request = await MaxService.get_request(user_id)
     if answer:
