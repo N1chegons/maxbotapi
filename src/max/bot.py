@@ -318,7 +318,7 @@ async def handle_message(event: MessageCreated, context: MemoryContext):
     history = await MaxService.get_history(user_id, limit=10)
     await MaxService.add_message(user_id, "user", text)
 
-    answer = ask_ai_with_index(index_id=index_id, query=text, selected_topic=selected_topic, history=history)
+    answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
     already_request = await MaxService.get_request(user_id)
     if answer:
@@ -349,6 +349,7 @@ async def handle_voice_message(event: MessageCreated, context: MemoryContext):
     session = await MaxService.get_session(user_id)
     selected_topic = session.topic
     index_id = THEMES_INDEXES.get(selected_topic)
+
     history = await MaxService.get_history(user_id, limit=10)
 
     if not index_id:
@@ -378,7 +379,7 @@ async def handle_voice_message(event: MessageCreated, context: MemoryContext):
 
         recognized_text = AudioService.recognize_from_s3(s3_url, settings.YC_API_KEY)
 
-        answer = ask_ai_with_index(index_id=index_id, query=recognized_text, selected_topic=selected_topic, history=history)
+        answer = ask_ai_with_index(index_id, recognized_text, selected_topic, history)
         if answer:
             last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
             await context.update_data(
