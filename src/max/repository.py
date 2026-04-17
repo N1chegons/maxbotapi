@@ -1,3 +1,5 @@
+import pytz
+from datetime import datetime, timedelta
 from sqlalchemy import select, update, insert
 
 from src.config import settings
@@ -69,6 +71,23 @@ class MaxService:
 
     #consult request
     @classmethod
+    async def get_request_list(cls):
+        async with async_session() as session:
+            query = select(Request).order_by(Request.created_at.desc())
+            result = await session.execute(query)
+            return result.scalars().all()
+
+    @classmethod
+    async def get_unviewed_request(cls):
+        async with async_session() as session:
+            result = await session.execute(
+                select(Request)
+                .where(Request.viewed == False)
+                .order_by(Request.appointment_date.asc())
+            )
+            return result.scalars().all()
+
+    @classmethod
     async def get_request(cls, client_id: int):
         async with async_session() as session:
             query = select(Request).filter_by(client_id=client_id)
@@ -77,14 +96,33 @@ class MaxService:
             return res
 
     @classmethod
-    async def add_request(cls, client_id: int, contact: str, messages: str):
+    async def get_request_by_id(cls, appointment_id: int):
+        async with async_session() as session:
+            result = await session.execute(
+                select(Request).filter_by(id=appointment_id)
+            )
+            return result.scalar_one_or_none()
+
+    @classmethod
+    async def add_request(cls, client_id: int, contact: str, messages: str, appointment_date: datetime):
         async with async_session() as session:
             stmt = insert(Request).values(
                 client_id=client_id,
                 contact=contact,
                 messages=messages,
+                appointment_date=appointment_date
             )
             await session.execute(stmt)
+            await session.commit()
+
+    @classmethod
+    async def mark_request_viewed(cls, appointment_id: int):
+        async with async_session() as session:
+            await session.execute(
+                update(Request)
+                .where(Request.id == appointment_id)
+                .values(viewed=True)
+            )
             await session.commit()
 
     @classmethod
@@ -100,7 +138,7 @@ class MaxService:
             messages = result.scalars().all()
             return list(reversed(messages))
 
-            #mark section
+    #mark section
     @classmethod
     async def add_feedback(cls, client_id: int, fragment: str, is_positive: bool = True, session_topic: str = None,
                            next_topic: str = None):
@@ -114,6 +152,29 @@ class MaxService:
             )
             await session.execute(stmt)
             await session.commit()
+
+    @classmethod
+    async def get_next_free_date(cls) -> datetime:
+        import pytz
+        from datetime import datetime, timedelta
+
+        msk = pytz.timezone('Europe/Moscow')
+        now_msk = datetime.now(msk)
+
+        date_msk = (now_msk + timedelta(days=1)).replace(hour=20, minute=0, second=0, microsecond=0)
+
+        date_utc = date_msk.astimezone(pytz.UTC).replace(tzinfo=None)
+
+        async with async_session() as session:
+            while True:
+                result = await session.execute(
+                    select(Request).where(Request.appointment_date == date_utc)
+                )
+                if result.scalar_one_or_none() is None:
+                    return date_utc
+
+                date_msk += timedelta(days=1)
+                date_utc = date_msk.astimezone(pytz.UTC).replace(tzinfo=None)
 
 class AudioService:
     @classmethod

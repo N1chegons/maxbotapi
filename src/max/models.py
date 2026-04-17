@@ -42,8 +42,15 @@ class Request(Base):
         server_default=text(
             "TIMEZONE('utc', now())")
     )
-    contact: Mapped[str] = mapped_column(nullable=True, default="Не указан")
+    contact: Mapped[str] = mapped_column(nullable=True)
     messages: Mapped[str] = mapped_column(nullable=True)
+
+    appointment_date: Mapped[datetime.datetime] = mapped_column(
+        nullable=True,
+        server_default=text(
+            "TIMEZONE('utc', now())")
+    )
+    viewed: Mapped[bool] = mapped_column(nullable=True, default=False)
 
 
 class Message(Base):
@@ -63,3 +70,6 @@ class ThemeChoice(StatesGroup):
 
 class ConsultChoice(StatesGroup):
     ant_choice = State()
+
+class WaitingForPhone(StatesGroup):
+    waiting = State()

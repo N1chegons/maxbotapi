@@ -8,6 +8,7 @@ from alembic import context
 from src.config import settings
 from src.db import Base
 from src.max.models import Session
+from src.admin.models import CommandLog
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
