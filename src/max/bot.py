@@ -233,7 +233,7 @@ async def stats_command(event: MessageCreated):
     report = "📊 **Последние 5 сообщений /mark**\n\n"
     for m in marks:
         report += f"📅 Дата: {m.created_at.strftime('%d.%m.%Y %H:%M')}\n"
-        report += f"📝 Фрагмент: {m.fragment[:150]}...\n\n"
+        report += f"📝 Фрагмент: {m.fragment}...\n\n"
 
     await bot.send_message(user_id=user_id, text=report)
 
