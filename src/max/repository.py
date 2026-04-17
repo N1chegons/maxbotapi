@@ -1,6 +1,6 @@
 import pytz
 from datetime import datetime, timedelta
-from sqlalchemy import select, update, insert
+from sqlalchemy import select, update, insert, delete
 
 from src.config import settings
 from src.db import async_session
@@ -68,6 +68,20 @@ class MaxService:
                 {"role": m.role, "content": m.content}
                 for m in reversed(messages)
             ]
+
+    @classmethod
+    async def delete_previous_day_messages(cls):
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        yesterday_start = today_start - timedelta(days=1)
+
+        async with async_session() as session:
+            await session.execute(
+                delete(Message).where(
+                    Message.created_at >= yesterday_start,
+                    Message.created_at < today_start
+                )
+            )
+            await session.commit()
 
     #consult request
     @classmethod

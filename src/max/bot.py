@@ -3,7 +3,9 @@ import logging
 
 import aiofiles
 import aiohttp
+import pytz
 from aiofiles import os
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from maxapi import Bot, Dispatcher, F
 from maxapi.context import MemoryContext
@@ -18,7 +20,6 @@ from src.max.repository import MaxService, AudioService
 from src.max.utils import upload_to_s3
 from src.yandexai.config import THEMES_INDEXES
 from src.yandexai.orchestrator import ask_ai_with_index
-
 
 logging.basicConfig(level=logging.INFO)
 TOKEN = settings.MAX_BOT_TOKEN
@@ -617,6 +618,18 @@ async def handle_voice_message(event: MessageCreated, context: MemoryContext):
 
 
 async def main():
+    scheduler = AsyncIOScheduler()
+
+    scheduler.add_job(
+        MaxService.delete_previous_day_messages,
+        'cron',
+        hour=0,
+        minute=5,
+        timezone=pytz.timezone('Europe/Moscow')
+    )
+
+    scheduler.start()
+
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
