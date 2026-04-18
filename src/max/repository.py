@@ -69,24 +69,17 @@ class MaxService:
             ]
 
     @classmethod
-    async def delete_previous_day_messages(cls):
+    async def delete_non_today_messages(cls):
+        from datetime import datetime, timezone
 
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        yesterday_start = today_start - timedelta(days=1)
 
-        print(f"[CLEANUP] Удаляю сообщения с {yesterday_start} до {today_start}")
-        try:
-            async with async_session() as session:
-                result = await session.execute(
-                    delete(Message).where(
-                        Message.created_at >= yesterday_start,
-                        Message.created_at < today_start
-                    )
-                )
-                await session.commit()
-                print(f"[CLEANUP] Удалено {result.rowcount} сообщений")
-        except Exception as e:
-            return "Error: ", str(e)
+        async with async_session() as session:
+            result = await session.execute(
+                delete(Message).where(Message.created_at < today_start)
+            )
+            await session.commit()
+            print(f"[CLEANUP] Удалено {result.rowcount} сообщений")
 
     #consult request
     @classmethod

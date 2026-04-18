@@ -621,11 +621,11 @@ async def main():
     scheduler = AsyncIOScheduler()
 
     scheduler.add_job(
-        MaxService.delete_previous_day_messages,
+        MaxService.delete_non_today_messages,
         'cron',
         hour=0,
         minute=5,
-        timezone=pytz.timezone('Europe/Moscow')
+        timezone=pytz.timezone('Europe/Moscow'),
     )
 
     scheduler.start()
