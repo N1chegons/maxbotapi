@@ -1,4 +1,3 @@
-import pytz
 from datetime import datetime, timedelta
 from sqlalchemy import select, update, insert, delete
 
@@ -71,17 +70,23 @@ class MaxService:
 
     @classmethod
     async def delete_previous_day_messages(cls):
+
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         yesterday_start = today_start - timedelta(days=1)
 
-        async with async_session() as session:
-            await session.execute(
-                delete(Message).where(
-                    Message.created_at >= yesterday_start,
-                    Message.created_at < today_start
+        print(f"[CLEANUP] Удаляю сообщения с {yesterday_start} до {today_start}")
+        try:
+            async with async_session() as session:
+                result = await session.execute(
+                    delete(Message).where(
+                        Message.created_at >= yesterday_start,
+                        Message.created_at < today_start
+                    )
                 )
-            )
-            await session.commit()
+                await session.commit()
+                print(f"[CLEANUP] Удалено {result.rowcount} сообщений")
+        except Exception as e:
+            return "Error: ", str(e)
 
     #consult request
     @classmethod
