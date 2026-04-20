@@ -3,9 +3,7 @@ import logging
 
 import aiofiles
 import aiohttp
-import pytz
 from aiofiles import os
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from maxapi import Bot, Dispatcher, F
 from maxapi.context import MemoryContext
@@ -618,18 +616,6 @@ async def handle_voice_message(event: MessageCreated, context: MemoryContext):
 
 
 async def main():
-    scheduler = AsyncIOScheduler()
-
-    scheduler.add_job(
-        MaxService.delete_non_today_messages,
-        'cron',
-        hour=0,
-        minute=5,
-        timezone=pytz.timezone('Europe/Moscow'),
-    )
-
-    scheduler.start()
-
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
