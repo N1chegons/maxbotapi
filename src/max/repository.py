@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy import select, update, insert, delete
 
 from src.config import settings
@@ -220,3 +220,5 @@ class AudioService:
 
         texts = [chunk['alternatives'][0]['text'] for chunk in data['response']['chunks']]
         return ' '.join(texts)
+
+

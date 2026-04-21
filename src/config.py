@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str
     S3_BUCKET_NAME: str
 
+    VK_ACCESS_TOKEN: str
+    VK_GROUP_ID: str
+    MAX_CHANNEL_ID: str
+
+    FTP_HOST: str
+    FTP_USER: str
+    FTP_PASS: str
     @property
     def DB_URL(self):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
