@@ -89,16 +89,17 @@ class VkIntegration:
             ftp = FTP(self.ftp_host)
             ftp.login(self.ftp_user, self.ftp_pass)
 
+            ftp.cwd('socnep')
+
             for lang in pdf_links.keys():
                 try:
                     ftp.cwd(lang)
                     files = ftp.nlst()
                     for file in files:
                         if file.lower().endswith('.pdf'):
-                            # Кодируем имя файла для URL
                             import urllib.parse
                             encoded_file = urllib.parse.quote(file)
-                            url = f"https://socnep.ru/{lang}/{encoded_file}"
+                            url = f"https://socnep.ru/socnep/{lang}/{encoded_file}"
                             pdf_links[lang].append(url)
                     ftp.cwd('..')
                 except Exception as e:
