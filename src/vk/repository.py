@@ -1,8 +1,10 @@
+import asyncio
 import random
 import requests
 import re
+import urllib.parse
+from pathlib import Path
 from ftplib import FTP
-from bs4 import BeautifulSoup
 from src.config import settings
 
 
@@ -18,14 +20,14 @@ class VkIntegration:
         self.ftp_pass = settings.FTP_PASS
 
         self.video_urls = {
-            "Здоровье": "https://vkvideo.ru/video-216257056_456240516?pl=-216257056_8",
-            "Сила": "https://vkvideo.ru/video-216257056_456240512?pl=-216257056_7",
-            "Специалисты": "https://vkvideo.ru/video-216257056_456240512?pl=-216257056_6",
+            "Машиностроение": "https://vkvideo.ru/video-216257056_456239291?pl=-216257056_1",
+            "Педагогика": "https://vkvideo.ru/video-216257056_456240514?pl=-216257056_2",
+            "Питание": "https://vkvideo.ru/video-216257056_456240483?pl=-216257056_3",
+            "Строительство": "https://vkvideo.ru/video-216257056_456240425?pl=-216257056_4",
             "Логистика": "https://vkvideo.ru/video-216257056_456240485?pl=-216257056_5",
-            "Строительство": "https://vkvideo.ru/video-216257056_456240485?pl=-216257056_4",
-            "Питание": "https://vkvideo.ru/video-216257056_456240485?pl=-216257056_3",
-            "Педагогика": "https://vkvideo.ru/video-216257056_456240485?pl=-216257056_2",
-            "Машиностроение": "https://vkvideo.ru/video-216257056_456240485?pl=-216257056_1",
+            "Специалисты": "https://vkvideo.ru/video-216257056_456240500?pl=-216257056_6",
+            "Сила": "https://vkvideo.ru/video-216257056_456240512?pl=-216257056_7",
+            "Здоровье": "https://vkvideo.ru/video-216257056_456240516?pl=-216257056_8",
         }
 
         self.playlist_prefixes = {
@@ -88,19 +90,42 @@ class VkIntegration:
         try:
             ftp = FTP(self.ftp_host)
             ftp.login(self.ftp_user, self.ftp_pass)
-
             ftp.cwd('socnep')
 
             for lang in pdf_links.keys():
                 try:
                     ftp.cwd(lang)
                     files = ftp.nlst()
+                    file_dict = {f: True for f in files}
+
                     for file in files:
                         if file.lower().endswith('.pdf'):
-                            import urllib.parse
                             encoded_file = urllib.parse.quote(file)
-                            url = f"https://socnep.ru/socnep/{lang}/{encoded_file}"
-                            pdf_links[lang].append(url)
+                            url = f"https://socnep.ru/{lang}/{encoded_file}"
+
+                            base_name = file[:-4]
+                            txt_name = base_name + '.txt'
+                            description = None
+
+                            if txt_name in file_dict:
+                                try:
+                                    import io
+                                    import chardet
+                                    txt_data = io.BytesIO()
+                                    ftp.retrbinary(f'RETR {txt_name}', txt_data.write)
+                                    raw = txt_data.getvalue()
+                                    detected = chardet.detect(raw)
+                                    encoding = detected.get('encoding', 'utf-8')
+                                    description = raw.decode(encoding).strip()
+                                    print(f"✅ Описание для {file} загружено (кодировка: {encoding})")
+                                except Exception as e:
+                                    print(f"⚠️ Ошибка чтения TXT для {file}: {e}")
+
+                            pdf_links[lang].append({
+                                'url': url,
+                                'description': description,
+                                'file': file
+                            })
                     ftp.cwd('..')
                 except Exception as e:
                     print(f"Ошибка в папке {lang}: {e}")
@@ -111,23 +136,44 @@ class VkIntegration:
 
         return pdf_links
 
-    def get_article_links(self):
-        article_links = []
+    def get_random_article_link(self):
+        url = "https://api.vk.com/method/wall.get"
+
+        params = {
+            "access_token": self.token,
+            "owner_id": self.group_id,
+            "count": 0,
+            "v": "5.199"
+        }
+
         try:
-            # Парсим страницу библиотеки
-            url = "https://vk.ru/socnep.biblio"
-            headers = {"User-Agent": "Mozilla/5.0"}
-            response = requests.get(url, headers=headers)
-            soup = BeautifulSoup(response.text, 'html.parser')
+            response = requests.get(url, params=params)
+            data = response.json()
 
-            for link in soup.find_all('a', href=True):
-                if '/doc' in link['href']:
-                    full_url = "https://vk.ru" + link['href']
-                    article_links.append(full_url)
+            if "error" in data:
+                print(f"Ошибка VK API: {data['error']['error_msg']}")
+                return None
+
+            total_posts = data["response"]["count"]
+            if total_posts == 0:
+                print("Нет постов в сообществе")
+                return None
+
+            offset = random.randint(0, total_posts - 1)
+
+            params["count"] = 1
+            params["offset"] = offset
+            response = requests.get(url, params=params)
+            data = response.json()
+
+            post = data["response"]["items"][0]
+            post_id = post["id"]
+
+            return f"https://vk.ru/wall-186451829_{post_id}"
+
         except Exception as e:
-            print(f"Ошибка получения статей: {e}")
-
-        return article_links
+            print(f"Ошибка получения статьи: {e}")
+            return None
 
     def get_video_description(self, video_url):
         match = re.search(r'/video-216257056_(\d+)', video_url)
@@ -149,14 +195,13 @@ class VkIntegration:
             data = response.json()
 
             if "error" in data:
-                print(f"API ошибка: {data['error']['error_msg']}")
                 return ""
 
             items = data.get("response", {}).get("items", [])
             if items:
                 description = items[0].get("description", "")
-                if len(description) > 500:
-                    description = description[:497] + "..."
+                if len(description) > 1000:
+                    description = description[:997] + "..."
                 return description
         except Exception as e:
             print(f"Ошибка получения описания: {e}")
@@ -186,7 +231,8 @@ class VkIntegration:
                 print(f"❌ Нет видео для {item_name}")
                 return
             prefix = self.playlist_prefixes.get(item_name, "")
-            description = self.get_video_description(video_url)
+            description = self.get_video_description(video_url) or ""
+
             if description:
                 message = f"{prefix}\n\n{description}\n\n🎬 Смотреть: {video_url}"
             else:
@@ -198,16 +244,24 @@ class VkIntegration:
             if not pdf_links.get(lang):
                 print(f"❌ Нет PDF для {lang}")
                 return
-            pdf_url = random.choice(pdf_links[lang])
+
+            item = random.choice(pdf_links[lang])
+            pdf_url = item['url']
+            description = item.get('description')
             prefix = self.pdf_prefixes.get(lang, "")
-            message = f"{prefix}\n\n📄 Читать: {pdf_url}"
+
+            if description:
+                message = f"{prefix}\n\n{description}\n\n📄 Читать: {pdf_url}"
+            else:
+                filename = urllib.parse.unquote(pdf_url.split('/')[-1])
+                desc = Path(filename).stem.replace('_', ' ').replace('-', ' ')
+                message = f"{prefix}\n\n{desc}\n\n📄 Читать: {pdf_url}"
 
         elif item_type == "article":
-            articles = self.get_article_links()
-            if not articles:
-                print("❌ Нет статей")
+            article_url = self.get_random_article_link()
+            if not article_url:
+                print("❌ Нет статьи")
                 return
-            article_url = random.choice(articles)
             message = f"Книга 📚\n\n📖 Читать: {article_url}"
 
         else:
@@ -221,5 +275,5 @@ class VkIntegration:
             print(f"✅ Опубликовано: {item_type} - {item_name}")
             self.save_current_index((index + 1) % len(self.order))
         except Exception as e:
-            print(f"❌ Ошибка: {e}")
+            print(f"❌ Ошибка публикации: {e}")
 
