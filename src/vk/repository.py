@@ -157,13 +157,15 @@ class VkIntegration:
             if not items:
                 return None
 
-            # Фильтруем: только посты с текстом длиннее 50 символов
+            # Жёсткая фильтрация
             valid_posts = []
             for post in items:
                 text = post.get("text", "").strip()
-                # Пропускаем пустые, слишком короткие, и те, где только ссылка
-                if len(text) > 50 and not text.startswith('http'):
-                    valid_posts.append(post)
+                # Проверяем, что текст не пустой, длиннее 100 символов, не начинается с http, не содержит только ссылку
+                if len(text) > 100 and not text.startswith('http') and 'vk.ru' not in text[:50]:
+                    # Проверяем, что это не репост (нет поля copy_history)
+                    if "copy_history" not in post:
+                        valid_posts.append(post)
 
             if not valid_posts:
                 print("Нет подходящих статей с текстом")
@@ -176,13 +178,17 @@ class VkIntegration:
             # Берём первый абзац
             first_paragraph = text.split('\n\n')[0].strip().split('\n')[0].strip()
 
-            # Если первый абзац — ссылка, берём следующий
-            if first_paragraph.startswith('http'):
+            # Если первый абзац — ссылка, ищем следующий
+            if first_paragraph.startswith('http') or 'vk.ru' in first_paragraph:
                 parts = text.split('\n\n')
+                first_paragraph = ""
                 for part in parts:
-                    if part.strip() and not part.startswith('http'):
+                    if part.strip() and not part.startswith('http') and 'vk.ru' not in part:
                         first_paragraph = part.strip()
                         break
+
+            if not first_paragraph:
+                first_paragraph = text[:300]
 
             if len(first_paragraph) > 500:
                 first_paragraph = first_paragraph[:497] + "..."
