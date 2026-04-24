@@ -141,7 +141,7 @@ class VkIntegration:
         params = {
             "access_token": self.token,
             "owner_id": "-186451829",
-            "count": 1000,
+            "count": 100,
             "v": "5.199"
         }
 
@@ -157,54 +157,41 @@ class VkIntegration:
             if not items:
                 return None
 
-            valid_posts = []
+            # Перемешиваем и ищем подходящий пост
+            import random
+            random.shuffle(items)
+
             for post in items:
-                # Проверяем, что есть текст длиной больше 100 символов
                 text = post.get("text", "").strip()
+
+                # Пропускаем, если текст короткий или пустой
                 if len(text) < 100:
                     continue
 
-                # Проверяем, что в attachments есть ссылка на пост
+                # Пропускаем, если текст начинается со ссылки
+                if text.startswith('http') or 'vk.ru' in text[:50]:
+                    continue
+
+                # Ищем ссылку на пост в attachments
                 if "attachments" in post:
                     for att in post["attachments"]:
                         if att.get("type") == "link":
                             link_url = att["link"]["url"]
                             if "/@-186451829-" in link_url:
-                                valid_posts.append({
+                                # Берём первый абзац
+                                first_paragraph = text.split('\n\n')[0].strip().split('\n')[0].strip()
+
+                                if len(first_paragraph) > 500:
+                                    first_paragraph = first_paragraph[:497] + "..."
+
+                                return {
                                     "url": link_url,
-                                    "text": text,
-                                    "id": post["id"]
-                                })
-                                break
+                                    "description": first_paragraph
+                                }
 
-            if not valid_posts:
-                print("Нет подходящих статей")
-                return None
+            print("Нет подходящих статей")
+            return None
 
-            post = random.choice(valid_posts)
-
-            # Берём первый абзац (до первой пустой строки)
-            first_paragraph = post["text"].split('\n\n')[0].strip()
-
-            # Если первый абзац — ссылка, берём следующий
-            if first_paragraph.startswith('http') or 'vk.ru' in first_paragraph:
-                parts = post["text"].split('\n\n')
-                for part in parts:
-                    if part.strip() and not part.startswith('http') and 'vk.ru' not in part:
-                        first_paragraph = part.strip()
-                        break
-
-            # Если всё равно пусто — берём первые 300 символов
-            if not first_paragraph or len(first_paragraph) < 20:
-                first_paragraph = post["text"][:300]
-
-            if len(first_paragraph) > 500:
-                first_paragraph = first_paragraph[:497] + "..."
-
-            return {
-                "url": post["url"],
-                "description": first_paragraph
-            }
         except Exception as e:
             print(f"Ошибка получения статьи: {e}")
             return None
