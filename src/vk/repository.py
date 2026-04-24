@@ -141,7 +141,7 @@ class VkIntegration:
         params = {
             "access_token": self.token,
             "owner_id": "-186451829",
-            "count": 100,
+            "count": 1000,
             "v": "5.199"
         }
 
