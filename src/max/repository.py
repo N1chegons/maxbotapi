@@ -219,6 +219,5 @@ class AudioService:
                 break
 
         texts = [chunk['alternatives'][0]['text'] for chunk in data['response']['chunks']]
-        return ' '.join(texts)
-
+        return ' '.join(texts),
 

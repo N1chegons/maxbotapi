@@ -136,13 +136,12 @@ class VkIntegration:
 
         return pdf_links
 
-    def get_random_article_link(self):
+    def get_random_article(self):
         url = "https://api.vk.com/method/wall.get"
-
         params = {
             "access_token": self.token,
-            "owner_id": self.group_id,
-            "count": 0,
+            "owner_id": "-186451829",
+            "count": 100,
             "v": "5.199"
         }
 
@@ -151,26 +150,43 @@ class VkIntegration:
             data = response.json()
 
             if "error" in data:
-                print(f"Ошибка VK API: {data['error']['error_msg']}")
+                print(f"Ошибка VK: {data['error']['error_msg']}")
                 return None
 
-            total_posts = data["response"]["count"]
-            if total_posts == 0:
-                print("Нет постов в сообществе")
+            items = data["response"]["items"]
+            if not items:
                 return None
 
-            offset = random.randint(0, total_posts - 1)
+            # Фильтруем посты с текстом
+            valid_posts = [p for p in items if p.get("text") and len(p["text"]) > 50]
+            if not valid_posts:
+                valid_posts = items
 
-            params["count"] = 1
-            params["offset"] = offset
-            response = requests.get(url, params=params)
-            data = response.json()
-
-            post = data["response"]["items"][0]
+            post = random.choice(valid_posts)
             post_id = post["id"]
+            text = post["text"]
 
-            return f"https://vk.ru/wall-186451829_{post_id}"
+            # Берём первый абзац (до первой пустой строки или перевода строки)
+            first_paragraph = text.split('\n\n')[0].strip().split('\n')[0].strip()
 
+            # Если первый абзац — это ссылка, берём следующий
+            if first_paragraph.startswith('http') or first_paragraph.startswith('https://vk.ru'):
+                parts = text.split('\n\n')
+                for part in parts:
+                    if part.strip() and not part.startswith('http'):
+                        first_paragraph = part.strip()
+                        break
+
+            # Ограничиваем длину
+            if len(first_paragraph) > 500:
+                first_paragraph = first_paragraph[:497] + "..."
+
+            article_url = f"https://vk.ru/@socnep.biblio-{post_id}"
+
+            return {
+                "url": article_url,
+                "description": first_paragraph
+            }
         except Exception as e:
             print(f"Ошибка получения статьи: {e}")
             return None
@@ -257,12 +273,13 @@ class VkIntegration:
                 desc = Path(filename).stem.replace('_', ' ').replace('-', ' ')
                 message = f"{prefix}\n\n{desc}\n\n📄 Читать: {pdf_url}"
 
+
         elif item_type == "article":
-            article_url = self.get_random_article_link()
-            if not article_url:
+            article = self.get_random_article()  # ← новый метод
+            if not article:
                 print("❌ Нет статьи")
                 return
-            message = f"Книга 📚\n\n📖 Читать: {article_url}"
+            message = f"Книга 📚\n\n{article['description']}\n\n📖 Читать: {article['url']}"
 
         else:
             return
@@ -276,4 +293,3 @@ class VkIntegration:
             self.save_current_index((index + 1) % len(self.order))
         except Exception as e:
             print(f"❌ Ошибка публикации: {e}")
-
