@@ -157,18 +157,22 @@ class VkIntegration:
             if not items:
                 return None
 
-            # Ищем посты со ссылкой нужного формата
             valid_posts = []
             for post in items:
+                # Проверяем, что есть текст длиной больше 100 символов
+                text = post.get("text", "").strip()
+                if len(text) < 100:
+                    continue
+
+                # Проверяем, что в attachments есть ссылка на пост
                 if "attachments" in post:
                     for att in post["attachments"]:
                         if att.get("type") == "link":
                             link_url = att["link"]["url"]
-                            # Проверяем, что ссылка ведёт на пост сообщества
                             if "/@-186451829-" in link_url:
                                 valid_posts.append({
                                     "url": link_url,
-                                    "text": post.get("text", ""),
+                                    "text": text,
                                     "id": post["id"]
                                 })
                                 break
@@ -178,22 +182,33 @@ class VkIntegration:
                 return None
 
             post = random.choice(valid_posts)
-            article_url = post["url"]
-            text = post["text"]
 
-            # Берём первый абзац
-            first_paragraph = text.split('\n\n')[0].strip().split('\n')[0].strip()
+            # Берём первый абзац (до первой пустой строки)
+            first_paragraph = post["text"].split('\n\n')[0].strip()
+
+            # Если первый абзац — ссылка, берём следующий
+            if first_paragraph.startswith('http') or 'vk.ru' in first_paragraph:
+                parts = post["text"].split('\n\n')
+                for part in parts:
+                    if part.strip() and not part.startswith('http') and 'vk.ru' not in part:
+                        first_paragraph = part.strip()
+                        break
+
+            # Если всё равно пусто — берём первые 300 символов
+            if not first_paragraph or len(first_paragraph) < 20:
+                first_paragraph = post["text"][:300]
 
             if len(first_paragraph) > 500:
                 first_paragraph = first_paragraph[:497] + "..."
 
             return {
-                "url": article_url,
+                "url": post["url"],
                 "description": first_paragraph
             }
         except Exception as e:
             print(f"Ошибка получения статьи: {e}")
             return None
+
     def get_video_description(self, video_url):
         match = re.search(r'/video-216257056_(\d+)', video_url)
         if not match:
