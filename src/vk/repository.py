@@ -157,30 +157,26 @@ class VkIntegration:
             if not items:
                 return None
 
-            # Перемешиваем и ищем подходящий пост
             import random
             random.shuffle(items)
 
             for post in items:
-                text = post.get("text", "").strip()
-
-                # Пропускаем, если текст короткий или пустой
-                if len(text) < 100:
-                    continue
-
-                # Пропускаем, если текст начинается со ссылки
-                if text.startswith('http') or 'vk.ru' in text[:50]:
-                    continue
-
-                # Ищем ссылку на пост в attachments
+                # Проверяем, есть ли ссылка на пост в attachments
                 if "attachments" in post:
                     for att in post["attachments"]:
                         if att.get("type") == "link":
                             link_url = att["link"]["url"]
                             if "/@-186451829-" in link_url:
-                                # Берём первый абзац
-                                first_paragraph = text.split('\n\n')[0].strip().split('\n')[0].strip()
+                                text = post.get("text", "").strip()
 
+                                # Пробуем взять первый абзац
+                                first_paragraph = ""
+                                if text:
+                                    first_paragraph = text.split('\n\n')[0].strip().split('\n')[0].strip()
+                                    if first_paragraph.startswith('http') or 'vk.ru' in first_paragraph[:30]:
+                                        first_paragraph = ""
+
+                                # Если нет нормального описания — оставляем пустым
                                 if len(first_paragraph) > 500:
                                     first_paragraph = first_paragraph[:497] + "..."
 
@@ -189,7 +185,16 @@ class VkIntegration:
                                     "description": first_paragraph
                                 }
 
-            print("Нет подходящих статей")
+            # Если ничего не нашли — берём первый попавшийся пост
+            for post in items:
+                if "attachments" in post:
+                    for att in post["attachments"]:
+                        if att.get("type") == "link":
+                            return {
+                                "url": att["link"]["url"],
+                                "description": ""
+                            }
+
             return None
 
         except Exception as e:
