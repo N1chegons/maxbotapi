@@ -157,43 +157,35 @@ class VkIntegration:
             if not items:
                 return None
 
-            # Жёсткая фильтрация
+            # Ищем посты со ссылкой нужного формата
             valid_posts = []
             for post in items:
-                text = post.get("text", "").strip()
-                # Проверяем, что текст не пустой, длиннее 100 символов, не начинается с http, не содержит только ссылку
-                if len(text) > 100 and not text.startswith('http') and 'vk.ru' not in text[:50]:
-                    # Проверяем, что это не репост (нет поля copy_history)
-                    if "copy_history" not in post:
-                        valid_posts.append(post)
+                if "attachments" in post:
+                    for att in post["attachments"]:
+                        if att.get("type") == "link":
+                            link_url = att["link"]["url"]
+                            # Проверяем, что ссылка ведёт на пост сообщества
+                            if "/@-186451829-" in link_url:
+                                valid_posts.append({
+                                    "url": link_url,
+                                    "text": post.get("text", ""),
+                                    "id": post["id"]
+                                })
+                                break
 
             if not valid_posts:
-                print("Нет подходящих статей с текстом")
+                print("Нет подходящих статей")
                 return None
 
             post = random.choice(valid_posts)
-            post_id = post["id"]
+            article_url = post["url"]
             text = post["text"]
 
             # Берём первый абзац
             first_paragraph = text.split('\n\n')[0].strip().split('\n')[0].strip()
 
-            # Если первый абзац — ссылка, ищем следующий
-            if first_paragraph.startswith('http') or 'vk.ru' in first_paragraph:
-                parts = text.split('\n\n')
-                first_paragraph = ""
-                for part in parts:
-                    if part.strip() and not part.startswith('http') and 'vk.ru' not in part:
-                        first_paragraph = part.strip()
-                        break
-
-            if not first_paragraph:
-                first_paragraph = text[:300]
-
             if len(first_paragraph) > 500:
                 first_paragraph = first_paragraph[:497] + "..."
-
-            article_url = f"https://vk.ru/@socnep.biblio-{post_id}"
 
             return {
                 "url": article_url,
@@ -202,7 +194,6 @@ class VkIntegration:
         except Exception as e:
             print(f"Ошибка получения статьи: {e}")
             return None
-
     def get_video_description(self, video_url):
         match = re.search(r'/video-216257056_(\d+)', video_url)
         if not match:
@@ -305,3 +296,9 @@ class VkIntegration:
             self.save_current_index((index + 1) % len(self.order))
         except Exception as e:
             print(f"❌ Ошибка публикации: {e}")
+
+vk = VkIntegration()
+article = vk.get_random_article()
+if article:
+    print('Ссылка:', article['url'])
+    print('Описание:', article['description'][:150])
