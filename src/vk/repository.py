@@ -5,6 +5,9 @@ import re
 import urllib.parse
 from pathlib import Path
 from ftplib import FTP
+
+from bs4 import BeautifulSoup
+
 from src.config import settings
 
 
@@ -161,45 +164,66 @@ class VkIntegration:
             random.shuffle(items)
 
             for post in items:
-                # Проверяем, есть ли ссылка на пост в attachments
                 if "attachments" in post:
                     for att in post["attachments"]:
                         if att.get("type") == "link":
                             link_url = att["link"]["url"]
                             if "/@-186451829-" in link_url:
-                                text = post.get("text", "").strip()
+                                # Пробуем взять описание из текста поста
+                                description = post.get("text", "").strip()
 
-                                # Пробуем взять первый абзац
-                                first_paragraph = ""
-                                if text:
-                                    first_paragraph = text.split('\n\n')[0].strip().split('\n')[0].strip()
-                                    if first_paragraph.startswith('http') or 'vk.ru' in first_paragraph[:30]:
-                                        first_paragraph = ""
+                                # Если текст короткий или начинается со ссылки — парсим страницу
+                                if len(description) < 100 or description.startswith('http'):
+                                    description = self.get_article_description_from_page(link_url)
 
-                                # Если нет нормального описания — оставляем пустым
-                                if len(first_paragraph) > 500:
-                                    first_paragraph = first_paragraph[:497] + "..."
+                                # Если всё равно пусто — оставляем пустым
+                                if not description:
+                                    description = ""
 
                                 return {
                                     "url": link_url,
-                                    "description": first_paragraph
+                                    "description": description
                                 }
-
-            # Если ничего не нашли — берём первый попавшийся пост
-            for post in items:
-                if "attachments" in post:
-                    for att in post["attachments"]:
-                        if att.get("type") == "link":
-                            return {
-                                "url": att["link"]["url"],
-                                "description": ""
-                            }
 
             return None
 
         except Exception as e:
             print(f"Ошибка получения статьи: {e}")
             return None
+
+    def get_article_description_from_page(self, article_url):
+        """Парсит страницу статьи и возвращает первый абзац текста"""
+        try:
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            response = requests.get(article_url, headers=headers, timeout=15)
+
+            if response.status_code != 200:
+                return ""
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            # Ищем текст в параграфах
+            for p in soup.find_all('p'):
+                text = p.get_text().strip()
+                # Пропускаем короткие и мусорные
+                if len(text) > 100 and not text.startswith('http'):
+                    # Обрезаем до 500 символов
+                    if len(text) > 500:
+                        text = text[:497] + "..."
+                    return text
+
+            # Если параграфов нет — ищем любой текст в div
+            for div in soup.find_all('div', class_='wall_post_text'):
+                text = div.get_text().strip()
+                if len(text) > 100:
+                    if len(text) > 500:
+                        text = text[:497] + "..."
+                    return text
+
+            return ""
+        except Exception as e:
+            print(f"Ошибка парсинга страницы: {e}")
+            return ""
 
     def get_video_description(self, video_url):
         match = re.search(r'/video-216257056_(\d+)', video_url)
@@ -304,8 +328,22 @@ class VkIntegration:
         except Exception as e:
             print(f"❌ Ошибка публикации: {e}")
 
-vk = VkIntegration()
-article = vk.get_random_article()
-if article:
-    print('Ссылка:', article['url'])
-    print('Описание:', article['description'][:150])
+
+async def test():
+    vk = VkIntegration()
+
+    print('=== ТЕСТ ПОЛУЧЕНИЯ СТАТЬИ ===\n')
+    article = vk.get_random_article()
+    if article:
+        print(f'Ссылка: {article["url"]}')
+        print(f'Описание: {article["description"][:200] if article["description"] else "(пусто)"}')
+    else:
+        print('❌ Нет статьи')
+
+    print('\n=== ТЕСТ ПАРСИНГА СТРАНИЦЫ ===\n')
+    test_url = 'https://vk.ru/@-186451829-2024-01'
+    desc = vk.get_article_description_from_page(test_url)
+    print(f'Страница: {test_url}')
+    print(f'Описание: {desc[:200] if desc else "(пусто)"}')
+
+asyncio.run(test())
