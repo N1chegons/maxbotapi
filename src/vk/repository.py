@@ -225,6 +225,36 @@ class VkIntegration:
             print(f"Ошибка парсинга страницы: {e}")
             return ""
 
+    def get_random_video_url(self):
+        url = "https://api.vk.com/method/video.get"
+        params = {
+            "access_token": self.token,
+            "owner_id": self.group_id,
+            "count": 200,
+            "v": "5.199"
+        }
+
+        try:
+            response = requests.get(url, params=params)
+            data = response.json()
+
+            if "error" in data:
+                print(f"Ошибка VK API: {data['error']['error_msg']}")
+                return None
+
+            items = data.get("response", {}).get("items", [])
+            if not items:
+                print("Нет видео в группе")
+                return None
+
+            video = random.choice(items)
+            video_url = f"https://vk.com/video{video['owner_id']}_{video['id']}"
+            return video_url
+
+        except Exception as e:
+            print(f"Ошибка получения видео: {e}")
+            return None
+
     def get_video_description(self, video_url):
         match = re.search(r'/video-216257056_(\d+)', video_url)
         if not match:
@@ -276,10 +306,11 @@ class VkIntegration:
         print(f"\n📢 [{index}] {item_type} - {item_name}")
 
         if item_type == "playlist":
-            video_url = self.video_urls.get(item_name)
+            video_url = self.get_random_video_url()
             if not video_url:
-                print(f"❌ Нет видео для {item_name}")
+                print("❌ Не удалось получить видео")
                 return
+
             prefix = self.playlist_prefixes.get(item_name, "")
             description = self.get_video_description(video_url) or ""
 
@@ -309,7 +340,7 @@ class VkIntegration:
 
 
         elif item_type == "article":
-            article = self.get_random_article()  # ← новый метод
+            article = self.get_random_article()
             if not article:
                 print("❌ Нет статьи")
                 return
@@ -327,23 +358,3 @@ class VkIntegration:
             self.save_current_index((index + 1) % len(self.order))
         except Exception as e:
             print(f"❌ Ошибка публикации: {e}")
-
-
-async def test():
-    vk = VkIntegration()
-
-    print('=== ТЕСТ ПОЛУЧЕНИЯ СТАТЬИ ===\n')
-    article = vk.get_random_article()
-    if article:
-        print(f'Ссылка: {article["url"]}')
-        print(f'Описание: {article["description"][:200] if article["description"] else "(пусто)"}')
-    else:
-        print('❌ Нет статьи')
-
-    print('\n=== ТЕСТ ПАРСИНГА СТРАНИЦЫ ===\n')
-    test_url = 'https://vk.ru/@-186451829-2024-01'
-    desc = vk.get_article_description_from_page(test_url)
-    print(f'Страница: {test_url}')
-    print(f'Описание: {desc[:200] if desc else "(пусто)"}')
-
-asyncio.run(test())
