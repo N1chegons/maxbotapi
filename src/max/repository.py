@@ -1,51 +1,55 @@
+import os
 from datetime import datetime
+
+from maxapi.types import InputMedia
 from sqlalchemy import select, update, insert, delete
 
 from src.config import settings
 from src.db import async_session
-from src.max.models import Session, Message, Request, Feedback
+from src.max.models import Session, Message, Request, Feedback, User, UserState
 
 FOLDER_ID = settings.YC_FOLDER_ID
 API_KEY = settings.YC_API_SPEECHKIT
 
 class MaxService:
-    # session section
+    # user section
     @classmethod
-    async def get_session(cls, user_id: int):
+    async def get_user(cls, user_id: int):
         async with async_session() as session:
-            query = select(Session).filter_by(client_id=user_id)
+            query = select(User).filter_by(user_id=user_id)
             result = await session.execute(query)
             res = result.scalar_one_or_none()
             return res
 
     @classmethod
-    async def update_session(cls, user_id: int, topic: str):
+    async def create_user(cls, user_id: int, platform: str):
         async with async_session() as session:
-            stmt = (
-                update(Session)
-                .filter_by(client_id=user_id)
-                .values(topic=topic)
-            )
-            await session.execute(stmt)
+            stmt = insert(User).values(user_id=user_id)
+            add_new_session = await session.execute(stmt)
             await session.commit()
 
+    # session section
     @classmethod
-    async def create_session(cls, user_id: int, topic: str):
+    async def get_session(cls, user_id: int):
         async with async_session() as session:
-            already_user = await cls.get_session(user_id)
-            if already_user is not None:
-                await cls.update_session(user_id, topic)
-            else:
-                stmt = insert(Session).values(client_id=user_id, topic=topic)
-                add_new_session = await session.execute(stmt)
-                await session.commit()
+            query = select(Session).filter_by(user_id=user_id)
+            result = await session.execute(query)
+            res = result.scalar_one_or_none()
+            return res
+
+    @classmethod
+    async def create_session(cls, user_id: int):
+        async with async_session() as session:
+            stmt = insert(Session).values(user_id=user_id)
+            add_new_session = await session.execute(stmt)
+            await session.commit()
 
     # history message section
     @classmethod
     async def add_message(cls, user_id: int, role: str, content: str):
         async with async_session() as session:
             stmt = insert(Message).values(
-                client_id=user_id,
+                user_id=user_id,
                 role=role,
                 content=content
             )
@@ -57,7 +61,7 @@ class MaxService:
         async with async_session() as session:
             stmt = (
                 select(Message)
-                .filter_by(client_id=user_id)
+                .filter_by(user_id=user_id)
                 .order_by(Message.created_at.desc())
                 .limit(limit)
             )
@@ -142,7 +146,7 @@ class MaxService:
         async with async_session() as session:
             stmt = (
                 select(Message)
-                .filter_by(client_id=client_id)
+                .filter_by(user_id=client_id)
                 .order_by(Message.created_at.desc())
                 .limit(limit)
             )
@@ -165,6 +169,7 @@ class MaxService:
             await session.execute(stmt)
             await session.commit()
 
+    # utils
     @classmethod
     async def get_next_free_date(cls) -> datetime:
         import pytz
@@ -188,6 +193,40 @@ class MaxService:
                 date_msk += timedelta(days=1)
                 date_utc = date_msk.astimezone(pytz.UTC).replace(tzinfo=None)
 
+    @classmethod
+    async def check_and_update_trial_status(cls, user_id: int) -> str:
+        async with async_session() as session:
+            # Получаем пользователя
+            user = await cls.get_user(user_id)
+
+            # Если не в триале — возвращаем его статус
+            if user.state != UserState.TRIAL_ACTIVE:
+                return user.state
+
+            # Если триал ещё не закончился
+            if user.trial_ends_at and user.trial_ends_at > datetime.utcnow():
+                return UserState.TRIAL_ACTIVE
+
+            # Триал закончился — обновляем
+            stmt = update(User).filter_by(user_id=user_id).values(
+                state=UserState.TRIAL_ENDED_NOT_PAID
+            )
+            await session.execute(stmt)
+            await session.commit()
+
+            return UserState.TRIAL_ENDED_NOT_PAID
+
+    @classmethod
+    async def can_send_message(cls, user_id: int) -> bool:
+        """Может ли пользователь отправлять новые сообщения"""
+        state = await cls.check_and_update_trial_status(user_id)
+
+        # Запрещённые статусы (здесь НЕЛЬЗЯ писать)
+        forbidden_states = [UserState.TRIAL_ENDED_NOT_PAID]
+
+        # Можно писать, если статус НЕ в запрещённых
+        return state not in forbidden_states
+
 class AudioService:
     @classmethod
     def recognize_from_s3(cls, filelink: str, api_key: str) -> str:
@@ -197,7 +236,7 @@ class AudioService:
             "config": {
                 "specification": {
                     "languageCode": "ru-RU",
-                    "audioEncoding": "MP3"  # ← ключевое изменение
+                    "audioEncoding": "MP3"
                 }
             },
             "audio": {"uri": filelink}
@@ -221,3 +260,20 @@ class AudioService:
         texts = [chunk['alternatives'][0]['text'] for chunk in data['response']['chunks']]
         return ' '.join(texts),
 
+
+
+class VideoService:
+    def __init__(self):
+        self.cache_dir = "video_cache"
+        self.video_files = {
+            "consultation": "04.mp4",
+            "about_bot": "02.mp4",
+            "about_expert": "01.mp4"
+        }
+        self.video_media_cache = {}
+
+    async def preload_videos(self):
+        for key, file_name in self.video_files.items():
+            file_path = os.path.join(self.cache_dir, file_name)
+            if os.path.exists(file_path):
+                self.video_media_cache[key] = InputMedia(path=file_path)

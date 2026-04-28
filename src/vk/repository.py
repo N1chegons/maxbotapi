@@ -1,4 +1,3 @@
-import asyncio
 import random
 import requests
 import re
@@ -230,7 +229,7 @@ class VkIntegration:
         params = {
             "access_token": self.token,
             "owner_id": self.group_id,
-            "count": 200,
+            "count": 100,
             "v": "5.199"
         }
 
