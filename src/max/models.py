@@ -78,7 +78,7 @@ class Message(Base):
     __tablename__ = "messages"
 
     message_id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    session_id: Mapped[int] = mapped_column(ForeignKey("session.id"))
+    session_id: Mapped[int] = mapped_column(ForeignKey("sessions.id"))
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     role: Mapped[Role]
     content: Mapped[str]
