@@ -484,7 +484,7 @@ async def handle_who_igor(callback: MessageCallback):
 @dp.message_callback(F.callback.payload == "memory_none")
 async def handle_memory_none(callback: MessageCallback):
     await callback.message.edit(
-        text="Напиши, что тебя беспокоит прямо сейчас.\n Для начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
+        text="Напиши, что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
         attachments=[]
     )
 
@@ -507,7 +507,7 @@ async def handle_memory_dialog(callback: MessageCallback):
 
     # Показываем главное меню
     await callback.message.edit(
-        text="Напиши, что тебя беспокоит прямо сейчас.\n Для начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?", attachments=[]
+        text="Напиши, что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?", attachments=[]
     )
 
 @dp.message_callback(F.callback.payload == "memory_full")
@@ -529,7 +529,7 @@ async def handle_memory_full(callback: MessageCallback):
 
     # Показываем главное меню
     await callback.message.edit(
-        text="Напиши, что тебя беспокоит прямо сейчас.\n Для начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?", attachments=[]
+        text="Напиши, что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?", attachments=[]
     )
 
 # --Consult
@@ -604,21 +604,21 @@ async def handle_message(event: MessageCreated):
     if text.startswith('/'):
         return
 
-    session = await MaxService.get_session(user_id)
+    # session = await MaxService.get_session(user_id)
     selected_topic = "Консультации"
     index_id = THEMES_INDEXES.get(selected_topic)
+    #
+    # if not index_id:
+    #     await bot.send_message(
+    #         user_id=user_id,
+    #         text="⚠️ Ошибка: индекс для этой темы не найден"
+    #     )
+    #     return
+    #
+    # history = await MaxService.get_history(user_id, limit=10)
+    # await MaxService.add_message(user_id, "user", text)
 
-    if not index_id:
-        await bot.send_message(
-            user_id=user_id,
-            text="⚠️ Ошибка: индекс для этой темы не найден"
-        )
-        return
-
-    history = await MaxService.get_history(user_id, limit=10)
-    await MaxService.add_message(user_id, "user", text)
-
-    answer = ask_ai_with_index(index_id, text, selected_topic, history)
+    answer = ask_ai_with_index(index_id, text, selected_topic)
 
     if answer:
         last_exchange = f"Клиент: {text}\n\nБот: {answer}"
@@ -635,18 +635,18 @@ async def handle_message(event: MessageCreated):
 async def handle_voice_message(event: MessageCreated):
     user_id = event.from_user.user_id
 
-    session = await MaxService.get_session(user_id)
+    # session = await MaxService.get_session(user_id)
     selected_topic = "Консультации"
     index_id = THEMES_INDEXES.get(selected_topic)
-
-    history = await MaxService.get_history(user_id, limit=10)
-
-    if not index_id:
-        await bot.send_message(
-            user_id=user_id,
-            text="⚠️ Ошибка: индекс для этой темы не найден"
-        )
-        return
+    #
+    # history = await MaxService.get_history(user_id, limit=10)
+    #
+    # if not index_id:
+    #     await bot.send_message(
+    #         user_id=user_id,
+    #         text="⚠️ Ошибка: индекс для этой темы не найден"
+    #     )
+    #     return
 
 
     audio_attachment = None
@@ -668,7 +668,7 @@ async def handle_voice_message(event: MessageCreated):
 
         recognized_text = AudioService.recognize_from_s3(s3_url, settings.YC_API_KEY)
 
-        answer = ask_ai_with_index(index_id, recognized_text, selected_topic, history)
+        answer = ask_ai_with_index(index_id, recognized_text, selected_topic)
         if answer:
             last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
             await MaxService.add_message(user_id, "user", recognized_text)
