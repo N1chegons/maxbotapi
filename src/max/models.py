@@ -63,7 +63,8 @@ class User(Base):
 class Session(Base):
     __tablename__ = "sessions"
 
-    session_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    session_id: Mapped[int] = mapped_column(index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
     started_at: Mapped[datetime.datetime] = mapped_column(
         server_default=text(
