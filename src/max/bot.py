@@ -483,7 +483,10 @@ async def handle_who_igor(callback: MessageCallback):
 
 @dp.message_callback(F.callback.payload == "memory_none")
 async def handle_memory_none(callback: MessageCallback):
-    pass
+    await callback.message.edit(
+        text="Напиши, что тебя беспокоит прямо сейчас.\n Для начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
+        attachments=[]
+    )
 
 @dp.message_callback(F.callback.payload == "memory_dialog")
 async def handle_memory_dialog(callback: MessageCallback):
