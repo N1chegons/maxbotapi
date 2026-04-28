@@ -4,7 +4,7 @@ import aiohttp
 
 from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import Command
-from maxapi.types import MessageCreated, BotStarted, CallbackButton, MessageCallback
+from maxapi.types import MessageCreated, BotStarted, CallbackButton, MessageCallback, InputMedia
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
 # from src.admin.repository import AdminService
@@ -484,52 +484,52 @@ async def handle_who_igor(callback: MessageCallback):
 @dp.message_callback(F.callback.payload == "memory_none")
 async def handle_memory_none(callback: MessageCallback):
     await callback.message.edit(
+        text="🎬 Видео загружается, секунду...",
+        attachments=[]
+    )
+    video = InputMedia(path="video_cache/04.mp4")
+    await callback.message.edit(
+        text="",
+        attachments=[video]
+    )
+    await asyncio.sleep(20)
+    await callback.message.answer(
         text="Напиши, что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
         attachments=[]
     )
 
 @dp.message_callback(F.callback.payload == "memory_dialog")
 async def handle_memory_dialog(callback: MessageCallback):
-    # user = repo.get(user_id)
-    #
-    # # Сохраняем выбранный режим памяти
-    # choice = message.text
-    # if choice == "/memory_none":
-    #     user.memory_mode = "none"
-    # elif choice == "/memory_session":
-    #     user.memory_mode = "session"
-    # elif choice == "/memory_full":
-    #     user.memory_mode = "full"
-    #
-    # # Меняем состояние
-    # user.state = UserState.ONBOARDING_MENU
-    # repo.save(user)
-
-    # Показываем главное меню
     await callback.message.edit(
+        text="🎬 Видео загружается, секунду...",
+        attachments=[]
+    )
+    video = InputMedia(path="video_cache/04.mp4")
+    await callback.message.edit(
+        text="",
+        attachments=[video]
+    )
+    await asyncio.sleep(20)
+    # Показываем главное меню
+    await callback.message.answer(
         text="Напиши, что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?", attachments=[]
     )
 
 @dp.message_callback(F.callback.payload == "memory_full")
 async def handle_memory_full(callback: MessageCallback):
-    # user = repo.get(user_id)
-    #
-    # # Сохраняем выбранный режим памяти
-    # choice = message.text
-    # if choice == "/memory_none":
-    #     user.memory_mode = "none"
-    # elif choice == "/memory_session":
-    #     user.memory_mode = "session"
-    # elif choice == "/memory_full":
-    #     user.memory_mode = "full"
-    #
-    # # Меняем состояние
-    # user.state = UserState.ONBOARDING_MENU
-    # repo.save(user)
-
-    # Показываем главное меню
     await callback.message.edit(
-        text="Напиши, что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?", attachments=[]
+        text="🎬 Видео загружается, секунду...",
+        attachments=[]
+    )
+    video = InputMedia(path="video_cache/04.mp4")
+    await callback.message.edit(
+        text="",
+        attachments=[video]
+    )
+    await asyncio.sleep(20)
+    await callback.message.answer(
+        text="Напиши, что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
+        attachments=[]
     )
 
 # --Consult
