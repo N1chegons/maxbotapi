@@ -423,7 +423,6 @@ async def handle_agree(callback: MessageCallback):
             url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"
         ),
     )
-
     await callback.message.edit(
         text=(
             "Отлично. Что хочешь дальше?\n\nВыбирай❗"
