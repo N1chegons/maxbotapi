@@ -426,7 +426,7 @@ async def handle_agree(callback: MessageCallback):
 
     await callback.message.edit(
         text=(
-            "Отлично. Что хочешь дальше?\n\nВыбирай ❗"
+            "Отлично. Что хочешь дальше?\n\nВыбирай❗"
         ),
         attachments = [reply_kb.as_markup()]
     )
