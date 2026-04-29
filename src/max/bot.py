@@ -4,7 +4,7 @@ import aiohttp
 
 from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import Command
-from maxapi.types import MessageCreated, BotStarted, CallbackButton, MessageCallback, InputMedia
+from maxapi.types import MessageCreated, BotStarted, CallbackButton, MessageCallback, InputMedia, LinkButton
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
 # from src.admin.repository import AdminService
@@ -22,7 +22,7 @@ dp = Dispatcher()
 
 # Command
 @dp.message_created(Command('new'))
-async def new_theme(event: MessageCreated):
+async def new_session(event: MessageCreated):
     user_id = event.from_user.user_id
 
     reply_kb = InlineKeyboardBuilder()
@@ -36,11 +36,10 @@ async def new_theme(event: MessageCreated):
     await bot.send_message(
         user_id=user_id,
         text=(
-            "Привет 👋\n"
+            "Привет 👋 "
             "Я — Бот психолога Игоря Неповинных.\n\n"
             "Не «ещё один GPT», а цифровой Игорь, обученный на 15 годах практики, двух его книгах и 800+ видео.\n\n"
-            "❗ Прежде чем начнём — пара важных вещей.\n"
-            "Займёт минуту."
+            "❗ Прежде чем начнём — пара важных вещей. Займёт минуту."
         ),
         attachments=[reply_kb.as_markup()]
     )
@@ -356,11 +355,11 @@ async def bot_started(event: BotStarted):
     await bot.send_message(
         user_id=user_id,
         text=(
-           "Привет 👋\n"
-           "Я — Бот психолога Игоря Неповинных.\n\n"
-           "Не «ещё один GPT», а цифровой Игорь, обученный на 15 годах практики, двух его книгах и 800+ видео.\n\n"
-           "❗ Прежде чем начнём — пара важных вещей.\n"
-           "Займёт минуту."
+            "Привет 👋 "
+            "Я — Бот психолога Игоря Неповинных.\n\n"
+            "Не «ещё один GPT», а цифровой Игорь, обученный на 15 годах практики, двух его книгах и 800+ видео.\n\n"
+            "❗ Прежде чем начнём — пара важных вещей."
+            " Займёт минуту."
         ),
         attachments=[reply_kb.as_markup()]
     )
@@ -392,8 +391,8 @@ async def handle_continue(callback: MessageCallback):
         text=(
             "Я не врач и не психотерапевт.\n"
             "Я не ставлю диагнозы и не лечу.\n"
-            "Кризисные ситуации (суицид, насилие в семье, острая боль) - не ко мне.\n\n"
-            "Я успокою голову и сделаю тебя сильным. Согласен?\nТогда давай знакомиться."
+            "Кризисные ситуации - не ко мне(суицид, насилие в семье, острая боль).\n\n"
+            "Я успокою голову и сделаю тебя сильным. Согласен❓\n\nТогда давай знакомиться 😎"
         ),
         attachments=[reply_kb.as_markup()]
     )
@@ -415,19 +414,19 @@ async def handle_agree(callback: MessageCallback):
             text="Запрос >",
             payload="query"
         ),
-        CallbackButton(
+        LinkButton(
             text="про Бота >",
-            payload="aboutbot"
+            url="https://disk.yandex.ru/i/AHiHqufv2KT9bQ"
         ),
-        CallbackButton(
+        LinkButton(
             text="про Эксперта >",
-            payload="aboutexpert"
+            url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"
         ),
     )
 
     await callback.message.edit(
         text=(
-            "Отлично. Что хочешь дальше?\n Выбирай."
+            "Отлично. Что хочешь дальше?\n\nВыбирай ❗"
         ),
         attachments = [reply_kb.as_markup()]
     )
@@ -459,25 +458,6 @@ async def handle_query(callback: MessageCallback):
             "👉 Важно: на твоём гаджете сообщения останутся, удаляю с сервера. Выбирай."
         ),
         attachments=[reply_kb.as_markup()]
-    )
-
-@dp.message_callback(F.callback.payload == "aboutbot")
-async def handle_info_work(message: MessageCreated):
-    user_id = message.from_user.user_id
-
-    await bot.send_message(
-        text=(
-            "Заглушка"
-        )
-    )
-
-@dp.message_callback(F.callback.payload == "aboutexpert")
-async def handle_who_igor(callback: MessageCallback):
-
-    await callback.message.edit(
-        text=(
-            "Заглушка"
-        )
     )
 
 
