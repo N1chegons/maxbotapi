@@ -31,9 +31,20 @@ class Settings(BaseSettings):
     FTP_HOST: str
     FTP_USER: str
     FTP_PASS: str
+
+    JWT_TOKEN_TOCHKA_API: str
+    ACCOUNT_ID: str
+    BIK_TOCHKA: str
+
+    SECRET_WEBHOOK_KEY: str
+
     @property
     def DB_URL(self):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+
+    @property
+    def TOCHKA_ACCOUNT_DATA(self):
+        return f"{self.ACCOUNT_ID}/{self.BIK_TOCHKA}"
 
     model_config = SettingsConfigDict(env_file=".env")
 
