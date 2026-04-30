@@ -21,7 +21,7 @@ TOKEN = settings.MAX_BOT_TOKEN
 
 bot = Bot(TOKEN)
 dp = Dispatcher()
-webhook = AiohttpMaxWebhook(dp=dp, bot=bot, secret=None)
+webhook = AiohttpMaxWebhook(dp=dp, bot=bot, secret="my-secret")
 
 
 # Command
@@ -669,17 +669,13 @@ async def handle_voice_message(event: MessageCreated):
 
 
 async def main():
-    # await dp.start_polling(bot)
-    app = webhook.create_app(path="/webhook")
-    # Запускаем приложение через asyncio
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, host="0.0.0.0", port=8080)
-    await site.start()
-    print("✅ Вебхук-сервер запущен на http://0.0.0.0:8080/webhook")
+    await dp.handle_webhook(
+        bot=bot,
+        host='0.0.0.0',
+        port=8080,
+        path='/webhook'
+    )
 
-    # Держим сервер запущенным
-    await asyncio.Event().wait()
 
 if __name__ == '__main__':
     asyncio.run(main())
