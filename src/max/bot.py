@@ -21,8 +21,6 @@ TOKEN = settings.MAX_BOT_TOKEN
 
 bot = Bot(TOKEN)
 dp = Dispatcher()
-webhook = AiohttpMaxWebhook(dp=dp, bot=bot, secret="my-secret")
-
 
 # Command
 @dp.message_created(Command('new'))
