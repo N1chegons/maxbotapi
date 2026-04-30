@@ -1,11 +1,13 @@
 import asyncio
 import logging
 import aiohttp
+from aiohttp import web
 
 from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import Command
 from maxapi.types import MessageCreated, BotStarted, CallbackButton, MessageCallback, InputMedia, LinkButton
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
+from maxapi.webhook.aiohttp import AiohttpMaxWebhook
 
 # from src.admin.repository import AdminService
 from src.config import settings
@@ -19,6 +21,8 @@ TOKEN = settings.MAX_BOT_TOKEN
 
 bot = Bot(TOKEN)
 dp = Dispatcher()
+webhook = AiohttpMaxWebhook(dp=dp, bot=bot, secret=None)
+
 
 # Command
 @dp.message_created(Command('new'))
@@ -665,7 +669,17 @@ async def handle_voice_message(event: MessageCreated):
 
 
 async def main():
-    await dp.start_polling(bot)
+    # await dp.start_polling(bot)
+    app = webhook.create_app(path="/webhook")
+    # Запускаем приложение через asyncio
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, host="0.0.0.0", port=8080)
+    await site.start()
+    print("✅ Вебхук-сервер запущен на http://0.0.0.0:8080/webhook")
+
+    # Держим сервер запущенным
+    await asyncio.Event().wait()
 
 if __name__ == '__main__':
     asyncio.run(main())
