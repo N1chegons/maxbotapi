@@ -21,6 +21,7 @@ TOKEN = settings.MAX_BOT_TOKEN
 
 bot = Bot(TOKEN)
 dp = Dispatcher()
+webhook = AiohttpMaxWebhook(dp=dp, bot=bot, secret=None)
 
 # Command
 @dp.message_created(Command('new'))
@@ -667,13 +668,7 @@ async def handle_voice_message(event: MessageCreated):
 
 
 async def main():
-    await dp.handle_webhook(
-        bot=bot,
-        host='0.0.0.0',
-        port=8080,
-        path='/webhook'
-    )
-
+    await webhook.run(host="0.0.0.0", port=8080, path="/webhook")
 
 if __name__ == '__main__':
     asyncio.run(main())
