@@ -11,6 +11,7 @@ from maxapi.webhook.aiohttp import AiohttpMaxWebhook
 
 # from src.admin.repository import AdminService
 from src.config import settings
+from src.max.models import UserState, MemoryMode
 from src.max.repository import MaxService, AudioService
 from src.max.utils import upload_to_s3
 from src.yandexai.config import THEMES_INDEXES
@@ -21,7 +22,6 @@ TOKEN = settings.MAX_BOT_TOKEN
 
 bot = Bot(TOKEN)
 dp = Dispatcher()
-webhook = AiohttpMaxWebhook(dp=dp, bot=bot, secret=settings.SECRET_WEBHOOK_KEY)
 
 # Command
 @dp.message_created(Command('new'))
@@ -46,6 +46,79 @@ async def new_session(event: MessageCreated):
         ),
         attachments=[reply_kb.as_markup()]
     )
+
+@dp.message_created(Command('mem'))
+async def memory_choice(event: MessageCreated):
+    user_id = event.from_user.user_id
+
+    reply_kb = InlineKeyboardBuilder()
+    reply_kb.row(
+        CallbackButton(
+            text="Без памяти",
+            payload="memory_none"
+        ),
+        CallbackButton(
+            text="Один диалог",
+            payload="memory_dialog"
+        ),
+        CallbackButton(
+            text="Вся память",
+            payload="memory_full"
+        ),
+    )
+
+    await bot.send_message(
+        user_id=user_id,
+        text=(
+            "Скажи, что мы будет делать с твоими сообщениями?\n\n"
+            "➖ Без памяти — каждая сессия с чистого листа, ничего не сохраняю. Максимум приватности, но минимум персонализации.\n\n"
+            "➗ Память в рамках диалога — помню контекст, пока ты не скажешь «забудь». Потом стираю.\n\n"
+            "➕ Вся память — помню всё, что ты мне говорил. Так я могу работать с тобой глубоко и замечать паттерны. Ты в любой момент можешь стереть всё командой - /mem.\n\n"
+            "👉 Важно: на твоём гаджете сообщения останутся, удаляю с сервера. Выбирай."
+        ),
+        attachments=[reply_kb.as_markup()]
+    )
+
+@dp.message_created(Command('del'))
+async def new_session(event: MessageCreated):
+    user_id = event.from_user.user_id
+
+    reply_kb = InlineKeyboardBuilder()
+    reply_kb.row(
+        CallbackButton(
+            text="Потверждаю",
+            payload="delete_agree"
+        ),
+        CallbackButton(
+            text="Не потверждаю",
+            payload="delete_disagree"
+        ),
+    )
+
+    await bot.send_message(
+        user_id=user_id,
+        text=(
+            "Ты хочешь удалить всю информацию о себе?"
+        ),
+        attachments=[reply_kb.as_markup()]
+    )
+
+@dp.message_callback(F.callback.payload == "delete_agree")
+async def handle_continue(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
+
+    await callback.message.edit(
+        text=("Все данные удалены. Начинай снова /new")
+    )
+
+@dp.message_callback(F.callback.payload == "delete_disagree")
+async def handle_continue(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
+
+    await callback.message.edit(
+        text=("Давай продолжим. На чём мы остановились")
+    )
+
 
 #
 # @dp.message_created(Command('igor'))
@@ -111,36 +184,6 @@ async def new_session(event: MessageCreated):
 #         text="✔️ Спасибо за похвалу. Эксперт увидит что вы меня похвалили.\n"
 #              "Можете продолжить диалог."
 #     )
-#
-# @dp.message_created(Command('hren'))
-# async def hren_command(event: MessageCreated, context: MemoryContext):
-#     user_id = event.from_user.user_id
-#     await AdminService.log_command_admin(user_id, "/hren")
-#
-#     data = await context.get_data()
-#     last_exchange = data.get("last_exchange")
-#     last_topic = data.get("last_topic")
-#
-#     if not last_exchange:
-#         await bot.send_message(
-#             user_id=user_id,
-#             text="⚠️ Нет сообщений для отметки. Сначала задайте вопрос."
-#         )
-#         return
-#
-#     await MaxService.add_feedback(
-#         client_id=user_id,
-#         fragment=last_exchange,
-#         is_positive=False,
-#         session_topic=last_topic
-#     )
-#
-#     await bot.send_message(
-#         user_id=user_id,
-#         text="✔️ Думаю что сделал что-то не так. Эксперт увидит что вы меня поругали.\n"
-#              "Можете продолжить диалог."
-#     )
-#
 # @dp.message_created(Command('help'))
 # async def help_command(event: MessageCreated):
 #     user_id = event.from_user.user_id
@@ -346,6 +389,8 @@ async def new_session(event: MessageCreated):
 @dp.bot_started()
 async def bot_started(event: BotStarted):
     user_id = event.user.user_id
+    await MaxService.create_user(user_id, "MAX")
+    await MaxService.create_session(user_id)
 
     reply_kb = InlineKeyboardBuilder()
     reply_kb.row(
@@ -370,13 +415,7 @@ async def bot_started(event: BotStarted):
 @dp.message_callback(F.callback.payload == "continue")
 async def handle_continue(callback: MessageCallback):
     user_id = callback.message.sender.user_id
-    # user = repo.get(user_id)
-    #
-    # # Меняем состояние
-    # user.state = UserState.ONBOARDING_DISCLAIMER
-    # repo.save(user)
-
-    # Показываем дисклеймер
+    await MaxService.update_user_state(user_id, UserState.ONBOARDING_DISCLAIMER)
 
     reply_kb = InlineKeyboardBuilder()
     reply_kb.row(
@@ -402,7 +441,6 @@ async def handle_continue(callback: MessageCallback):
 
 @dp.message_callback(F.callback.payload == "disagree")
 async def handle_disagree(callback: MessageCallback):
-
     await callback.message.edit(
         text=(
             "Понял. Возвращайся, если передумаешь"
@@ -411,6 +449,14 @@ async def handle_disagree(callback: MessageCallback):
 
 @dp.message_callback(F.callback.payload == "agree")
 async def handle_agree(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
+    await MaxService.update_user_state(user_id, UserState.ONBOARDING_MENU)
+
+    user = await MaxService.get_user(user_id)
+    if user and user.state != UserState.TRIAL_ACTIVE:
+        await MaxService.start_trial(user_id)
+
+
     reply_kb = InlineKeyboardBuilder()
     reply_kb.row(
         CallbackButton(
@@ -435,6 +481,14 @@ async def handle_agree(callback: MessageCallback):
 
 @dp.message_callback(F.callback.payload == "query")
 async def handle_query(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
+    user = await MaxService.get_user(user_id)
+
+    if not user.is_memory_setup_completed:
+        await MaxService.update_user_state(user_id, UserState.MEMORY_SETUP)
+    else:
+        await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
+
     reply_kb = InlineKeyboardBuilder()
     reply_kb.row(
         CallbackButton(
@@ -462,9 +516,11 @@ async def handle_query(callback: MessageCallback):
         attachments=[reply_kb.as_markup()]
     )
 
-
 @dp.message_callback(F.callback.payload == "memory_none")
 async def handle_memory_none(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
+    await MaxService.update_memory_mode(user_id, MemoryMode.none)
+
     await callback.message.edit(
         text="🎬 Видео загружается, секунду...",
         attachments=[]
@@ -482,6 +538,9 @@ async def handle_memory_none(callback: MessageCallback):
 
 @dp.message_callback(F.callback.payload == "memory_dialog")
 async def handle_memory_dialog(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
+    await MaxService.update_memory_mode(user_id, MemoryMode.session)
+
     await callback.message.edit(
         text="🎬 Видео загружается, секунду...",
         attachments=[]
@@ -499,6 +558,9 @@ async def handle_memory_dialog(callback: MessageCallback):
 
 @dp.message_callback(F.callback.payload == "memory_full")
 async def handle_memory_full(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
+    await MaxService.update_memory_mode(user_id, MemoryMode.full)
+
     await callback.message.edit(
         text="🎬 Видео загружается, секунду...",
         attachments=[]
@@ -583,29 +645,33 @@ async def handle_memory_full(callback: MessageCallback):
 async def handle_message(event: MessageCreated):
     user_id = event.from_user.user_id
     text = event.message.body.text
+    await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
+    user = await MaxService.get_user(user_id)
+
     if text.startswith('/'):
         return
 
-    # session = await MaxService.get_session(user_id)
+    await MaxService.expire_trial_if_needed(user_id)
+
+    user = await MaxService.get_user(user_id)
+
+    if user.state == UserState.TRIAL_ENDED_NOT_PAID:
+        await bot.send_message(
+            user_id=user_id,
+            text="Извини, у тебя закончился пробный период. Сделай что-нибудь."
+        )
+        return
+
     selected_topic = "Консультации"
     index_id = THEMES_INDEXES.get(selected_topic)
-    #
-    # if not index_id:
-    #     await bot.send_message(
-    #         user_id=user_id,
-    #         text="⚠️ Ошибка: индекс для этой темы не найден"
-    #     )
-    #     return
-    #
-    # history = await MaxService.get_history(user_id, limit=10)
-    # await MaxService.add_message(user_id, "user", text)
-
-    answer = ask_ai_with_index(index_id, text, selected_topic)
+    history = await MaxService.get_history(user_id, limit=10)
+    answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
     if answer:
-        # last_exchange = f"Клиент: {text}\n\nБот: {answer}"
-
-        # await MaxService.add_message(user_id, "assistant", answer)
+        if user.memory_mode != MemoryMode.none:
+            last_exchange = f"Клиент: {text}\n\nБот: {answer}"
+            await MaxService.add_message(user_id, "user", text)
+            await MaxService.add_message(user_id, "assistant", answer)
         await bot.send_message(user_id=user_id, text=answer)
     else:
         await bot.send_message(
@@ -616,19 +682,23 @@ async def handle_message(event: MessageCreated):
 @dp.message_created(F.message.body.attachments)
 async def handle_voice_message(event: MessageCreated):
     user_id = event.from_user.user_id
+    await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
+    user = await MaxService.get_session(user_id)
 
-    # session = await MaxService.get_session(user_id)
+    await MaxService.expire_trial_if_needed(user_id)
+
+    user = await MaxService.get_user(user_id)
+
+    if user.state == UserState.TRIAL_ENDED_NOT_PAID:
+        await bot.send_message(
+            user_id=user_id,
+            text="Извини, у тебя закончился пробный период. Сделай что-нибудь."
+        )
+        return
+
     selected_topic = "Консультации"
     index_id = THEMES_INDEXES.get(selected_topic)
-    #
-    # history = await MaxService.get_history(user_id, limit=10)
-    #
-    # if not index_id:
-    #     await bot.send_message(
-    #         user_id=user_id,
-    #         text="⚠️ Ошибка: индекс для этой темы не найден"
-    #     )
-    #     return
+    history = await MaxService.get_history(user_id, limit=10)
 
 
     audio_attachment = None
@@ -650,12 +720,13 @@ async def handle_voice_message(event: MessageCreated):
 
         recognized_text = AudioService.recognize_from_s3(s3_url, settings.YC_API_KEY)
 
-        answer = ask_ai_with_index(index_id, recognized_text, selected_topic)
+        answer = ask_ai_with_index(index_id, recognized_text, selected_topic, history)
         if answer:
-            # last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
-            # await MaxService.add_message(user_id, "user", recognized_text)
-            # await MaxService.add_message(user_id, "assistant", answer)
-            await bot.send_message(user_id=user_id, text=answer)
+            if user.memory_mode != MemoryMode.none:
+                last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
+                await MaxService.add_message(user_id, "user", recognized_text)
+                await MaxService.add_message(user_id, "assistant", answer)
+                await bot.send_message(user_id=user_id, text=answer)
         else:
             await bot.send_message(
                 user_id=user_id,
@@ -668,7 +739,18 @@ async def handle_voice_message(event: MessageCreated):
 
 
 async def main():
-    await webhook.run(host="0.0.0.0", port=8080, path="/webhook")
+    webhook_url = 'https://nepovinnyh.ru/webhook'  # укажите свой URL
+    webhook_secret = settings.SECRET_WEBHOOK_KEY  # укажите свой (5–256 символов)
+
+    # Регистрируем вебхук на стороне MAX
+    await bot.subscribe_webhook(url=webhook_url, secret=webhook_secret)
+
+    await dp.handle_webhook(
+        bot=bot,
+        host='0.0.0.0',
+        port=8080,
+        secret=webhook_secret
+    )
 
 if __name__ == '__main__':
     asyncio.run(main())

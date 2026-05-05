@@ -1,12 +1,12 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from maxapi.types import InputMedia
 from sqlalchemy import select, update, insert, delete
 
 from src.config import settings
 from src.db import async_session
-from src.max.models import Session, Message, Request, Feedback, User, UserState
+from src.max.models import Session, Message, Request, Feedback, User, UserState, SubsStatus, SubsTier, MemoryMode
 
 FOLDER_ID = settings.YC_FOLDER_ID
 API_KEY = settings.YC_API_SPEECHKIT
@@ -28,6 +28,32 @@ class MaxService:
             add_new_session = await session.execute(stmt)
             await session.commit()
 
+    # user state
+    @classmethod
+    async def update_user_state(cls, user_id: int, new_state: UserState):
+        async with async_session() as session:
+            await session.execute(
+                update(User).filter_by(user_id=user_id).values(state=new_state)
+            )
+            await session.commit()
+
+    # memory modes
+    @classmethod
+    async def update_memory_mode(cls, user_id: int, new_mode: MemoryMode):
+        async with async_session() as session:
+            await session.execute(
+                update(User).filter_by(user_id=user_id).values(memory_mode=new_mode)
+            )
+            await session.commit()
+
+    @classmethod
+    async def update_is_memory_setup_completed(cls, user_id: int):
+        async with async_session() as session:
+            await session.execute(
+                update(User).filter_by(user_id=user_id).values(is_memory_setup_completed=True)
+            )
+            await session.commit()
+
     # session section
     @classmethod
     async def get_session(cls, user_id: int):
@@ -41,6 +67,13 @@ class MaxService:
     async def create_session(cls, user_id: int):
         async with async_session() as session:
             stmt = insert(Session).values(user_id=user_id)
+            add_new_session = await session.execute(stmt)
+            await session.commit()
+
+    @classmethod
+    async def delete_session(cls, user_id: int):
+        async with async_session() as session:
+            stmt = delete(Session).filter_by(user_id=user_id)
             add_new_session = await session.execute(stmt)
             await session.commit()
 
@@ -74,7 +107,7 @@ class MaxService:
 
     @classmethod
     async def delete_non_today_messages(cls):
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -196,18 +229,14 @@ class MaxService:
     @classmethod
     async def check_and_update_trial_status(cls, user_id: int) -> str:
         async with async_session() as session:
-            # Получаем пользователя
             user = await cls.get_user(user_id)
 
-            # Если не в триале — возвращаем его статус
             if user.state != UserState.TRIAL_ACTIVE:
                 return user.state
 
-            # Если триал ещё не закончился
             if user.trial_ends_at and user.trial_ends_at > datetime.utcnow():
                 return UserState.TRIAL_ACTIVE
 
-            # Триал закончился — обновляем
             stmt = update(User).filter_by(user_id=user_id).values(
                 state=UserState.TRIAL_ENDED_NOT_PAID
             )
@@ -215,6 +244,59 @@ class MaxService:
             await session.commit()
 
             return UserState.TRIAL_ENDED_NOT_PAID
+
+    @classmethod
+    async def start_trial(cls, user_id: int):
+        async with async_session() as session:
+            now = datetime.utcnow()
+            await session.execute(
+                update(User)
+                .filter_by(user_id=user_id)
+                .values(
+                    trial_started_at=now,
+                    trial_ends_at=now + timedelta(days=14),
+                    state=UserState.TRIAL_ACTIVE
+                )
+            )
+            await session.commit()
+
+    @classmethod
+    async def is_trial_active(cls, user_id: int) -> bool:
+        user = await cls.get_user(user_id)
+        if not user or not user.trial_ends_at:
+            return False
+        return user.trial_ends_at > datetime.utcnow() and user.state == UserState.TRIAL_ACTIVE
+
+    @classmethod
+    async def expire_trial_if_needed(cls, user_id: int):
+        user = await cls.get_user(user_id)
+
+        if user.state != UserState.TRIAL_ACTIVE:
+            return
+
+        if user.trial_ends_at and user.trial_ends_at <= datetime.utcnow():
+            async with async_session() as session:
+                await session.execute(
+                    update(User)
+                    .where(User.user_id == user_id)
+                    .values(state=UserState.TRIAL_ENDED_NOT_PAID)
+                )
+                await session.commit()
+
+    @classmethod
+    async def activate_subscription(cls, user_id: int, tier: SubsTier):
+        async with async_session() as session:
+            await session.execute(
+                update(User)
+                .filter_by(user_id=user_id)
+                .values(
+                    subscription_status=SubsStatus.active,
+                    subscription_tier=tier,
+                    subscription_ends_at=datetime.utcnow() + timedelta(days=30),
+                    state=UserState.PAID
+                )
+            )
+            await session.commit()
 
     @classmethod
     async def can_send_message(cls, user_id: int) -> bool:
@@ -259,8 +341,6 @@ class AudioService:
 
         texts = [chunk['alternatives'][0]['text'] for chunk in data['response']['chunks']]
         return ' '.join(texts),
-
-
 
 class VideoService:
     def __init__(self):

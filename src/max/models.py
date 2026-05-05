@@ -56,6 +56,7 @@ class User(Base):
     subscription_ends_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
     last_active_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
     disclaimer_agreed_at:  Mapped[datetime.datetime] = mapped_column(nullable=True)
+    is_memory_setup_completed: Mapped[bool] = mapped_column(default=False)
 
     sessions = relationship("Session", back_populates="user")
     messages: Mapped[list["Message"]] = relationship(back_populates="user")
