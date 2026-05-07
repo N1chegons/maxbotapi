@@ -757,9 +757,6 @@ async def main():
     webhook_url = "https://bot.nepovinnyh.ru/webhook"
     webhook_secret = "SecretKeyNepovinnyh2026"
 
-    # Удаляем старую подписку, если есть
-    await bot.delete_webhook()
-
     # Регистрируем новую на поддомен
     await bot.subscribe_webhook(url=webhook_url, secret=webhook_secret)
 
