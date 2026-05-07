@@ -228,8 +228,8 @@ class VkIntegration:
         url = "https://api.vk.com/method/video.get"
         params = {
             "access_token": self.token,
-            "owner_id": self.group_id,
-            "count": 100,
+            "owner_id": "-186451829",
+            "count": 0,
             "v": "5.199"
         }
 
@@ -264,7 +264,7 @@ class VkIntegration:
         url = "https://api.vk.com/method/video.get"
         params = {
             "access_token": self.token,
-            "owner_id": self.group_id,
+            "owner_id": "-186451829",
             "videos": f"-216257056_{video_id}",
             "v": "5.199"
         }

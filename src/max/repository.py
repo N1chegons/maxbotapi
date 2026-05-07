@@ -106,6 +106,14 @@ class MaxService:
             ]
 
     @classmethod
+    async def delete_messages(cls, user_id: int):
+        async with async_session() as session:
+            result = await session.execute(
+                delete(Message).filter_by(user_id=user_id)
+            )
+            await session.commit()
+
+    @classmethod
     async def delete_non_today_messages(cls):
         from datetime import datetime
 
