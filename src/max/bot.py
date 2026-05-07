@@ -383,7 +383,8 @@ async def bot_started(event: BotStarted):
 
     if not user:
         await MaxService.create_user(user_id, "MAX")
-        await MaxService.create_session(user.user_id)
+        user_reg = await MaxService.get_user(user_id)
+        await MaxService.create_session(user_reg.user_id)
 
         reply_kb = InlineKeyboardBuilder()
         reply_kb.row(
