@@ -32,11 +32,11 @@ dp = Dispatcher()
 @dp.message_created(Command('new'))
 async def new_session(event: MessageCreated):
     user_id = event.from_user.user_id
-    await MaxService.delete_session(user_id)
     user_reg = await MaxService.get_user(user_id)
+    await MaxService.delete_session(user_reg.user_id)
 
     await MaxService.create_session(user_reg.user_id)
-    await MaxService.update_user_state(user_id, UserState.NEW)
+    await MaxService.update_user_state(user_reg, UserState.NEW)
 
     reply_kb = InlineKeyboardBuilder()
     reply_kb.row(
@@ -587,7 +587,7 @@ async def handle_memory_dialog(callback):
 @dp.message_callback(F.callback.payload == "mem_memory_dialog")
 async def handle_mem_memory_none(callback):
     user_id = callback.callback.user.user_id
-    await MaxService.update_memory_mode(user_id, MemoryMode.none)
+    await MaxService.update_memory_mode(user_id, MemoryMode.session)
 
     await callback.message.edit(
         text='Выбор памяти изменен на "Один диалог"\n\nМожете продолжить диалог.',
@@ -617,7 +617,7 @@ async def handle_memory_full(callback):
 @dp.message_callback(F.callback.payload == "mem_memory_full")
 async def handle_mem_memory_none(callback):
     user_id = callback.callback.user.user_id
-    await MaxService.update_memory_mode(user_id, MemoryMode.none)
+    await MaxService.update_memory_mode(user_id, MemoryMode.full)
 
     await callback.message.edit(
         text='Выбор памяти изменен на "Вся память"\n\nМожете продолжить диалог.',
