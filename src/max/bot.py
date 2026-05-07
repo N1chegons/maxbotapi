@@ -371,35 +371,38 @@ async def admin_help_command(event: MessageCreated):
 @dp.bot_started()
 async def bot_started(event: BotStarted):
     user_id = event.user.user_id
-    session_user = await MaxService.get_session(user_id)
-    if not session_user:
-        await bot.send_message(
-            user_id=user_id,
-            text="Данные не найдены.\n\nИспользуйте команду /new"
+    user = await MaxService.get_user(user_id)
+
+    if not user:
+        await MaxService.create_user(user_id, "MAX")
+        await MaxService.create_session(user_id)
+
+        reply_kb = InlineKeyboardBuilder()
+        reply_kb.row(
+            CallbackButton(
+                text="Продолжить >",
+                payload="continue"
+            ),
         )
 
-    await MaxService.create_user(user_id, "MAX")
-    await MaxService.create_session(user_id)
-
-    reply_kb = InlineKeyboardBuilder()
-    reply_kb.row(
-        CallbackButton(
-            text="Продолжить >",
-            payload="continue"
-        ),
-    )
-
-    await bot.send_message(
-        user_id=user_id,
-        text=(
-            "Привет 👋 "
-            "Я — Бот психолога Игоря Неповинных.\n\n"
-            "Не «ещё один GPT», а цифровой Игорь, обученный на 15 годах практики, двух его книгах и 800+ видео.\n\n"
-            "❗ Прежде чем начнём — пара важных вещей."
-            " Займёт минуту."
-        ),
-        attachments=[reply_kb.as_markup()]
-    )
+        await bot.send_message(
+            user_id=user_id,
+            text=(
+                "Привет 👋 "
+                "Я — Бот психолога Игоря Неповинных.\n\n"
+                "Не «ещё один GPT», а цифровой Игорь, обученный на 15 годах практики, двух его книгах и 800+ видео.\n\n"
+                "❗ Прежде чем начнём — пара важных вещей."
+                " Займёт минуту."
+            ),
+            attachments=[reply_kb.as_markup()]
+        )
+    else:
+        await bot.send_message(
+            user_id=user_id,
+            text="Привет 👋"
+                 "Ты уже зарегестрирован.\n\n"
+                 "Если хочешь начать все сначала пиши - /new"
+        )
 
 @dp.message_callback(F.callback.payload == "delete_agree")
 async def handle_continue(callback: MessageCallback):
