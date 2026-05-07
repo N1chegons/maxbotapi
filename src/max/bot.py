@@ -764,7 +764,8 @@ async def main():
         bot=bot,
         host='0.0.0.0',
         port=8080,
-        secret=webhook_secret
+        secret=webhook_secret,
+        path='/webhook'
     )
 
 if __name__ == '__main__':
