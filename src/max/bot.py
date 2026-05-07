@@ -35,7 +35,7 @@ async def new_session(event: MessageCreated):
     await MaxService.delete_session(user_id)
     user_reg = await MaxService.get_user(user_id)
 
-    await MaxService.create_session(user_reg.id)
+    await MaxService.create_session(user_reg.user_id)
     await MaxService.update_user_state(user_id, UserState.NEW)
 
     reply_kb = InlineKeyboardBuilder()
@@ -61,7 +61,7 @@ async def new_session(event: MessageCreated):
 async def memory_choice(event: MessageCreated):
     user_id = event.from_user.user_id
     user_reg = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user_reg.id)
+    session_user = await MaxService.get_session(user_reg.user_id)
 
     if not session_user:
         await bot.send_message(
@@ -73,15 +73,15 @@ async def memory_choice(event: MessageCreated):
     reply_kb.row(
         CallbackButton(
             text="Без памяти",
-            payload="memory_none"
+            payload="mem_memory_none"
         ),
         CallbackButton(
             text="Один диалог",
-            payload="memory_dialog"
+            payload="mem_memory_dialog"
         ),
         CallbackButton(
             text="Вся память",
-            payload="memory_full"
+            payload="mem_memory_full"
         ),
     )
 
@@ -101,7 +101,8 @@ async def memory_choice(event: MessageCreated):
 async def delete_info(event: MessageCreated):
     user_id = event.from_user.user_id
     user_reg = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user_reg.id)
+    session_user = await MaxService.get_session(user_reg.user_id)
+
     if not session_user:
         await bot.send_message(
             user_id=user_id,
@@ -130,56 +131,56 @@ async def delete_info(event: MessageCreated):
 @dp.message_created(Command('end'))
 async def closed_session(event: MessageCreated):
     user_id = event.from_user.user_id
-    user_reg = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user_reg.id)
+    user = await MaxService.get_user(user_id)
+    session_user = await MaxService.get_session(user.user_id)
+
     if not session_user:
         await bot.send_message(
             user_id=user_id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
-
-    user = await MaxService.get_user(user_id)
-    history = await MaxService.get_history(user_id)
-
-    selected_topic = "Консультации"
-    index_id = THEMES_INDEXES.get(selected_topic)
-    text = f"""
-        Подведи итог этого диалога в строгом формате:
-
-        Что мы сегодня разобрали:
-        • [пункт 1]
-        • [пункт 2]
-        • [пункт 3]
-
-        Что я зафиксировал:
-        [одна ключевая фраза-инсайт]
-
-        Куда двинуться дальше:
-        • [вариант 1]
-        • [вариант 2]
-
-        Вот диалог:
-        {history}
-        """
-
-    answer = ask_ai_with_index(index_id, text, selected_topic, history)
-
-    if user.memory_mode == MemoryMode.session:
-        await MaxService.delete_messages(user_id)
-        await bot.send_message(
-            user_id=user_id,
-            text=answer
-        )
-    elif user.memory_mode == MemoryMode.full:
-        await bot.send_message(
-        user_id=user_id,
-            text=answer
-        )
     else:
-        await bot.send_message(
-        user_id=user_id,
-            text="Данные не найдены.\nИзмените тип памяти при помощи /mem"
-        )
+        history = await MaxService.get_history(user_id)
+
+        selected_topic = "Консультации"
+        index_id = THEMES_INDEXES.get(selected_topic)
+        text = f"""
+            Подведи итог этого диалога в строгом формате:
+    
+            Что мы сегодня разобрали:
+            • [пункт 1]
+            • [пункт 2]
+            • [пункт 3]
+    
+            Что я зафиксировал:
+            [одна ключевая фраза-инсайт]
+    
+            Куда двинуться дальше:
+            • [вариант 1]
+            • [вариант 2]
+    
+            Вот диалог:
+            {history}
+            """
+
+        answer = ask_ai_with_index(index_id, text, selected_topic, history)
+
+        if user.memory_mode == MemoryMode.session:
+            await MaxService.delete_messages(user.user_id)
+            await bot.send_message(
+                user_id=user_id,
+                text=answer
+            )
+        elif user.memory_mode == MemoryMode.full:
+            await bot.send_message(
+            user_id=user_id,
+                text=answer
+            )
+        else:
+            await bot.send_message(
+            user_id=user_id,
+                text="Данные не найдены.\nИзмените тип памяти при помощи /mem"
+            )
 
 @dp.message_created(Command('help'))
 async def instruction(event: MessageCreated):
@@ -214,7 +215,8 @@ async def igor_command(event: MessageCreated):
     user_id = event.from_user.user_id
     username = event.from_user.username
     user_reg = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user_reg.id)
+    session_user = await MaxService.get_session(user_reg.user_id)
+
     if not session_user:
         await bot.send_message(
             user_id=user_id,
@@ -382,8 +384,7 @@ async def bot_started(event: BotStarted):
 
     if not user:
         await MaxService.create_user(user_id, "MAX")
-        user_reg = await MaxService.get_user(user_id)
-        await MaxService.create_session(user_reg.id)
+        await MaxService.create_session(user.user_id)
 
         reply_kb = InlineKeyboardBuilder()
         reply_kb.row(
@@ -415,9 +416,9 @@ async def bot_started(event: BotStarted):
 @dp.message_callback(F.callback.payload == "delete_agree")
 async def handle_continue(callback):
     user_id = callback.callback.user.user_id
-
-    await MaxService.delete_session(user_id)
-    await MaxService.create_session(user_id)
+    user = await MaxService.get_user(user_id)
+    await MaxService.delete_session(user.user_id)
+    await MaxService.create_session(user.user_id)
 
     await callback.message.edit(
         text="Все данные удалены. Начинай снова /new"
@@ -471,6 +472,7 @@ async def handle_agree(callback):
     await MaxService.update_user_state(user_id, UserState.ONBOARDING_MENU)
 
     user = await MaxService.get_user(user_id)
+
     if user and user.state != UserState.TRIAL_ACTIVE:
         await MaxService.start_trial(user_id)
 
@@ -553,6 +555,15 @@ async def handle_memory_none(callback):
         text="Напиши, что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
         attachments=[]
     )
+@dp.message_callback(F.callback.payload == "mem_memory_none")
+async def handle_mem_memory_none(callback):
+    user_id = callback.callback.user.user_id
+    await MaxService.update_memory_mode(user_id, MemoryMode.none)
+
+    await callback.message.answer(
+        text='Выбор памяти изменен на "Без памяти"\n\nМожете продолжить диалог.',
+        attachments=[]
+    )
 
 @dp.message_callback(F.callback.payload == "memory_dialog")
 async def handle_memory_dialog(callback):
@@ -573,6 +584,16 @@ async def handle_memory_dialog(callback):
     await callback.message.answer(
         text="Напиши, что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?", attachments=[]
     )
+@dp.message_callback(F.callback.payload == "mem_memory_dialog")
+async def handle_mem_memory_none(callback):
+    user_id = callback.callback.user.user_id
+    await MaxService.update_memory_mode(user_id, MemoryMode.none)
+
+    await callback.message.answer(
+        text='Выбор памяти изменен на "Один диалог"\n\nМожете продолжить диалог.',
+        attachments=[]
+    )
+
 
 @dp.message_callback(F.callback.payload == "memory_full")
 async def handle_memory_full(callback):
@@ -591,6 +612,15 @@ async def handle_memory_full(callback):
     await asyncio.sleep(20)
     await callback.message.answer(
         text="Напиши, что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
+        attachments=[]
+    )
+@dp.message_callback(F.callback.payload == "mem_memory_full")
+async def handle_mem_memory_none(callback):
+    user_id = callback.callback.user.user_id
+    await MaxService.update_memory_mode(user_id, MemoryMode.none)
+
+    await callback.message.answer(
+        text='Выбор памяти изменен на "Вся память"\n\nМожете продолжить диалог.',
         attachments=[]
     )
 
@@ -658,7 +688,7 @@ async def handle_message(event: MessageCreated):
 
     user_id = event.from_user.user_id
     user = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user.id)
+    session_user = await MaxService.get_session(user.user_id)
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
     await MaxService.expire_trial_if_needed(user_id)
@@ -688,8 +718,8 @@ async def handle_message(event: MessageCreated):
         if answer:
             if user.memory_mode != MemoryMode.none:
                 last_exchange = f"Клиент: {text}\n\nБот: {answer}"
-                await MaxService.add_message(user.id, session_user.id, "user", text)
-                await MaxService.add_message(user.id, session_user.id, "assistant", answer)
+                await MaxService.add_message(user.id, session_user.user_id, "user", text)
+                await MaxService.add_message(user.id, session_user.user_id, "assistant", answer)
             await bot.send_message(user_id=user_id, text=answer)
         else:
             await bot.send_message(
@@ -701,7 +731,7 @@ async def handle_message(event: MessageCreated):
 async def handle_voice_message(event: MessageCreated):
     user_id = event.from_user.user_id
     user = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user.id)
+    session_user = await MaxService.get_session(user.user_id)
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
     await MaxService.expire_trial_if_needed(user_id)
@@ -749,8 +779,8 @@ async def handle_voice_message(event: MessageCreated):
             if answer:
                 if user.memory_mode != MemoryMode.none:
                     last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
-                    await MaxService.add_message(user.id, session_user.id, "user", recognized_text)
-                    await MaxService.add_message(user.id, session_user.id, "assistant", answer)
+                    await MaxService.add_message(user.id, session_user.user_id, "user", recognized_text)
+                    await MaxService.add_message(user.id, session_user.user_id, "assistant", answer)
                     await bot.send_message(user_id=user_id, text=answer)
             else:
                 await bot.send_message(
