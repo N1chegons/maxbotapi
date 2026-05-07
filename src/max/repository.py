@@ -24,7 +24,7 @@ class MaxService:
     @classmethod
     async def create_user(cls, user_id: int, platform: str):
         async with async_session() as session:
-            stmt = insert(User).values(user_id=user_id)
+            stmt = insert(User).values(user_id=user_id, platform=platform)
             add_new_session = await session.execute(stmt)
             await session.commit()
 
