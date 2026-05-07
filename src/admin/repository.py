@@ -4,7 +4,7 @@ from sqlalchemy import select, func, insert
 
 from src.admin.models import CommandLog
 from src.db import async_session
-from src.max.models import Feedback, Message
+from src.max.models import Message
 
 ADMIN_IDS = [235995783, 12456095]
 
@@ -35,12 +35,6 @@ class AdminService:
             await session.execute(stmt)
             await session.commit()
 
-    @classmethod
-    async def get_last_feedbacks_admin(cls, flag: bool):
-        async with async_session() as session:
-            query = select(Feedback).filter_by(is_positive=flag).order_by(Feedback.created_at.desc()).limit(5)
-            result = await session.execute(query)
-            return result.scalars().all()
 
     @classmethod
     async def get_total_messages_last_days_admin(cls):

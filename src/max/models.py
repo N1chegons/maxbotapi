@@ -92,20 +92,6 @@ class Message(Base):
     session: Mapped["Session"] = relationship(back_populates="messages")
     user: Mapped["User"] = relationship(back_populates="messages")
 
-class Feedback(Base):
-    __tablename__ = "feedbacks"
-
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    client_id: Mapped[int] = mapped_column(index=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        server_default=text(
-            "TIMEZONE('utc', now())")
-    )
-    fragment: Mapped[str]
-    is_positive: Mapped[bool] = mapped_column(default=True)
-    next_topic: Mapped[str | None]
-    session_topic: Mapped[str | None]
-
 
 class Request(Base):
     __tablename__ = "requests"
