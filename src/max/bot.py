@@ -757,7 +757,10 @@ async def main():
     webhook_url = "https://bot.nepovinnyh.ru/webhook"
     webhook_secret = "SecretKeyNepovinnyh2026"
 
-    # Регистрируем вебхук на стороне MAX
+    # Удаляем старую подписку, если есть
+    await bot.delete_webhook()
+
+    # Регистрируем новую на поддомен
     await bot.subscribe_webhook(url=webhook_url, secret=webhook_secret)
 
     await dp.handle_webhook(
@@ -766,6 +769,5 @@ async def main():
         port=8080,
         secret=webhook_secret
     )
-
 if __name__ == '__main__':
     asyncio.run(main())
