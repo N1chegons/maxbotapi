@@ -34,7 +34,7 @@ async def new_session(event: MessageCreated):
     user_id = event.from_user.user_id
     user_reg = await MaxService.get_user(user_id)
     await MaxService.delete_session(user_id)
-    await MaxService.create_session(user_reg.id)
+    await MaxService.create_session(user_reg.id,)
     await MaxService.update_user_state(user_id, UserState.NEW)
 
     reply_kb = InlineKeyboardBuilder()
