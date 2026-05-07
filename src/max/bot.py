@@ -35,7 +35,7 @@ async def new_session(event: MessageCreated):
     await MaxService.delete_session(user_id)
     user_reg = await MaxService.get_user(user_id)
 
-    await MaxService.create_session(user_reg.id,)
+    await MaxService.create_session(user_reg.id)
     await MaxService.update_user_state(user_id, UserState.NEW)
 
     reply_kb = InlineKeyboardBuilder()
@@ -60,7 +60,9 @@ async def new_session(event: MessageCreated):
 @dp.message_created(Command('mem'))
 async def memory_choice(event: MessageCreated):
     user_id = event.from_user.user_id
-    session_user = await MaxService.get_session(user_id)
+    user_reg = await MaxService.get_user(user_id)
+    session_user = await MaxService.get_session(user_reg.id)
+
     if not session_user:
         await bot.send_message(
             user_id=user_id,
@@ -98,7 +100,8 @@ async def memory_choice(event: MessageCreated):
 @dp.message_created(Command('del'))
 async def delete_info(event: MessageCreated):
     user_id = event.from_user.user_id
-    session_user = await MaxService.get_session(user_id)
+    user_reg = await MaxService.get_user(user_id)
+    session_user = await MaxService.get_session(user_reg.id)
     if not session_user:
         await bot.send_message(
             user_id=user_id,
@@ -127,7 +130,8 @@ async def delete_info(event: MessageCreated):
 @dp.message_created(Command('end'))
 async def closed_session(event: MessageCreated):
     user_id = event.from_user.user_id
-    session_user = await MaxService.get_session(user_id)
+    user_reg = await MaxService.get_user(user_id)
+    session_user = await MaxService.get_session(user_reg.id)
     if not session_user:
         await bot.send_message(
             user_id=user_id,
@@ -209,7 +213,8 @@ async def instruction(event: MessageCreated):
 async def igor_command(event: MessageCreated):
     user_id = event.from_user.user_id
     username = event.from_user.username
-    session_user = await MaxService.get_session(user_id)
+    user_reg = await MaxService.get_user(user_id)
+    session_user = await MaxService.get_session(user_reg.id)
     if not session_user:
         await bot.send_message(
             user_id=user_id,
