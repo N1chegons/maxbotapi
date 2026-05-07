@@ -695,14 +695,11 @@ async def handle_message(event: MessageCreated):
 @dp.message_created(F.message.body.attachments)
 async def handle_voice_message(event: MessageCreated):
     user_id = event.from_user.user_id
-    session_user = await MaxService.get_session(user_id)
+    user = await MaxService.get_user(user_id)
+    session_user = await MaxService.get_session(user.id)
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
-    user = await MaxService.get_session(user_id)
-
     await MaxService.expire_trial_if_needed(user_id)
-
-    user = await MaxService.get_user(user_id)
 
     if not session_user:
         await bot.send_message(
