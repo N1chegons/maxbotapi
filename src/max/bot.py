@@ -560,7 +560,7 @@ async def handle_mem_memory_none(callback):
     user_id = callback.callback.user.user_id
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
 
-    await callback.message.answer(
+    await callback.message.edit(
         text='Выбор памяти изменен на "Без памяти"\n\nМожете продолжить диалог.',
         attachments=[]
     )
@@ -589,7 +589,7 @@ async def handle_mem_memory_none(callback):
     user_id = callback.callback.user.user_id
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
 
-    await callback.message.answer(
+    await callback.message.edit(
         text='Выбор памяти изменен на "Один диалог"\n\nМожете продолжить диалог.',
         attachments=[]
     )
@@ -619,7 +619,7 @@ async def handle_mem_memory_none(callback):
     user_id = callback.callback.user.user_id
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
 
-    await callback.message.answer(
+    await callback.message.edit(
         text='Выбор памяти изменен на "Вся память"\n\nМожете продолжить диалог.',
         attachments=[]
     )
