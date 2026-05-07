@@ -6,7 +6,7 @@ from sqlalchemy import select, update, insert, delete
 
 from src.config import settings
 from src.db import async_session
-from src.max.models import Session, Message, Request, Feedback, User, UserState, SubsStatus, SubsTier, MemoryMode
+from src.max.models import Session, Message, Request, User, UserState, SubsStatus, SubsTier, MemoryMode
 
 FOLDER_ID = settings.YC_FOLDER_ID
 API_KEY = settings.YC_API_SPEECHKIT
@@ -195,21 +195,6 @@ class MaxService:
             result = await session.execute(stmt)
             messages = result.scalars().all()
             return list(reversed(messages))
-
-    #mark section
-    @classmethod
-    async def add_feedback(cls, client_id: int, fragment: str, is_positive: bool = True, session_topic: str = None,
-                           next_topic: str = None):
-        async with async_session() as session:
-            stmt = insert(Feedback).values(
-                client_id=client_id,
-                fragment=fragment,
-                is_positive=is_positive,
-                next_topic=next_topic,
-                session_topic = session_topic
-            )
-            await session.execute(stmt)
-            await session.commit()
 
     # utils
     @classmethod
