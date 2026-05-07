@@ -647,61 +647,55 @@ async def igor_confirm(callback):
 
 @dp.message_created(F.message.body.text)
 async def handle_message(event: MessageCreated):
+    text = event.message.body.text
+    if text.startswith('/'):
+        return
+
     user_id = event.from_user.user_id
-    session_user = await MaxService.get_session(user_id)
+    user = await MaxService.get_user(user_id)
+    session_user = await MaxService.get_session(user.id)
+
+    await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
+    await MaxService.expire_trial_if_needed(user_id)
+
     if not session_user:
         await bot.send_message(
             user_id=user_id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
 
-    text = event.message.body.text
-    await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
-    user = await MaxService.get_user(user_id)
-
-    if text.startswith('/'):
-        return
-
-    await MaxService.expire_trial_if_needed(user_id)
-
-    user = await MaxService.get_user(user_id)
-
-    if user.state == UserState.TRIAL_ENDED_NOT_PAID:
+    elif user.state == UserState.TRIAL_ENDED_NOT_PAID:
         await bot.send_message(
             user_id=user_id,
             text="Извини, у тебя закончился пробный период. Сделай что-нибудь."
         )
         return
 
-    selected_topic = "Консультации"
-    index_id = THEMES_INDEXES.get(selected_topic)
-    history = await MaxService.get_history(user_id, limit=10)
-    answer = ask_ai_with_index(index_id, text, selected_topic, history)
-
-    if "112" in answer:
-        await MaxService.update_user_state(user_id, UserState.CRISIS_MODE)
-
-    if answer:
-        if user.memory_mode != MemoryMode.none:
-            last_exchange = f"Клиент: {text}\n\nБот: {answer}"
-            await MaxService.add_message(user.id, session_user.id, "user", text)
-            await MaxService.add_message(user.id, session_user.id, "assistant", answer)
-        await bot.send_message(user_id=user_id, text=answer)
     else:
-        await bot.send_message(
-            user_id=user_id,
-            text="⚠️ Не удалось получить ответ. Попробуйте позже."
-        )
+        selected_topic = "Консультации"
+        index_id = THEMES_INDEXES.get(selected_topic)
+        history = await MaxService.get_history(user_id, limit=10)
+        answer = ask_ai_with_index(index_id, text, selected_topic, history)
+
+        if "112" in answer:
+            await MaxService.update_user_state(user_id, UserState.CRISIS_MODE)
+
+        if answer:
+            if user.memory_mode != MemoryMode.none:
+                last_exchange = f"Клиент: {text}\n\nБот: {answer}"
+                await MaxService.add_message(user.id, session_user.id, "user", text)
+                await MaxService.add_message(user.id, session_user.id, "assistant", answer)
+            await bot.send_message(user_id=user_id, text=answer)
+        else:
+            await bot.send_message(
+                user_id=user_id,
+                text="⚠️ Не удалось получить ответ. Попробуйте позже."
+            )
 
 @dp.message_created(F.message.body.attachments)
 async def handle_voice_message(event: MessageCreated):
     user_id = event.from_user.user_id
     session_user = await MaxService.get_session(user_id)
-    if not session_user:
-        await bot.send_message(
-            user_id=user_id,
-            text="Данные не найдены.\n\nИспользуйте команду /new"
-        )
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
     user = await MaxService.get_session(user_id)
@@ -710,53 +704,61 @@ async def handle_voice_message(event: MessageCreated):
 
     user = await MaxService.get_user(user_id)
 
-    if user.state == UserState.TRIAL_ENDED_NOT_PAID:
+    if not session_user:
+        await bot.send_message(
+            user_id=user_id,
+            text="Данные не найдены.\n\nИспользуйте команду /new"
+        )
+
+
+    elif user.state == UserState.TRIAL_ENDED_NOT_PAID:
         await bot.send_message(
             user_id=user_id,
             text="Извини, у тебя закончился пробный период. Сделай что-нибудь."
         )
         return
 
-    selected_topic = "Консультации"
-    index_id = THEMES_INDEXES.get(selected_topic)
-    history = await MaxService.get_history(user_id, limit=10)
+    else:
+        selected_topic = "Консультации"
+        index_id = THEMES_INDEXES.get(selected_topic)
+        history = await MaxService.get_history(user_id, limit=10)
 
 
-    audio_attachment = None
-    for att in event.message.body.attachments:
-        if att.type == "audio":
-            audio_attachment = att
-            break
-    if not audio_attachment:
-        return
-    audio_url = audio_attachment.payload.url
+        audio_attachment = None
+        for att in event.message.body.attachments:
+            if att.type == "audio":
+                audio_attachment = att
+                break
+        if not audio_attachment:
+            return
+        audio_url = audio_attachment.payload.url
 
-    try:
-        headers = {"User-Agent": "MAX/1.0", "Referer": "https://max.ru/"}
-        async with aiohttp.ClientSession() as session_audio:
-            async with session_audio.get(audio_url, headers=headers) as resp:
-                audio_data = await resp.read()
+        try:
+            headers = {"User-Agent": "MAX/1.0", "Referer": "https://max.ru/"}
+            async with aiohttp.ClientSession() as session_audio:
+                async with session_audio.get(audio_url, headers=headers) as resp:
+                    audio_data = await resp.read()
 
-        s3_url = await upload_to_s3(audio_data)
+            s3_url = await upload_to_s3(audio_data)
 
-        recognized_text = AudioService.recognize_from_s3(s3_url, settings.YC_API_KEY)
+            recognized_text = AudioService.recognize_from_s3(s3_url, settings.YC_API_KEY)
 
-        answer = ask_ai_with_index(index_id, recognized_text, selected_topic, history)
-        if answer:
-            if user.memory_mode != MemoryMode.none:
-                last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
-                await MaxService.add_message(user.id, session_user.id, "user", recognized_text)
-                await MaxService.add_message(user.id, session_user.id, "assistant", answer)
-                await bot.send_message(user_id=user_id, text=answer)
-        else:
-            await bot.send_message(
-                user_id=user_id,
-                text="⚠️ Не удалось получить ответ. Попробуйте позже."
-            )
+            answer = ask_ai_with_index(index_id, recognized_text, selected_topic, history)
+            if answer:
+                if user.memory_mode != MemoryMode.none:
+                    last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
+                    await MaxService.add_message(user.id, session_user.id, "user", recognized_text)
+                    await MaxService.add_message(user.id, session_user.id, "assistant", answer)
+                    await bot.send_message(user_id=user_id, text=answer)
+            else:
+                await bot.send_message(
+                    user_id=user_id,
+                    text="⚠️ Не удалось получить ответ. Попробуйте позже."
+                )
 
-    except Exception as e:
-        print(f"Ошибка: {e}")
-        await bot.send_message(user_id=user_id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            await bot.send_message(user_id=user_id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
 
 
 async def main():
