@@ -32,8 +32,9 @@ dp = Dispatcher()
 @dp.message_created(Command('new'))
 async def new_session(event: MessageCreated):
     user_id = event.from_user.user_id
+    user_reg = await MaxService.get_user(user_id)
     await MaxService.delete_session(user_id)
-    await MaxService.create_session(user_id)
+    await MaxService.create_session(user_reg.id)
     await MaxService.update_user_state(user_id, UserState.NEW)
 
     reply_kb = InlineKeyboardBuilder()
@@ -375,7 +376,8 @@ async def bot_started(event: BotStarted):
 
     if not user:
         await MaxService.create_user(user_id, "MAX")
-        await MaxService.create_session(user_id)
+        user_reg = await MaxService.get_user(user_id)
+        await MaxService.create_session(user_reg.id)
 
         reply_kb = InlineKeyboardBuilder()
         reply_kb.row(
@@ -681,8 +683,8 @@ async def handle_message(event: MessageCreated):
     if answer:
         if user.memory_mode != MemoryMode.none:
             last_exchange = f"Клиент: {text}\n\nБот: {answer}"
-            await MaxService.add_message(user_id, "user", text)
-            await MaxService.add_message(user_id, "assistant", answer)
+            await MaxService.add_message(user.id, session_user.id, "user", text)
+            await MaxService.add_message(user.id, session_user.id, "assistant", answer)
         await bot.send_message(user_id=user_id, text=answer)
     else:
         await bot.send_message(
@@ -742,8 +744,8 @@ async def handle_voice_message(event: MessageCreated):
         if answer:
             if user.memory_mode != MemoryMode.none:
                 last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
-                await MaxService.add_message(user_id, "user", recognized_text)
-                await MaxService.add_message(user_id, "assistant", answer)
+                await MaxService.add_message(user.id, session_user.id, "user", recognized_text)
+                await MaxService.add_message(user.id, session_user.id, "assistant", answer)
                 await bot.send_message(user_id=user_id, text=answer)
         else:
             await bot.send_message(

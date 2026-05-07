@@ -79,10 +79,11 @@ class MaxService:
 
     # history message section
     @classmethod
-    async def add_message(cls, user_id: int, role: str, content: str):
+    async def add_message(cls, user_id: int, session_id: int, role: str, content: str):
         async with async_session() as session:
             stmt = insert(Message).values(
                 user_id=user_id,
+                session_id=session_id,
                 role=role,
                 content=content
             )
