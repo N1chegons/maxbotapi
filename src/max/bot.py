@@ -384,6 +384,7 @@ async def bot_started(event: BotStarted):
     if not user:
         await MaxService.create_user(user_id, "MAX")
         user_reg = await MaxService.get_user(user_id)
+
         await MaxService.create_session(user_reg.user_id)
 
         reply_kb = InlineKeyboardBuilder()
@@ -593,7 +594,6 @@ async def handle_mem_memory_none(callback):
         text='Выбор памяти изменен на "Один диалог"\n\nМожете продолжить диалог.',
         attachments=[]
     )
-
 
 @dp.message_callback(F.callback.payload == "memory_full")
 async def handle_memory_full(callback):

@@ -58,21 +58,19 @@ class User(Base):
     disclaimer_agreed_at:  Mapped[datetime.datetime] = mapped_column(nullable=True)
     is_memory_setup_completed: Mapped[bool] = mapped_column(default=False)
 
-    sessions = relationship("Session", back_populates="user")
     messages: Mapped[list["Message"]] = relationship(back_populates="user")
 
 class Session(Base):
     __tablename__ = "sessions"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
+    user_id: Mapped[int] = mapped_column(index=True, unique=True)
     started_at: Mapped[datetime.datetime] = mapped_column(
         server_default=text(
             "TIMEZONE('utc', now())")
     )
     ended_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
-    user = relationship("User", back_populates="sessions")
     messages: Mapped[list["Message"]] = relationship(back_populates="session")
 
 class Message(Base):
