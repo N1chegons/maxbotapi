@@ -323,7 +323,7 @@ async def view_appointment(message):
         md_content += "## 💬 Последние сообщения\n\n"
         md_content += request.messages if request.messages else "Нет сохранённых сообщений"
 
-        filename = f"consultation_{request.client_id}.md"
+        filename = f"consultation_{request.client_id}.txt"
         async with aiofiles.open(filename, "w", encoding='utf-8') as f:
             await f.write(md_content)
         with open(filename, "rb") as f:
