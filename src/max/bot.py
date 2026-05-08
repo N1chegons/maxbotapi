@@ -684,7 +684,7 @@ async def handle_message(event: MessageCreated):
     if text.startswith('/'):
         return
 
-    user_id = event.from_user.user_id
+    user_id = event.message.sender.user_id
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user.user_id)
 
@@ -727,7 +727,7 @@ async def handle_message(event: MessageCreated):
 
 @dp.message_created(F.message.body.attachments)
 async def handle_voice_message(event: MessageCreated):
-    user_id = event.from_user.user_id
+    user_id = event.message.sender.user_id
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user.user_id)
 
