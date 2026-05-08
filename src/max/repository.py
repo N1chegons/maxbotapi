@@ -314,7 +314,7 @@ class AudioService:
             "config": {
                 "specification": {
                     "languageCode": "ru-RU",
-                    "audioEncoding": "MP3"
+                    # "audioEncoding": "MP3"
                 }
             },
             "audio": {
