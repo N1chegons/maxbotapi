@@ -7,7 +7,8 @@ import telebot
 from aiohttp import web
 
 from telebot import apihelper
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputFile
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputFile, ReplyKeyboardMarkup, \
+    KeyboardButton
 from telebot.async_telebot import AsyncTeleBot
 
 from src.max.models import UserState, MemoryMode
@@ -230,9 +231,10 @@ async def igor_command(message):
     else:
         kb = InlineKeyboardMarkup()
         kb.add(
-            InlineKeyboardButton(text="Да", callback_data="consult_agree"),
+        InlineKeyboardButton(text="Да", callback_data="consult_agree"),
             InlineKeyboardButton(text="Нет", callback_data="consult_disagree")
         )
+        kb.add(InlineKeyboardButton(text="про Эксперта >", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg")),
 
         await bot.send_message(
             chat_id=message.chat.id,
@@ -364,7 +366,7 @@ async def admin_help_command(message):
 
     await bot.send_message(chat_id=message.chat.id, text=text)
 
-
+# logic
 @bot.callback_query_handler(func=lambda call: call.data == "delete_agree")
 async def handle_delete_info_agree(call: CallbackQuery):
     user_id = call.from_user.id
@@ -426,9 +428,9 @@ async def handle_agree(call: CallbackQuery):
         await MaxService.start_trial(user_id)
 
     kb = InlineKeyboardMarkup()
-    kb.add(InlineKeyboardButton(text="Запрос >", callback_data="query"))
-    kb.add(InlineKeyboardButton(text="про Бота >", url="https://disk.yandex.ru/i/AHiHqufv2KT9bQ"))
-    kb.add(InlineKeyboardButton(text="про Эксперта >", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"))
+    kb.add(InlineKeyboardButton(text="Запрос >", callback_data="query"),
+    InlineKeyboardButton(text="про Бота >", url="https://disk.yandex.ru/i/AHiHqufv2KT9bQ"),
+    InlineKeyboardButton(text="про Эксперта >", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"))
 
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
@@ -470,22 +472,15 @@ async def handle_memory_none(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
 
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton(text="перед консультацией", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"))
+
     await bot.edit_message_text(
-        "🎬 Видео загружается, секунду...",
+        "Перед консультацией.",
         chat_id=call.message.chat.id,
-        message_id=call.message.message_id
+        message_id=call.message.message_id,
+        reply_markup=kb
     )
-
-    async with aiofiles.open("video_cache/04.mp4", "rb") as f:
-        video_data = await f.read()
-
-    await bot.send_video(
-        chat_id=call.message.chat.id,
-        video=InputFile(io.BytesIO(video_data)),
-        caption="⬇️ Видео загружается...",
-    )
-
-    await asyncio.sleep(20)
 
     await bot.send_message(
         chat_id=call.message.chat.id,
@@ -509,29 +504,22 @@ async def handle_memory_dialog(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
 
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton(text="перед консультацией", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"))
+
     await bot.edit_message_text(
-        "🎬 Видео загружается, секунду...",
+        "Перед консультацией.",
         chat_id=call.message.chat.id,
-        message_id=call.message.message_id
+        message_id=call.message.message_id,
+        reply_markup=kb
     )
-
-    async with aiofiles.open("video_cache/04.mp4", "rb") as f:
-        video_data = await f.read()
-
-    await bot.send_video(
-        chat_id=call.message.chat.id,
-        video=InputFile(io.BytesIO(video_data)),
-        caption="⬇️ Видео загружается...",
-    )
-
-    await asyncio.sleep(20)
 
     await bot.send_message(
         chat_id=call.message.chat.id,
         text="Напиши, что тебя беспокоит прямо сейчас.\n"
              "Для начала нам нужна та эмоция, которая актуальна в данный момент. "
              "Что ты чувствуешь? Что переживаешь?"
-    )
+        )
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_dialog")
 async def handle_mem_memory_dialog(call: CallbackQuery):
     user_id = call.from_user.id
@@ -548,22 +536,15 @@ async def handle_memory_full(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.full)
 
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton(text="перед консультацией", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"))
+
     await bot.edit_message_text(
-        "🎬 Видео загружается, секунду...",
+        "Перед консультацией.",
         chat_id=call.message.chat.id,
-        message_id=call.message.message_id
+        message_id=call.message.message_id,
+        reply_markup=kb
     )
-
-    async with aiofiles.open("video_cache/04.mp4", "rb") as f:
-        video_data = await f.read()
-
-    await bot.send_video(
-        chat_id=call.message.chat.id,
-        video=InputFile(io.BytesIO(video_data)),
-        caption="⬇️ Видео загружается...",
-    )
-
-    await asyncio.sleep(20)
 
     await bot.send_message(
         chat_id=call.message.chat.id,
@@ -580,6 +561,65 @@ async def handle_mem_memory_full(call: CallbackQuery):
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
         text='Выбор памяти изменен на "Вся память"\n\nМожете продолжить диалог.'
+    )
+
+@bot.callback_query_handler(func=lambda call: call.data == "consult_agree")
+async def handle_memory_full(call: CallbackQuery):
+    contact_button = KeyboardButton(
+        text="📱 Поделиться номером",
+        request_contact=True
+    )
+
+    keyboard = ReplyKeyboardMarkup(
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
+    keyboard.add(contact_button)
+
+    await bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="Пожалуйста, поделись своим номером телефона, чтобы я мог записать тебя на консультацию.",
+        reply_markup=keyboard
+    )
+
+
+@bot.message_handler(content_types=['contact'])
+async def handle_contact(message):
+    contact = message.contact
+    user_id = message.from_user.id
+
+    phone = contact.phone_number
+    name = contact.first_name
+
+    history = await MaxService.get_last_messages(user_id, limit=20)
+    history_text = "\n".join([
+        f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
+        for msg in history
+    ])
+
+    appointment_date = await MaxService.get_next_free_date()
+
+    await MaxService.add_request(
+        client_id=user_id,
+        contact=phone,
+        messages=history_text,
+        appointment_date=appointment_date
+    )
+
+    await bot.send_message(
+        chat_id=message.chat.id,
+        text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
+                 "Вы можете продолжить вести диалог.",
+        reply_markup=telebot.types.ReplyKeyboardRemove()
+    )
+
+@bot.callback_query_handler(func=lambda call: call.data == "consult_disagree")
+async def handle_memory_full(call: CallbackQuery):
+    await bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="Ты отменил заявку на консультацию. Если хочешь записаться на консультацию - /igor"
     )
 
 @bot.message_handler(func=lambda message: True)
