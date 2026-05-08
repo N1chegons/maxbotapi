@@ -6,7 +6,7 @@ from sqlalchemy import select, update, insert, delete
 
 from src.config import settings
 from src.db import async_session
-from src.max.models import Session, Message, Request, User, UserState, SubsStatus, SubsTier, MemoryMode
+from src.max.models import Session, Message, Request, User, UserState, SubsStatus, SubsTier, MemoryMode, Role
 
 FOLDER_ID = settings.YC_FOLDER_ID
 API_KEY = settings.YC_API_SPEECHKIT
@@ -79,12 +79,12 @@ class MaxService:
 
     # history message section
     @classmethod
-    async def add_message(cls, user_id: int, session_id: int, role: str, content: str):
+    async def add_message(cls, user_id: int, session_id: int, role: Role, content: str):
         async with async_session() as session:
             stmt = insert(Message).values(
                 user_id=user_id,
                 session_id=session_id,
-                role=role,
+                role=role.value,
                 content=content
             )
             await session.execute(stmt)

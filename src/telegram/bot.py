@@ -652,8 +652,8 @@ async def handle_message(message):
         if answer:
             if user_reg.memory_mode != MemoryMode.none:
                 last_exchange = f"Клиент: {text}\n\nБот: {answer}"
-                await MaxService.add_message(user_id, session_user.id, Role.user, text)
-                await MaxService.add_message(user_id, session_user.id, Role.assistant, answer)
+                await MaxService.add_message(user_id, session_user.id, Role.user.value, text)
+                await MaxService.add_message(user_id, session_user.id, Role.assistant.value, answer)
             await bot.send_message(chat_id=message.chat.id, text=answer)
         else:
             await bot.send_message(
