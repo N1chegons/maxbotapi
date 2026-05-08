@@ -36,9 +36,7 @@ async def start(message):
 
     if not user:
         await MaxService.create_user(user_id, "TELEGRAM")
-        user_reg = await MaxService.get_user(user_id)
-
-        await MaxService.create_session(user_reg.user_id)
+        await MaxService.create_session(user_id)
 
         kb = InlineKeyboardMarkup()
         kb.add(InlineKeyboardButton(text="Продолжить >", callback_data="continue"))
