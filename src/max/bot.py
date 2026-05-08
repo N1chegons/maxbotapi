@@ -790,6 +790,10 @@ async def handle_voice_message(event: MessageCreated):
             print(f"Ошибка: {e}")
             await bot.send_message(user_id=user_id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
 
+@dp.message_created(F.message.body.attachments[0].type == 'contact')
+async def handle_contact(event: MessageCreated):
+    return "TEXT CONTACT>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", event.message.body.text
+
 
 async def main():
     webhook_url = "https://bot.nepovinnyh.ru/webhook"
