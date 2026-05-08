@@ -29,7 +29,7 @@ bot = AsyncTeleBot(BOT_TOKEN)
 
 @bot.message_handler(commands=['start'])
 async def start(message):
-    user_id = message.user_id
+    user_id = message.from_user.user_id
     user = await MaxService.get_user(user_id)
 
     if not user:
@@ -59,7 +59,7 @@ async def start(message):
 
 @bot.message_handler(commands=['new'])
 async def new_session(message):
-    user_id = message.user_id
+    user_id = message.from_user.user_id
     user_reg = await MaxService.get_user(user_id)
     await MaxService.delete_session(user_reg.user_id)
     await MaxService.create_session(user_reg.user_id)
@@ -79,7 +79,7 @@ async def new_session(message):
 
 @bot.message_handler(commands=['mem'])
 async def mem_memory_choice(message):
-    user_id = message.user_id
+    user_id = message.from_user.user_id
     user_reg = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_reg.user_id)
 
@@ -108,7 +108,7 @@ async def mem_memory_choice(message):
 
 @bot.message_handler(commands=['del'])
 async def delete_info(message):
-    user_id = message.user_id
+    user_id = message.from_user.user_id
     user_reg = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_reg.user_id)
 
@@ -132,7 +132,7 @@ async def delete_info(message):
 
 @bot.message_handler(commands=['end'])
 async def closed_session(message):
-    user_id = message.user_id
+    user_id = message.from_user.user_id
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user.user_id)
 
@@ -207,7 +207,7 @@ async def instruction(message):
 
 @bot.message_handler(commands=['igor'])
 async def igor_command(message):
-    user_id = message.user_id
+    user_id = message.from_user.user_id
     user_reg = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_reg.user_id)
 
@@ -248,7 +248,7 @@ async def igor_command(message):
 
 @bot.message_handler(commands=['admin'])
 async def admin_panel(message):
-    user_id = message.user_id
+    user_id = message.from_user.user_id
     if not AdminService.is_admin(user_id):
         await bot.send_message(chat_id=message.chat.id, text="⛔ Нет доступа")
         return
@@ -265,7 +265,7 @@ async def admin_panel(message):
 
 @bot.message_handler(commands=['st'])
 async def stats_command(message):
-    user_id = message.user_id
+    user_id = message.from_user.user_id
     if not AdminService.is_admin(user_id):
         await bot.send_message(chat_id=message.chat.id, text="⛔ Нет доступа")
         return
@@ -292,7 +292,7 @@ async def stats_command(message):
 
 @bot.message_handler(commands=['con'])
 async def view_appointment(message):
-    user_id = message.user_id
+    user_id = message.from_user.user_id
     if not AdminService.is_admin(user_id):
         await bot.send_message(chat_id=message.chat.id, text="⛔ Нет доступа")
         return
@@ -348,7 +348,7 @@ async def view_appointment(message):
 
 @bot.message_handler(commands=['ha'])
 async def admin_help_command(message):
-    user_id = message.user_id
+    user_id = message.from_user.user_id
     if not AdminService.is_admin(user_id):
         await bot.send_message(chat_id=message.chat.id, text="⛔ Нет доступа")
         return
@@ -578,14 +578,13 @@ async def handle_memory(call: CallbackQuery):
         text='Выбор памяти изменен на "Вся память"\n\nМожете продолжить диалог.'
     )
 
-
 @bot.message_handler(func=lambda message: True)
 async def handle_message(message):
     text = message.text
     if text.startswith('/'):
         return
 
-    user_id = message.user_id
+    user_id = message.from_user.user_id
     user_reg = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_reg.user_id)
 
@@ -626,6 +625,7 @@ async def handle_message(message):
                 text="⚠️ Не удалось получить ответ. Попробуйте позже."
             )
 
+
 async def handle_webhook(request):
     try:
         body = await request.json()
@@ -635,9 +635,7 @@ async def handle_webhook(request):
     except Exception as e:
         print(f"Ошибка: {e}")
         return web.Response(status=200, text="OK")
-
 app.router.add_post(WEBHOOK_PATH, handle_webhook)
-
 async def main():
     await bot.delete_webhook()
     await bot.set_webhook(url=WEBHOOK_URL)
