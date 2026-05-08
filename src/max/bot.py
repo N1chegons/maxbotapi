@@ -792,7 +792,7 @@ async def handle_voice_message(event: MessageCreated):
 
 @dp.message_created(F.message.body.attachments[0].type == 'contact')
 async def handle_contact(event: MessageCreated):
-    return "TEXT CONTACT>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", event.message.body.text
+    print("TEXT CONTACT>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", event.message.body.text)
 
 
 async def main():
