@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 import aiofiles
-import telebot
 from aiohttp import web
 
 from telebot import apihelper
@@ -623,19 +622,15 @@ async def handle_message(message):
                 text="⚠️ Не удалось получить ответ. Попробуйте позже."
             )
 
+async def main():
+    WEBHOOK_URL = "https://bot.nepovinnyh.ru/tg_webhook"
+    await bot.remove_webhook()
+    # Устанавливаем новый
+    await bot.set_webhook(url=WEBHOOK_URL)
+    # Запускаем сервер
+    await web._run_app(app, host='127.0.0.1', port=8081)
 
-WEBHOOK_PATH = "/tg_webhook"
-WEBHOOK_URL = f"https://bot.nepovinnyh.ru{WEBHOOK_PATH}"
-bot.remove_webhook()
-bot.set_webhook(url=WEBHOOK_URL)
-
-async def handle_webhook(request):
-    body = await request.json()
-    update = telebot.types.Update.de_json(body)
-    await bot.process_new_updates([update])
-    return web.Response(text="OK", status=200)
-
-app.router.add_post(WEBHOOK_PATH, handle_webhook)
+    # await bot.polling(non_stop=True)
 
 if __name__ == "__main__":
-    web.run_app(app, host='127.0.0.1', port=8081)
+    asyncio.run(main())
