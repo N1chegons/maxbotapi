@@ -783,7 +783,7 @@ async def handle_voice_message(event: MessageCreated):
                     last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
                     await MaxService.add_message(user_id, session_user.id, "user", recognized_text)
                     await MaxService.add_message(user_id, session_user.id, "assistant", answer)
-                    await bot.send_message(user_id=user_id, text=answer)
+                await bot.send_message(user_id=user_id, text=answer)
             else:
                 await bot.send_message(
                     user_id=user_id,
