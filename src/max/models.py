@@ -1,5 +1,5 @@
 from maxapi.context import State, StatesGroup
-from sqlalchemy import text, ForeignKey
+from sqlalchemy import text, ForeignKey, BigInteger
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import datetime
 import enum
@@ -40,7 +40,7 @@ class Role(enum.Enum):
 class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(index=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, index=True)
     platform: Mapped[str]
     created_at: Mapped[datetime.datetime] = mapped_column(
         server_default=text(
