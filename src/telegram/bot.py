@@ -633,10 +633,10 @@ async def handle_webhook(request):
     await bot.remove_webhook()
     await bot.set_webhook(url=WEBHOOK_URL)
 
-    # ---------- Сервер ----------
-    app.router.add_post(WEBHOOK_PATH, handle_webhook) # ← здесь регистрируем
 
     return web.Response(text="OK", status=200)
+
+app.router.add_post(WEBHOOK_PATH, handle_webhook)
 
 if __name__ == "__main__":
     web.run_app(app, host='127.0.0.1', port=8081)
