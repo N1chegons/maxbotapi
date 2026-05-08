@@ -686,7 +686,7 @@ async def handle_message(event: MessageCreated):
 
     user_id = event.message.sender.user_id
     user = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user.user_id)
+    session_user = await MaxService.get_session(user_id)
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
     await MaxService.expire_trial_if_needed(user_id)
@@ -716,8 +716,8 @@ async def handle_message(event: MessageCreated):
         if answer:
             if user.memory_mode != MemoryMode.none:
                 last_exchange = f"Клиент: {text}\n\nБот: {answer}"
-                await MaxService.add_message(user.id, session_user.user_id, "user", text)
-                await MaxService.add_message(user.id, session_user.user_id, "assistant", answer)
+                await MaxService.add_message(user.user_id, session_user.user_id, "user", text)
+                await MaxService.add_message(user.user_id, session_user.user_id, "assistant", answer)
             await bot.send_message(user_id=user_id, text=answer)
         else:
             await bot.send_message(
@@ -729,7 +729,7 @@ async def handle_message(event: MessageCreated):
 async def handle_voice_message(event: MessageCreated):
     user_id = event.message.sender.user_id
     user = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user.user_id)
+    session_user = await MaxService.get_session(user_id)
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
     await MaxService.expire_trial_if_needed(user_id)
@@ -777,8 +777,8 @@ async def handle_voice_message(event: MessageCreated):
             if answer:
                 if user.memory_mode != MemoryMode.none:
                     last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
-                    await MaxService.add_message(user.id, session_user.user_id, "user", recognized_text)
-                    await MaxService.add_message(user.id, session_user.user_id, "assistant", answer)
+                    await MaxService.add_message(user.user_id, session_user.user_id, "user", recognized_text)
+                    await MaxService.add_message(user.user_id, session_user.user_id, "assistant", answer)
                     await bot.send_message(user_id=user_id, text=answer)
             else:
                 await bot.send_message(
