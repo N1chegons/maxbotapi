@@ -570,9 +570,8 @@ async def handle_consult_agree(call: CallbackQuery):
     )
     keyboard.add(contact_button)
 
-    await bot.edit_message_text(
+    await bot.send_message(
         chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
         text="Пожалуйста, поделись своим номером телефона, чтобы я мог записать тебя на консультацию.",
         reply_markup=keyboard
     )
