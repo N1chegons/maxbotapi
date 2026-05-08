@@ -3,6 +3,7 @@ import logging
 import os
 import io
 import aiofiles
+import requests
 import telebot
 from aiohttp import web
 
@@ -13,7 +14,8 @@ from telebot.async_telebot import AsyncTeleBot
 
 from src.max.models import UserState, MemoryMode
 from src.admin.repository import AdminService
-from src.max.repository import MaxService
+from src.max.repository import MaxService, AudioService
+from src.max.utils import upload_to_s3
 from src.yandexai.config import THEMES_INDEXES
 from src.yandexai.orchestrator import ask_ai_with_index
 from src.config import settings
@@ -578,6 +580,15 @@ async def handle_consult_agree(call: CallbackQuery):
         reply_markup=keyboard
     )
 
+@bot.callback_query_handler(func=lambda call: call.data == "consult_disagree")
+async def handle_consult_disagree(call: CallbackQuery):
+    await bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="Ты отменил заявку на консультацию. Если хочешь записаться на консультацию - /igor"
+    )
+
+
 
 @bot.message_handler(content_types=['contact'])
 async def handle_contact(message):
@@ -609,13 +620,59 @@ async def handle_contact(message):
         reply_markup=telebot.types.ReplyKeyboardRemove()
     )
 
-@bot.callback_query_handler(func=lambda call: call.data == "consult_disagree")
-async def handle_consult_disagree(call: CallbackQuery):
-    await bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        text="Ты отменил заявку на консультацию. Если хочешь записаться на консультацию - /igor"
-    )
+@bot.message_handler(content_types=['voice'])
+async def handle_voice(message):
+    user_id = message.from_user.id
+    user_reg = await MaxService.get_user(user_id)
+    session_user = await MaxService.get_session(user_id)
+
+    await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
+    await MaxService.expire_trial_if_needed(user_id)
+
+    if not session_user:
+        await bot.send_message(
+            chat_id=message.chat.id,
+            text="Данные не найдены.\n\nИспользуйте команду /new"
+        )
+
+    elif user_reg.state == UserState.TRIAL_ENDED_NOT_PAID:
+        await bot.send_message(
+            chat_id=message.chat.id,
+            text="Извини, у тебя закончился пробный период. Сделай что-нибудь."
+        )
+        return
+
+    else:
+        selected_topic = "Консультации"
+        index_id = THEMES_INDEXES.get(selected_topic)
+        history = await MaxService.get_history(user_id, limit=10)
+        file_info = await bot.get_file(message.voice.file_id)
+
+        file_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_info.file_path}"
+        audio_data = requests.get(file_url).content
+
+        s3_url = await upload_to_s3(audio_data)
+
+        recognized_text = AudioService.recognize_from_s3(s3_url, settings.YC_API_KEY)
+
+        answer = ask_ai_with_index(index_id, recognized_text, selected_topic, history)
+
+        try:
+            if answer:
+                if user_reg.memory_mode != MemoryMode.none:
+                    last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
+                    await MaxService.add_message(user_id, session_user.id, "user", recognized_text)
+                    await MaxService.add_message(user_id, session_user.id, "assistant", answer)
+                    await bot.send_message(chat_id=message.chat.id, text=answer)
+            else:
+                await bot.send_message(
+                    chat_id=message.chat.id,
+                    text="⚠️ Не удалось получить ответ. Попробуйте позже."
+                )
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            await bot.send_message(chat_id=message.chat.id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
+
 
 @bot.message_handler(func=lambda message: True)
 async def handle_message(message):
