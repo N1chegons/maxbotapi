@@ -628,7 +628,7 @@ async def main():
     # Устанавливаем новый
     await bot.set_webhook(url=WEBHOOK_URL)
     # Запускаем сервер
-    web.run_app(app, host='127.0.0.1', port=8081)
+    await web._run_app(app, host='127.0.0.1', port=8081)
 
     # await bot.polling(non_stop=True)
 
