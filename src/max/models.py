@@ -78,7 +78,7 @@ class Message(Base):
 
     message_id: Mapped[int] = mapped_column(primary_key=True, index=True)
     session_id: Mapped[int] = mapped_column(ForeignKey("sessions.id"))
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(BigInteger)
     role: Mapped[Role]
     content: Mapped[str]
     created_at: Mapped[datetime.datetime] = mapped_column(
