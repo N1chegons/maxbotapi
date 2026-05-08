@@ -420,14 +420,16 @@ async def handle_continue(callback):
     await MaxService.create_session(user.user_id)
 
     await callback.message.edit(
-        text="Все данные удалены. Начинай снова /new"
+        text="Все данные удалены. Начинай снова /new",
+        attachments=[]
     )
 
 @dp.message_callback(F.callback.payload == "delete_disagree")
 async def handle_continue(callback):
     user_id = callback.callback.user.user_id
     await callback.message.edit(
-        text="Давай продолжим. На чём мы остановились"
+        text="Давай продолжим. На чём мы остановились",
+        attachments=[]
     )
 
 @dp.message_callback(F.callback.payload == "continue")
