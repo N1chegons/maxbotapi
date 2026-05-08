@@ -627,13 +627,14 @@ async def handle_message(message):
             )
 
 async def handle_webhook(request):
-    if request.match_info.get('token') == bot.token:
-        request_body_dict = await request.json()
-        update = telebot.types.Update.de_json(request_body_dict)
+    try:
+        body = await request.json()
+        update = telebot.types.Update.de_json(body)
         await bot.process_new_updates([update])
         return web.Response(status=200, text="OK")
-    else:
-        return web.Response(status=403)
+    except Exception as e:
+        print(f"Ошибка: {e}")
+        return web.Response(status=200, text="OK")
 
 app.router.add_post(WEBHOOK_PATH, handle_webhook)
 
