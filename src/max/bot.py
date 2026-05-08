@@ -676,33 +676,6 @@ async def igor_confirm(callback):
 #              "Вы можете продолжить вести диалог."
 #     )
 #
-@dp.message_created(F.message.body.attachments[0].type == 'contact')
-async def handle_contact(event: MessageCreated):
-    for att in event.message.body.attachments:
-        if att.type == "contact":
-            contact_data = att.payload
-
-            # Извлечение номера телефона
-            # Номер телефона обычно лежит в vcf_info, но может быть и в max_info в зависимости от платформы отправителя
-            phone_number = contact_data.vcf_info
-            # Или попробовать так:
-            # phone_number = contact_data.max_info.get('phone')
-
-            # Вывод в консоль для отладки
-            print(f"Получен контакт: {phone_number}")
-            print(f"Все данные контакта: {contact_data}")
-
-            # Ваш код сохранения номера в базу данных...
-            # await save_phone_to_db(event.from_user.user_id, phone_number)
-
-            await bot.send_message(
-                user_id=event.from_user.user_id,
-                text=f"Спасибо! Ваш номер {phone_number} получен."
-            )
-            break
-    else:
-        # Если контакт не найден (на всякий случай)
-        print("Вложение не является контактом.")
 
 @dp.message_created(F.message.body.text)
 async def handle_message(event: MessageCreated):
@@ -750,6 +723,35 @@ async def handle_message(event: MessageCreated):
                 user_id=user_id,
                 text="⚠️ Не удалось получить ответ. Попробуйте позже."
             )
+
+@dp.message_created(F.message.body.attachments[0].type == 'contact')
+async def handle_contact(event: MessageCreated):
+    user_id = event.message.sender.user_id
+
+    contact = event.message.body.attachments[0].payload
+    vcf = contact.vcf_info
+    phone = vcf.split('TEL;TYPE=cell:')[1].split('\n')[0]
+
+    history = await MaxService.get_last_messages(user_id, limit=20)
+    history_text = "\n".join([
+        f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
+        for msg in history
+    ])
+
+    appointment_date = await MaxService.get_next_free_date()
+
+    await MaxService.add_request(
+        client_id=user_id,
+        contact=phone,
+        messages=history_text,
+        appointment_date=appointment_date
+    )
+
+    await bot.send_message(
+        user_id=event.from_user.user_id,
+        text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
+             "Вы можете продолжить вести диалог.",
+    )
 
 @dp.message_created(F.message.body.attachments)
 async def handle_voice_message(event: MessageCreated):
