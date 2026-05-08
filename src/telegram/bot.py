@@ -629,14 +629,14 @@ async def handle_webhook(request):
     body = await request.json()
     update = telebot.types.Update.de_json(body)
     await bot.process_new_updates([update])
+
+    await bot.remove_webhook()
+    await bot.set_webhook(url=WEBHOOK_URL)
+
+    # ---------- Сервер ----------
+    app.router.add_post(WEBHOOK_PATH, handle_webhook) # ← здесь регистрируем
+
     return web.Response(text="OK", status=200)
-
-# ---------- Настройка вебхука ----------
-bot.remove_webhook()
-bot.set_webhook(url=WEBHOOK_URL)
-
-# ---------- Сервер ----------
-app.router.add_post(WEBHOOK_PATH, handle_webhook)  # ← здесь регистрируем
 
 if __name__ == "__main__":
     web.run_app(app, host='127.0.0.1', port=8081)
