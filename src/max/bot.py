@@ -14,7 +14,7 @@ from src.admin.repository import AdminService
 # from src.admin.repository import AdminService
 
 from src.config import settings
-from src.max.models import UserState, MemoryMode
+from src.max.models import UserState, MemoryMode, Role
 from src.max.repository import MaxService, AudioService
 from src.max.utils import upload_to_s3
 from src.yandexai.config import THEMES_INDEXES
@@ -709,14 +709,11 @@ async def handle_message(event: MessageCreated):
         history = await MaxService.get_history(user_id, limit=10)
         answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
-        if "112" in answer:
-            await MaxService.update_user_state(user_id, UserState.CRISIS_MODE)
-
         if answer:
             if user.memory_mode != MemoryMode.none:
                 last_exchange = f"Клиент: {text}\n\nБот: {answer}"
-                await MaxService.add_message(user_id, session_user.id, "user", text)
-                await MaxService.add_message(user_id, session_user.id, "assistant", answer)
+                await MaxService.add_message(user_id, session_user.id, Role.user, text)
+                await MaxService.add_message(user_id, session_user.id,  Role.assistant, answer)
             await bot.send_message(user_id=user_id, text=answer)
         else:
             await bot.send_message(
@@ -776,8 +773,8 @@ async def handle_voice_message(event: MessageCreated):
             if answer:
                 if user.memory_mode != MemoryMode.none:
                     last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
-                    await MaxService.add_message(user_id, session_user.id, "user", recognized_text)
-                    await MaxService.add_message(user_id, session_user.id, "assistant", answer)
+                    await MaxService.add_message(user_id, session_user.id, Role.user, recognized_text)
+                    await MaxService.add_message(user_id, session_user.id, Role.assistant, answer)
                     await bot.send_message(user_id=user_id, text=answer)
             else:
                 await bot.send_message(
