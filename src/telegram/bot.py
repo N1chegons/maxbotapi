@@ -24,7 +24,7 @@ WEBHOOK_PATH = "/tg_webhook"
 WEBHOOK_URL = f"https://bot.nepovinnyh.ru{WEBHOOK_PATH}"
 
 app = web.Application()
-apihelper.proxy = {'https': 'socks5://2PMbdA6Sn8:2lu983bCrc@194.31.73.76:60995'}
+# apihelper.proxy = {'https': 'socks5://2PMbdA6Sn8:2lu983bCrc@194.31.73.76:60995'}
 bot = AsyncTeleBot(BOT_TOKEN)
 
 
