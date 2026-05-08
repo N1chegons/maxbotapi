@@ -3,18 +3,16 @@ import logging
 import os
 import aiofiles
 import aiohttp
-from aiohttp import web
 
 from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import Command
-from maxapi.types import MessageCreated, BotStarted, CallbackButton, MessageCallback, InputMedia, LinkButton, \
+from maxapi.types import MessageCreated, BotStarted, CallbackButton, InputMedia, LinkButton, \
     RequestContactButton
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
-from maxapi.webhook.aiohttp import AiohttpMaxWebhook
-from telebot.apihelper import session
 
 from src.admin.repository import AdminService
 # from src.admin.repository import AdminService
+
 from src.config import settings
 from src.max.models import UserState, MemoryMode
 from src.max.repository import MaxService, AudioService
@@ -795,7 +793,7 @@ async def handle_voice_message(event: MessageCreated):
 
 async def main():
     webhook_url = "https://bot.nepovinnyh.ru/webhook"
-    webhook_secret = "SecretKeyNepovinnyh2026"
+    webhook_secret = settings.SECRET_WEBHOOK_KEY
 
     # Регистрируем новую на поддомен
     await bot.subscribe_webhook(url=webhook_url, secret=webhook_secret)
