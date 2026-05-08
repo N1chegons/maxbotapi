@@ -637,10 +637,17 @@ async def handle_webhook(request):
 
 app.router.add_post(WEBHOOK_PATH, handle_webhook)
 
-async def setup():
-    await bot.remove_webhook()
+async def main():
+    await bot.delete_webhook()
     await bot.set_webhook(url=WEBHOOK_URL)
+    # Запускаем веб-сервер как асинхронную задачу
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, host='127.0.0.1', port=8081)
+    await site.start()
+    print(f"Бот запущен на http://127.0.0.1:8081{WEBHOOK_PATH}")
+    # Бесконечно ждём
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    asyncio.run(setup())
-    web.run_app(app, host='127.0.0.1', port=8081)
+    asyncio.run(main())
