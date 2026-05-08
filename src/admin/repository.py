@@ -6,7 +6,7 @@ from src.admin.models import CommandLog
 from src.db import async_session
 from src.max.models import Message
 
-ADMIN_IDS = [235995783, 12456095]
+ADMIN_IDS = [235995783, 12456095, 8177043133]
 
 class AdminService:
     @classmethod
