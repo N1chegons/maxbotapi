@@ -751,6 +751,7 @@ async def handle_voice_message(event: MessageCreated):
         if not audio_attachment:
             return
         audio_url = audio_attachment.payload.url
+        print(audio_url)
 
         try:
             print("УПАЛО ЗДЕСЬ >>>>>>>>>>>>>>>>> 0")
