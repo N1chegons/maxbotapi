@@ -313,8 +313,7 @@ class AudioService:
         body = {
             "config": {
                 "specification": {
-                    "languageCode": "ru-RU",
-                    # "audioEncoding": "MP3"
+                    "languageCode": "ru-RU"
                 }
             },
             "audio": {

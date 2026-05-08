@@ -3,7 +3,8 @@ import logging
 import os
 import aiofiles
 import aiohttp
-
+import magic
+import subprocess
 from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import Command
 from maxapi.types import MessageCreated, BotStarted, CallbackButton, InputMedia, LinkButton, \
@@ -760,16 +761,8 @@ async def handle_voice_message(event: MessageCreated):
                 async with session_audio.get(audio_url, headers=headers) as resp:
                     audio_data = await resp.read()
 
-            print("УПАЛО ЗДЕСЬ >>>>>>>>>>>>>>>>> 1")
-
-            # Определяем формат
-            import magic
             mime = magic.from_buffer(audio_data, mime=True)
-            print(f"Реальный формат: {mime}")
-
-            # Конвертируем только если не OGG
             if mime != 'audio/ogg':
-                import subprocess
                 process = subprocess.run(
                     ['ffmpeg', '-i', 'pipe:0', '-c:a', 'libopus', '-ar', '48000', '-b:a', '64k', '-f', 'ogg', 'pipe:1'],
                     input=audio_data,
@@ -778,7 +771,6 @@ async def handle_voice_message(event: MessageCreated):
                 if process.returncode != 0:
                     raise Exception(process.stderr.decode())
                 audio_data = process.stdout
-                print(f"✅ Конвертировано в OGG, размер: {len(audio_data)}")
 
             s3_url = await upload_to_s3(audio_data)
 
