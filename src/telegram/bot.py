@@ -17,7 +17,10 @@ from src.yandexai.orchestrator import ask_ai_with_index
 from src.config import settings
 
 logging.basicConfig(level=logging.INFO)
+
 BOT_TOKEN = settings.TELEGRAM_BOT_TOKEN
+WEBHOOK_PATH = "/tg_webhook"
+WEBHOOK_URL = f"https://bot.nepovinnyh.ru{WEBHOOK_PATH}"
 
 app = web.Application()
 apihelper.proxy = {'https': 'socks5://2PMbdA6Sn8:2lu983bCrc@194.31.73.76:60995'}
@@ -623,20 +626,21 @@ async def handle_message(message):
                 text="⚠️ Не удалось получить ответ. Попробуйте позже."
             )
 
-WEBHOOK_PATH = "/tg_webhook"
-WEBHOOK_URL = f"https://bot.nepovinnyh.ru{WEBHOOK_PATH}"
 async def handle_webhook(request):
-    body = await request.json()
-    update = telebot.types.Update.de_json(body)
-    await bot.process_new_updates([update])
-
-    await bot.remove_webhook()
-    await bot.set_webhook(url=WEBHOOK_URL)
-
-
-    return web.Response(text="OK", status=200)
+    if request.match_info.get('token') == bot.token:
+        request_body_dict = await request.json()
+        update = telebot.types.Update.de_json(request_body_dict)
+        await bot.process_new_updates([update])
+        return web.Response(status=200, text="OK")
+    else:
+        return web.Response(status=403)
 
 app.router.add_post(WEBHOOK_PATH, handle_webhook)
 
+async def setup():
+    await bot.remove_webhook()
+    await bot.set_webhook(url=WEBHOOK_URL)
+
 if __name__ == "__main__":
+    asyncio.run(setup())
     web.run_app(app, host='127.0.0.1', port=8081)
