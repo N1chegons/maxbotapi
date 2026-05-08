@@ -716,8 +716,8 @@ async def handle_message(event: MessageCreated):
         if answer:
             if user.memory_mode != MemoryMode.none:
                 last_exchange = f"Клиент: {text}\n\nБот: {answer}"
-                await MaxService.add_message(user.user_id, session_user.user_id, "user", text)
-                await MaxService.add_message(user.user_id, session_user.user_id, "assistant", answer)
+                await MaxService.add_message(user.user_id, session_user.id, "user", text)
+                await MaxService.add_message(user.user_id, session_user.id, "assistant", answer)
             await bot.send_message(user_id=user_id, text=answer)
         else:
             await bot.send_message(
@@ -777,8 +777,8 @@ async def handle_voice_message(event: MessageCreated):
             if answer:
                 if user.memory_mode != MemoryMode.none:
                     last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
-                    await MaxService.add_message(user.user_id, session_user.user_id, "user", recognized_text)
-                    await MaxService.add_message(user.user_id, session_user.user_id, "assistant", answer)
+                    await MaxService.add_message(user.user_id, session_user.id, "user", recognized_text)
+                    await MaxService.add_message(user.user_id, session_user.id, "assistant", answer)
                     await bot.send_message(user_id=user_id, text=answer)
             else:
                 await bot.send_message(
