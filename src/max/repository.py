@@ -138,12 +138,15 @@ class MaxService:
             return result.scalars().all()
 
     @classmethod
-    async def get_unviewed_request(cls):
+    async def get_unviewed_request(cls, limit: int = 15):
         async with async_session() as session:
             result = await session.execute(
                 select(Request)
-                .where(Request.viewed == False)
-                .order_by(Request.appointment_date.asc())
+                .order_by(
+                    Request.viewed.asc(),
+                    Request.appointment_date.asc()
+                )
+                .limit(limit)
             )
             return result.scalars().all()
 

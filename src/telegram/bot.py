@@ -340,7 +340,8 @@ async def view_appointment(message):
 
         text = "📋 **Новые заявки на консультацию:**\n\n"
         for app in appointments:
-            text += f"{app.id} — {app.appointment_date.strftime('%d.%m.%Y 20:00')} — клиент {app.contact}\n"
+            status = "✅" if app.viewed else "🆕"
+            text += f"{status} `{app.id}` — {app.appointment_date.strftime('%d.%m.%Y 20:00')} — {app.contact}\n"
 
         text += "\n📝 Для просмотра деталей: /con <id>(порядковый номер записи)"
 
@@ -672,7 +673,6 @@ async def handle_voice(message):
         except Exception as e:
             print(f"Ошибка: {e}")
             await bot.send_message(chat_id=message.chat.id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
-
 
 @bot.message_handler(func=lambda message: True)
 async def handle_message(message):

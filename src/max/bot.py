@@ -350,7 +350,8 @@ async def view_appointment(event: MessageCreated):
 
         text = "📋 **Новые заявки на консультацию:**\n\n"
         for app in appointments:
-            text += f"{app.id} — {app.appointment_date.strftime('%d.%m.%Y 20:00')} — клиент {app.contact}\n"
+            status = "✅" if app.viewed else "🆕"
+            text += f"{status} `{app.id}` — {app.appointment_date.strftime('%d.%m.%Y 20:00')} — {app.contact}\n"
 
         text += "\n📝 Для просмотра деталей: /con <id>(порядковый номер записи)"
 
