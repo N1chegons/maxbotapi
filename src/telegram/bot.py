@@ -590,7 +590,7 @@ async def handle_message(message):
 
     user_id = message.from_user.id
     user_reg = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user_reg.user_id)
+    session_user = await MaxService.get_session(user_id)
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
     await MaxService.expire_trial_if_needed(user_id)
@@ -620,8 +620,8 @@ async def handle_message(message):
         if answer:
             if user_reg.memory_mode != MemoryMode.none:
                 last_exchange = f"Клиент: {text}\n\nБот: {answer}"
-                await MaxService.add_message(user_id, session_user.id, "user", text)
-                await MaxService.add_message(user_id, session_user.id, "assistant", answer)
+                await MaxService.add_message(user.user_id, session_user.id, "user", text)
+                await MaxService.add_message(user.user_id, session_user.id, "assistant", answer)
             await bot.send_message(chat_id=message.chat.id, text=answer)
         else:
             await bot.send_message(
