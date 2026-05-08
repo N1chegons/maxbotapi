@@ -676,7 +676,33 @@ async def igor_confirm(callback):
 #              "Вы можете продолжить вести диалог."
 #     )
 #
+@dp.message_created(F.message.body.attachments[0].type == 'contact')
+async def handle_contact(event: MessageCreated):
+    for att in event.message.body.attachments:
+        if att.type == "contact":
+            contact_data = att.payload
 
+            # Извлечение номера телефона
+            # Номер телефона обычно лежит в vcf_info, но может быть и в max_info в зависимости от платформы отправителя
+            phone_number = contact_data.vcf_info
+            # Или попробовать так:
+            # phone_number = contact_data.max_info.get('phone')
+
+            # Вывод в консоль для отладки
+            print(f"Получен контакт: {phone_number}")
+            print(f"Все данные контакта: {contact_data}")
+
+            # Ваш код сохранения номера в базу данных...
+            # await save_phone_to_db(event.from_user.user_id, phone_number)
+
+            await bot.send_message(
+                user_id=event.from_user.user_id,
+                text=f"Спасибо! Ваш номер {phone_number} получен."
+            )
+            break
+    else:
+        # Если контакт не найден (на всякий случай)
+        print("Вложение не является контактом.")
 
 @dp.message_created(F.message.body.text)
 async def handle_message(event: MessageCreated):
@@ -790,33 +816,7 @@ async def handle_voice_message(event: MessageCreated):
             print(f"Ошибка: {e}")
             await bot.send_message(user_id=user_id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
 
-@dp.message_created(F.message.body.attachments[0].type == 'contact')
-async def handle_contact(event: MessageCreated):
-    for att in event.message.body.attachments:
-        if att.type == "contact":
-            contact_data = att.payload
 
-            # Извлечение номера телефона
-            # Номер телефона обычно лежит в vcf_info, но может быть и в max_info в зависимости от платформы отправителя
-            phone_number = contact_data.vcf_info
-            # Или попробовать так:
-            # phone_number = contact_data.max_info.get('phone')
-
-            # Вывод в консоль для отладки
-            print(f"Получен контакт: {phone_number}")
-            print(f"Все данные контакта: {contact_data}")
-
-            # Ваш код сохранения номера в базу данных...
-            # await save_phone_to_db(event.from_user.user_id, phone_number)
-
-            await bot.send_message(
-                user_id=event.from_user.user_id,
-                text=f"Спасибо! Ваш номер {phone_number} получен."
-            )
-            break
-    else:
-        # Если контакт не найден (на всякий случай)
-        print("Вложение не является контактом.")
 
 
 async def main():
