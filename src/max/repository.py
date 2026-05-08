@@ -317,11 +317,13 @@ class AudioService:
                     "audioEncoding": "MP3"
                 }
             },
-            "audio": {"uri": filelink}
+            "audio": {
+                "uri": filelink
+            }
         }
         headers = {'Authorization': f'Api-Key {api_key}'}
-
         resp = requests.post(POST, headers=headers, json=body)
+
         if resp.status_code != 200:
             raise Exception(f"Ошибка старта: {resp.status_code} - {resp.text}")
 

@@ -754,17 +754,38 @@ async def handle_voice_message(event: MessageCreated):
         print(audio_url)
 
         try:
-            print("УПАЛО ЗДЕСЬ >>>>>>>>>>>>>>>>> 0")
             headers = {"User-Agent": "MAX/1.0", "Referer": "https://max.ru/"}
+
             async with aiohttp.ClientSession() as session_audio:
                 async with session_audio.get(audio_url, headers=headers) as resp:
                     audio_data = await resp.read()
+
             print("УПАЛО ЗДЕСЬ >>>>>>>>>>>>>>>>> 1")
+
+            # Определяем формат
+            import magic
+            mime = magic.from_buffer(audio_data, mime=True)
+            print(f"Реальный формат: {mime}")
+
+            # Конвертируем только если не OGG
+            if mime != 'audio/ogg':
+                import subprocess
+                process = subprocess.run(
+                    ['ffmpeg', '-i', 'pipe:0', '-c:a', 'libopus', '-ar', '48000', '-b:a', '64k', '-f', 'ogg', 'pipe:1'],
+                    input=audio_data,
+                    capture_output=True
+                )
+                if process.returncode != 0:
+                    raise Exception(process.stderr.decode())
+                audio_data = process.stdout
+                print(f"✅ Конвертировано в OGG, размер: {len(audio_data)}")
+
             s3_url = await upload_to_s3(audio_data)
-            print("УПАЛО ЗДЕСЬ >>>>>>>>>>>>>>>>> 2")
+
             recognized_text = AudioService.recognize_from_s3(s3_url, settings.YC_API_KEY)
-            print("УПАЛО ЗДЕСЬ >>>>>>>>>>>>>>>>> 3")
+
             answer = ask_ai_with_index(index_id, recognized_text, selected_topic, history)
+
             if answer:
                 if user.memory_mode != MemoryMode.none:
                     last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
