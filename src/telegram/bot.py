@@ -1,12 +1,13 @@
 import asyncio
 import logging
 import os
+import io
 import aiofiles
 import telebot
 from aiohttp import web
 
 from telebot import apihelper
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputFile
 from telebot.async_telebot import AsyncTeleBot
 
 from src.max.models import UserState, MemoryMode
@@ -465,7 +466,7 @@ async def handle_query(call: CallbackQuery):
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == "memory_none")
-async def handle_memory(call: CallbackQuery):
+async def handle_memory_none(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
 
@@ -475,13 +476,14 @@ async def handle_memory(call: CallbackQuery):
         message_id=call.message.message_id
     )
 
-    await bot.delete_message(call.message.chat.id, call.message.message_id)
-    async with open("video_cache/04.mp4", "rb") as video:
-        await bot.send_video(
-            chat_id=call.message.chat.id,
-            video=video,
-            caption="⬇️ Видео загружается...",
-        )
+    async with aiofiles.open("video_cache/04.mp4", "rb") as f:
+        video_data = await f.read()
+
+    await bot.send_video(
+        chat_id=call.message.chat.id,
+        video=InputFile(io.BytesIO(video_data)),
+        caption="⬇️ Видео загружается...",
+    )
 
     await asyncio.sleep(20)
 
@@ -492,7 +494,7 @@ async def handle_memory(call: CallbackQuery):
         "Что ты чувствуешь? Что переживаешь?"
     )
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_none")
-async def handle_memory(call: CallbackQuery):
+async def handle_mem_memory_none(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
 
@@ -503,7 +505,7 @@ async def handle_memory(call: CallbackQuery):
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == "memory_dialog")
-async def handle_memory(call: CallbackQuery):
+async def handle_memory_dialog(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
 
@@ -513,13 +515,14 @@ async def handle_memory(call: CallbackQuery):
         message_id=call.message.message_id
     )
 
-    await bot.delete_message(call.message.chat.id, call.message.message_id)
-    async with open("video_cache/04.mp4", "rb") as video:
-        await bot.send_video(
-            chat_id=call.message.chat.id,
-            video=video,
-            caption="⬇️ Видео загружается...",
-        )
+    async with aiofiles.open("video_cache/04.mp4", "rb") as f:
+        video_data = await f.read()
+
+    await bot.send_video(
+        chat_id=call.message.chat.id,
+        video=InputFile(io.BytesIO(video_data)),
+        caption="⬇️ Видео загружается...",
+    )
 
     await asyncio.sleep(20)
 
@@ -530,7 +533,7 @@ async def handle_memory(call: CallbackQuery):
              "Что ты чувствуешь? Что переживаешь?"
     )
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_dialog")
-async def handle_memory(call: CallbackQuery):
+async def handle_mem_memory_dialog(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
 
@@ -541,7 +544,7 @@ async def handle_memory(call: CallbackQuery):
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == "memory_full")
-async def handle_memory(call: CallbackQuery):
+async def handle_memory_full(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.full)
 
@@ -551,13 +554,14 @@ async def handle_memory(call: CallbackQuery):
         message_id=call.message.message_id
     )
 
-    await bot.delete_message(call.message.chat.id, call.message.message_id)
-    async with open("video_cache/04.mp4", "rb") as video:
-        await bot.send_video(
-            chat_id=call.message.chat.id,
-            video=video,
-            caption="⬇️ Видео загружается...",
-        )
+    async with aiofiles.open("video_cache/04.mp4", "rb") as f:
+        video_data = await f.read()
+
+    await bot.send_video(
+        chat_id=call.message.chat.id,
+        video=InputFile(io.BytesIO(video_data)),
+        caption="⬇️ Видео загружается...",
+    )
 
     await asyncio.sleep(20)
 
@@ -568,7 +572,7 @@ async def handle_memory(call: CallbackQuery):
              "Что ты чувствуешь? Что переживаешь?"
     )
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_full")
-async def handle_memory(call: CallbackQuery):
+async def handle_mem_memory_full(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
 
