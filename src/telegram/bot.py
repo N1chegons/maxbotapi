@@ -558,7 +558,7 @@ async def handle_mem_memory_full(call: CallbackQuery):
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == "consult_agree")
-async def handle_memory_full(call: CallbackQuery):
+async def handle_consult_agree(call: CallbackQuery):
     contact_button = KeyboardButton(
         text="📱 Поделиться номером",
         request_contact=True
@@ -609,7 +609,7 @@ async def handle_contact(message):
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == "consult_disagree")
-async def handle_memory_full(call: CallbackQuery):
+async def handle_consult_disagree(call: CallbackQuery):
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
