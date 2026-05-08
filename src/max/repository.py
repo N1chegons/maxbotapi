@@ -102,7 +102,7 @@ class MaxService:
             result = await session.execute(stmt)
             messages = result.scalars().all()
             return [
-                {"role": m.role, "content": m.content}
+                {"role": m.role.value, "content": m.content.value}
                 for m in reversed(messages)
             ]
 
