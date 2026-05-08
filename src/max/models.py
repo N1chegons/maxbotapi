@@ -58,7 +58,6 @@ class User(Base):
     disclaimer_agreed_at:  Mapped[datetime.datetime] = mapped_column(nullable=True)
     is_memory_setup_completed: Mapped[bool] = mapped_column(default=False)
 
-    messages: Mapped[list["Message"]] = relationship(back_populates="user")
 
 class Session(Base):
     __tablename__ = "sessions"
@@ -88,7 +87,6 @@ class Message(Base):
     is_crisis_flagged: Mapped[bool] = mapped_column(default=False)
 
     session: Mapped["Session"] = relationship(back_populates="messages")
-    user: Mapped["User"] = relationship(back_populates="messages")
 
 
 class Request(Base):
