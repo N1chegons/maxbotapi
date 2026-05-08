@@ -73,6 +73,8 @@ class MaxService:
     @classmethod
     async def delete_session(cls, user_id: int):
         async with async_session() as session:
+            await cls.delete_messages(user_id)
+
             stmt = delete(Session).filter_by(user_id=user_id)
             add_new_session = await session.execute(stmt)
             await session.commit()

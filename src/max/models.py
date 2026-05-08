@@ -59,7 +59,7 @@ class Session(Base):
     __tablename__ = "sessions"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(BigInteger, index=True, unique=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, index=True)
     started_at: Mapped[datetime.datetime] = mapped_column(
         server_default=text(
             "TIMEZONE('utc', now())")

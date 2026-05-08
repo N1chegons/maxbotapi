@@ -63,34 +63,34 @@ async def mem_memory_choice(event: MessageCreated):
             user_id=user_id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
+    else:
+        reply_kb = InlineKeyboardBuilder()
+        reply_kb.row(
+            CallbackButton(
+                text="Без памяти",
+                payload="mem_memory_none"
+            ),
+            CallbackButton(
+                text="Один диалог",
+                payload="mem_memory_dialog"
+            ),
+            CallbackButton(
+                text="Вся память",
+                payload="mem_memory_full"
+            ),
+        )
 
-    reply_kb = InlineKeyboardBuilder()
-    reply_kb.row(
-        CallbackButton(
-            text="Без памяти",
-            payload="mem_memory_none"
-        ),
-        CallbackButton(
-            text="Один диалог",
-            payload="mem_memory_dialog"
-        ),
-        CallbackButton(
-            text="Вся память",
-            payload="mem_memory_full"
-        ),
-    )
-
-    await bot.send_message(
-        user_id=user_id,
-        text=(
-            "Скажи, что мы будет делать с твоими сообщениями?\n\n"
-            "➖ Без памяти — каждая сессия с чистого листа, ничего не сохраняю. Максимум приватности, но минимум персонализации.\n\n"
-            "➗ Память в рамках диалога — помню контекст, пока ты не скажешь «забудь». Потом стираю.\n\n"
-            "➕ Вся память — помню всё, что ты мне говорил. Так я могу работать с тобой глубоко и замечать паттерны. Ты в любой момент можешь стереть всё командой - /mem.\n\n"
-            "👉 Важно: на твоём гаджете сообщения останутся, удаляю с сервера. Выбирай."
-        ),
-        attachments=[reply_kb.as_markup()]
-    )
+        await bot.send_message(
+            user_id=user_id,
+            text=(
+                "Скажи, что мы будет делать с твоими сообщениями?\n\n"
+                "➖ Без памяти — каждая сессия с чистого листа, ничего не сохраняю. Максимум приватности, но минимум персонализации.\n\n"
+                "➗ Память в рамках диалога — помню контекст, пока ты не скажешь «забудь». Потом стираю.\n\n"
+                "➕ Вся память — помню всё, что ты мне говорил. Так я могу работать с тобой глубоко и замечать паттерны. Ты в любой момент можешь стереть всё командой - /mem.\n\n"
+                "👉 Важно: на твоём гаджете сообщения останутся, удаляю с сервера. Выбирай."
+            ),
+            attachments=[reply_kb.as_markup()]
+        )
 
 @dp.message_created(Command('del'))
 async def delete_info(event: MessageCreated):
@@ -102,25 +102,26 @@ async def delete_info(event: MessageCreated):
             user_id=user_id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
-    reply_kb = InlineKeyboardBuilder()
-    reply_kb.row(
-        CallbackButton(
-            text="Да",
-            payload="delete_agree"
-        ),
-        CallbackButton(
-            text="Нет",
-            payload="delete_disagree"
-        ),
-    )
+    else:
+        reply_kb = InlineKeyboardBuilder()
+        reply_kb.row(
+            CallbackButton(
+                text="Да",
+                payload="delete_agree"
+            ),
+            CallbackButton(
+                text="Нет",
+                payload="delete_disagree"
+            ),
+        )
 
-    await bot.send_message(
-        user_id=user_id,
-        text=(
-            "Ты хочешь удалить всю информацию о себе?"
-        ),
-        attachments=[reply_kb.as_markup()]
-    )
+        await bot.send_message(
+            user_id=user_id,
+            text=(
+                "Ты хочешь удалить всю информацию о себе?"
+            ),
+            attachments=[reply_kb.as_markup()]
+        )
 
 @dp.message_created(Command('end'))
 async def closed_session(event: MessageCreated):
