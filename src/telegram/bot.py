@@ -60,10 +60,9 @@ async def start(message):
 @bot.message_handler(commands=['new'])
 async def new_session(message):
     user_id = message.from_user.id
-    user_reg = await MaxService.get_user(user_id)
-    await MaxService.delete_session(user_reg.user_id)
-    await MaxService.create_session(user_reg.user_id)
-    await MaxService.update_user_state(user_reg.id, UserState.NEW)
+    await MaxService.delete_session(user_id)
+    await MaxService.create_session(user_id)
+    await MaxService.update_user_state(user_id, UserState.NEW)
 
     kb = InlineKeyboardMarkup()
     kb.add(InlineKeyboardButton(text="Продолжить >", callback_data="continue"))
@@ -109,8 +108,7 @@ async def mem_memory_choice(message):
 @bot.message_handler(commands=['del'])
 async def delete_info(message):
     user_id = message.from_user.id
-    user_reg = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user_reg.user_id)
+    session_user = await MaxService.get_session(user_id)
 
     if not session_user:
         await bot.send_message(
@@ -134,7 +132,7 @@ async def delete_info(message):
 async def closed_session(message):
     user_id = message.from_user.id
     user = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user.user_id)
+    session_user = await MaxService.get_session(user_id)
 
     if not session_user:
         await bot.send_message(
@@ -208,8 +206,7 @@ async def instruction(message):
 @bot.message_handler(commands=['igor'])
 async def igor_command(message):
     user_id = message.from_user.id
-    user_reg = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user_reg.user_id)
+    session_user = await MaxService.get_session(user_id)
 
     if not session_user:
         await bot.send_message(
@@ -368,9 +365,8 @@ async def admin_help_command(message):
 @bot.callback_query_handler(func=lambda call: call.data == "delete_agree")
 async def handle_delete_info_agree(call: CallbackQuery):
     user_id = call.from_user.id
-    user = await MaxService.get_user(user_id)
-    await MaxService.delete_session(user.user_id)
-    await MaxService.create_session(user.user_id)
+    await MaxService.delete_session(user_id)
+    await MaxService.create_session(user_id)
 
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
@@ -658,8 +654,8 @@ async def handle_message(message):
         if answer:
             if user_reg.memory_mode != MemoryMode.none:
                 last_exchange = f"Клиент: {text}\n\nБот: {answer}"
-                await MaxService.add_message(user_reg.user_id, session_user.id, "user", text)
-                await MaxService.add_message(user_reg.user_id, session_user.id, "assistant", answer)
+                await MaxService.add_message(user_id, session_user.id, "user", text)
+                await MaxService.add_message(user_id, session_user.id, "assistant", answer)
             await bot.send_message(chat_id=message.chat.id, text=answer)
         else:
             await bot.send_message(

@@ -30,10 +30,9 @@ dp = Dispatcher()
 @dp.message_created(Command('new'))
 async def new_session(event: MessageCreated):
     user_id = event.from_user.user_id
-    user_reg = await MaxService.get_user(user_id)
-    await MaxService.delete_session(user_reg.user_id)
-    await MaxService.create_session(user_reg.user_id)
-    await MaxService.update_user_state(user_reg.id, UserState.NEW)
+    await MaxService.delete_session(user_id)
+    await MaxService.create_session(user_id)
+    await MaxService.update_user_state(user_id, UserState.NEW)
 
     reply_kb = InlineKeyboardBuilder()
     reply_kb.row(
@@ -57,8 +56,7 @@ async def new_session(event: MessageCreated):
 @dp.message_created(Command('mem'))
 async def mem_memory_choice(event: MessageCreated):
     user_id = event.from_user.user_id
-    user_reg = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user_reg.user_id)
+    session_user = await MaxService.get_session(user_id)
 
     if not session_user:
         await bot.send_message(
@@ -97,8 +95,7 @@ async def mem_memory_choice(event: MessageCreated):
 @dp.message_created(Command('del'))
 async def delete_info(event: MessageCreated):
     user_id = event.from_user.user_id
-    user_reg = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user_reg.user_id)
+    session_user = await MaxService.get_session(user_id)
 
     if not session_user:
         await bot.send_message(
@@ -129,7 +126,7 @@ async def delete_info(event: MessageCreated):
 async def closed_session(event: MessageCreated):
     user_id = event.from_user.user_id
     user = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user.user_id)
+    session_user = await MaxService.get_session(user_id)
 
     if not session_user:
         await bot.send_message(
@@ -211,16 +208,13 @@ async def instruction(event: MessageCreated):
 async def igor_command(event: MessageCreated):
     user_id = event.from_user.user_id
     username = event.from_user.username
-    user_reg = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user_reg.user_id)
+    session_user = await MaxService.get_session(user_id)
 
     if not session_user:
         await bot.send_message(
             user_id=user_id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
-
-    # await AdminService.log_command_admin(user_id, "/igor")
 
     already_request = await MaxService.get_request(user_id)
     if already_request:
@@ -232,6 +226,10 @@ async def igor_command(event: MessageCreated):
     else:
         reply_kb = InlineKeyboardBuilder()
         reply_kb.row(
+            LinkButton(
+                text="про Эксперта >",
+                url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"
+            ),
             CallbackButton(text="✅ ДА", payload="consult_agree"),
             CallbackButton(text="❌ НЕТ", payload="consult_disagree"),
         )
@@ -247,6 +245,7 @@ async def igor_command(event: MessageCreated):
         ),
         attachments=[reply_kb.as_markup()]
     )
+
 
 @dp.message_created(Command('admin'))
 async def admin_panel(event: MessageCreated):
@@ -373,6 +372,7 @@ async def admin_help_command(event: MessageCreated):
 
     await bot.send_message(user_id=user_id, text=text)
 
+
 # logic
 @dp.bot_started()
 async def bot_started(event: BotStarted):
@@ -381,9 +381,7 @@ async def bot_started(event: BotStarted):
 
     if not user:
         await MaxService.create_user(user_id, "MAX")
-        user_reg = await MaxService.get_user(user_id)
-
-        await MaxService.create_session(user_reg.user_id)
+        await MaxService.create_session(user_id)
 
         reply_kb = InlineKeyboardBuilder()
         reply_kb.row(
@@ -415,9 +413,8 @@ async def bot_started(event: BotStarted):
 @dp.message_callback(F.callback.payload == "delete_agree")
 async def handle_continue(callback):
     user_id = callback.callback.user.user_id
-    user = await MaxService.get_user(user_id)
-    await MaxService.delete_session(user.user_id)
-    await MaxService.create_session(user.user_id)
+    await MaxService.delete_session(user_id)
+    await MaxService.create_session(user_id)
 
     await callback.message.edit(
         text="Все данные удалены. Начинай снова /new",
@@ -718,8 +715,8 @@ async def handle_message(event: MessageCreated):
         if answer:
             if user.memory_mode != MemoryMode.none:
                 last_exchange = f"Клиент: {text}\n\nБот: {answer}"
-                await MaxService.add_message(user.user_id, session_user.id, "user", text)
-                await MaxService.add_message(user.user_id, session_user.id, "assistant", answer)
+                await MaxService.add_message(user_id, session_user.id, "user", text)
+                await MaxService.add_message(user_id, session_user.id, "assistant", answer)
             await bot.send_message(user_id=user_id, text=answer)
         else:
             await bot.send_message(
@@ -779,8 +776,8 @@ async def handle_voice_message(event: MessageCreated):
             if answer:
                 if user.memory_mode != MemoryMode.none:
                     last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
-                    await MaxService.add_message(user.user_id, session_user.id, "user", recognized_text)
-                    await MaxService.add_message(user.user_id, session_user.id, "assistant", answer)
+                    await MaxService.add_message(user_id, session_user.id, "user", recognized_text)
+                    await MaxService.add_message(user_id, session_user.id, "assistant", answer)
                     await bot.send_message(user_id=user_id, text=answer)
             else:
                 await bot.send_message(
