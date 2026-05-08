@@ -467,10 +467,10 @@ async def handle_memory_none(call: CallbackQuery):
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
 
     kb = InlineKeyboardMarkup()
-    kb.add(InlineKeyboardButton(text="перед консультацией", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"))
+    kb.add(InlineKeyboardButton(text="видео", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"))
 
     await bot.edit_message_text(
-        "Перед консультацией.",
+        "Посмотри перед консультацией",
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
         reply_markup=kb
@@ -499,10 +499,10 @@ async def handle_memory_dialog(call: CallbackQuery):
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
 
     kb = InlineKeyboardMarkup()
-    kb.add(InlineKeyboardButton(text="перед консультацией", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"))
+    kb.add(InlineKeyboardButton(text="видео", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"))
 
     await bot.edit_message_text(
-        "Перед консультацией.",
+        "Посмотри перед консультацией",
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
         reply_markup=kb
@@ -531,10 +531,10 @@ async def handle_memory_full(call: CallbackQuery):
     await MaxService.update_memory_mode(user_id, MemoryMode.full)
 
     kb = InlineKeyboardMarkup()
-    kb.add(InlineKeyboardButton(text="перед консультацией", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"))
+    kb.add(InlineKeyboardButton(text="видео", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"))
 
     await bot.edit_message_text(
-        "Перед консультацией.",
+        "Посмотри перед консультацией",
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
         reply_markup=kb
