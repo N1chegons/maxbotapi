@@ -55,7 +55,7 @@ async def new_session(event: MessageCreated):
     )
 
 @dp.message_created(Command('mem'))
-async def memory_choice(event: MessageCreated):
+async def mem_memory_choice(event: MessageCreated):
     user_id = event.from_user.user_id
     user_reg = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_reg.user_id)
