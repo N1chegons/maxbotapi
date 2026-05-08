@@ -638,45 +638,6 @@ async def igor_confirm(callback):
         attachments=[reply_kb.as_markup()]
     )
 
-# @dp.message_created(WaitingForPhone.waiting)
-# async def phone_added(event: MessageCreated, context: MemoryContext):
-#     user_id = event.from_user.user_id
-#     text = event.message.body.text.strip()
-#
-#     phone_number = None
-#     if text.replace('+', '').replace(' ', '').isdigit():
-#         phone_number = text
-#
-#     if not phone_number:
-#         await bot.send_message(
-#             user_id=user_id,
-#             text="❓ Пожалуйста, отправьте номер телефона цифрами (например, +79161234567)."
-#         )
-#         return
-#
-#     history = await MaxService.get_last_messages(user_id, limit=20)
-#     history_text = "\n".join([
-#         f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
-#         for msg in history
-#     ])
-#
-#     appointment_date = await MaxService.get_next_free_date()
-#
-#     await MaxService.add_request(
-#         client_id=user_id,
-#         contact=phone_number,
-#         messages=history_text,
-#         appointment_date=appointment_date
-#     )
-#
-#     await context.set_state(None)
-#     await bot.send_message(
-#         user_id=user_id,
-#         text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
-#              "Вы можете продолжить вести диалог."
-#     )
-#
-
 @dp.message_created(F.message.body.text)
 async def handle_message(event: MessageCreated):
     text = event.message.body.text
@@ -792,15 +753,16 @@ async def handle_voice_message(event: MessageCreated):
         audio_url = audio_attachment.payload.url
 
         try:
+            print("УПАЛО ЗДЕСЬ >>>>>>>>>>>>>>>>> 0")
             headers = {"User-Agent": "MAX/1.0", "Referer": "https://max.ru/"}
             async with aiohttp.ClientSession() as session_audio:
                 async with session_audio.get(audio_url, headers=headers) as resp:
                     audio_data = await resp.read()
-
+            print("УПАЛО ЗДЕСЬ >>>>>>>>>>>>>>>>> 1")
             s3_url = await upload_to_s3(audio_data)
-
+            print("УПАЛО ЗДЕСЬ >>>>>>>>>>>>>>>>> 2")
             recognized_text = AudioService.recognize_from_s3(s3_url, settings.YC_API_KEY)
-
+            print("УПАЛО ЗДЕСЬ >>>>>>>>>>>>>>>>> 3")
             answer = ask_ai_with_index(index_id, recognized_text, selected_topic, history)
             if answer:
                 if user.memory_mode != MemoryMode.none:
