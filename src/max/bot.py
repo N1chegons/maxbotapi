@@ -5,6 +5,7 @@ import aiofiles
 import aiohttp
 import magic
 import subprocess
+
 from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import Command
 from maxapi.types import MessageCreated, BotStarted, CallbackButton, InputMedia, LinkButton, \
@@ -12,7 +13,6 @@ from maxapi.types import MessageCreated, BotStarted, CallbackButton, InputMedia,
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
 from src.admin.repository import AdminService
-# from src.admin.repository import AdminService
 
 from src.config import settings
 from src.max.models import UserState, MemoryMode
@@ -794,8 +794,6 @@ async def handle_voice_message(event: MessageCreated):
         except Exception as e:
             print(f"Ошибка: {e}")
             await bot.send_message(user_id=user_id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
-
-
 
 
 async def main():

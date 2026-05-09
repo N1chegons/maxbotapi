@@ -312,6 +312,7 @@ class AudioService:
     @classmethod
     def recognize_from_s3(cls, filelink: str, api_key: str) -> str:
         import requests, time
+        # noinspection PyPep8Naming
         POST = 'https://transcribe.api.cloud.yandex.net/speech/stt/v2/longRunningRecognize'
         body = {
             "config": {

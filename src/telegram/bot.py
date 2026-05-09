@@ -1,14 +1,12 @@
 import asyncio
 import logging
 import os
-import io
 import aiofiles
 import requests
 import telebot
 from aiohttp import web
 
-from telebot import apihelper
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputFile, ReplyKeyboardMarkup, \
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyKeyboardMarkup, \
     KeyboardButton
 from telebot.async_telebot import AsyncTeleBot
 
@@ -27,7 +25,6 @@ WEBHOOK_PATH = "/tg_webhook"
 WEBHOOK_URL = f"https://bot.nepovinnyh.ru{WEBHOOK_PATH}"
 
 app = web.Application()
-# apihelper.proxy = {'https': 'socks5://2PMbdA6Sn8:2lu983bCrc@194.31.73.76:60995'}
 bot = AsyncTeleBot(BOT_TOKEN)
 
 
@@ -339,9 +336,9 @@ async def view_appointment(message):
             return
 
         text = "📋 **Заявки на консультацию:**\n\n"
-        for app in appointments:
-            status = "✅" if app.viewed else "🆕"
-            text += f"{status} id:{app.id} — {app.appointment_date.strftime('%d.%m.%Y 20:00')} — {app.contact}\n"
+        for apps in appointments:
+            status = "✅" if apps.viewed else "🆕"
+            text += f"{status} id:{apps.id} — {apps.appointment_date.strftime('%d.%m.%Y 20:00')} — {apps.contact}\n"
 
         text += "\n📝 Для просмотра деталей: /con <id>(порядковый номер записи)"
 
