@@ -362,7 +362,7 @@ class VkIntegration:
 
 class VkIntegrationNew:
     def __init__(self):
-        self.channel_id = settings.MAX_CHANNEL_ID
+        self.channel_id = "-70970272101791"
         self.bot_token = settings.MAX_BOT_TOKEN
         self.token = settings.VK_ACCESS_TOKEN
         self.group_id = settings.VK_GROUP_ID
