@@ -1,10 +1,12 @@
 import random
+import time
+import subprocess
+import json
 import requests
-import re
 import urllib.parse
 from pathlib import Path
 from ftplib import FTP
-
+import re
 from bs4 import BeautifulSoup
 
 from src.config import settings
@@ -357,3 +359,148 @@ class VkIntegration:
             self.save_current_index((index + 1) % len(self.order))
         except Exception as e:
             print(f"❌ Ошибка публикации: {e}")
+
+class VkIntegrationNew:
+    def __init__(self):
+        self.channel_id = settings.MAX_CHANNEL_ID
+        self.bot_token = settings.MAX_BOT_TOKEN
+        self.token = settings.VK_ACCESS_TOKEN
+        self.group_id = settings.VK_GROUP_ID
+
+        self.current_video_index = 0
+        self.video_links = []
+
+        self.playlist = [
+            "https://vkvideo.ru/playlist/420142_35",
+            "https://vkvideo.ru/playlist/420142_34",
+            "https://vkvideo.ru/playlist/420142_28",
+            "https://vkvideo.ru/playlist/420142_26",
+            "https://vkvideo.ru/playlist/420142_22",
+            "https://vkvideo.ru/playlist/420142_20",
+            "https://vkvideo.ru/playlist/420142_17",
+            "https://vkvideo.ru/playlist/420142_15",
+            "https://vkvideo.ru/playlist/420142_13",
+            "https://vkvideo.ru/playlist/420142_12"
+        ]
+
+    def get_video_links_from_playlist(self, playlist_url: str) -> list:
+        try:
+            # Запускаем yt-dlp, который собирает ссылки на видео
+            result = subprocess.run(
+                [
+                    "yt-dlp",
+                    "--flat-playlist",
+                    "--print", "webpage_url",  # выводит ссылку на страницу видео
+                    playlist_url
+                ],
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
+            if result.returncode != 0:
+                print(f"Ошибка yt-dlp: {result.stderr}")
+                return []
+
+            links = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+            return links
+
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            return []
+
+    def get_all_video_links(self) -> list:
+        all_links = []
+
+        for playlist_url in self.playlist:
+            print(f"Обработка {playlist_url}...")
+            links = self.get_video_links_from_playlist(playlist_url)
+            all_links.extend(links)
+            print(f"  Найдено {len(links)} видео")
+
+        print(f"\n📊 ИТОГО: {len(all_links)} видео")
+        return all_links
+
+    def send_to_channel(self, text: str):
+        url = f"https://platform-api.max.ru/messages?chat_id={self.channel_id}"
+        headers = {
+            "Authorization": f"{self.bot_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {"text": text}
+        response = requests.post(url, headers=headers, json=payload, timeout=20)
+        response.raise_for_status()
+        return response.json()
+
+    def send_random_video(self):
+        """Отправляет следующее видео по очереди (циклически)"""
+        try:
+            # Загружаем список, если пустой
+            if not self.video_links:
+                with open("video_links.txt", "r") as f:
+                    self.video_links = f.read().splitlines()
+                # Перемешиваем при первой загрузке
+                random.shuffle(self.video_links)
+
+            if not self.video_links:
+                return None
+
+            video_url = self.video_links[self.current_video_index]
+
+            # Переходим к следующему
+            self.current_video_index = (self.current_video_index + 1) % len(self.video_links)
+
+            # Раз в N видео снова перемешиваем (опционально)
+            if self.current_video_index == 0:
+                random.shuffle(self.video_links)
+
+            message = f"🎬 Случайное видео:\n\n{video_url}"
+            self.send_to_channel(message)
+            return video_url
+
+        except Exception as e:
+            print(f"❌ Ошибка: {e}")
+            return None
+
+    def update_video_links(self):
+        import subprocess
+
+        print("🔄 Начинаю обновление базы видео...")
+
+        all_links = []
+
+        for playlist_url in self.playlist:
+            print(f"  Обработка {playlist_url}...")
+
+            try:
+                result = subprocess.run(
+                    [
+                        "yt-dlp",
+                        "--flat-playlist",
+                        "--print", "webpage_url",
+                        playlist_url
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=120
+                )
+
+                if result.returncode == 0:
+                    links = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+                    all_links.extend(links)
+                    print(f"    Найдено: {len(links)} видео")
+                else:
+                    print(f"    Ошибка: {result.stderr[:100]}")
+
+            except Exception as e:
+                print(f"    Ошибка: {e}")
+
+        # Убираем дубликаты
+        unique_links = list(set(all_links))
+
+        # Сохраняем в файл
+        with open("video_links.txt", "w") as f:
+            f.write("\n".join(unique_links))
+
+        print(f"\n✅ Готово! Сохранено {len(unique_links)} уникальных видео")
+        return len(unique_links)
