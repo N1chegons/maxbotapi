@@ -1,7 +1,7 @@
 from aiohttp import web
 import json
 
-VK_CONFIRMATION_CODE = "9c13c784"
+VK_CONFIRMATION_CODE = "5acbfb67"
 VK_SECRET_KEY = "aaQ13axAPQEcczQa"
 
 app = web.Application()
