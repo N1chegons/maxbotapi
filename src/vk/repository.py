@@ -439,7 +439,9 @@ class VkIntegrationNew:
             if not self.video_links:
                 with open("video_links.txt", "r") as f:
                     self.video_links = f.read().splitlines()
-                # Перемешиваем при первой загрузке
+
+                self.video_links = [link.replace('vk.com', 'vk.ru') for link in self.video_links]
+
                 random.shuffle(self.video_links)
 
             if not self.video_links:
@@ -487,6 +489,7 @@ class VkIntegrationNew:
 
                 if result.returncode == 0:
                     links = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+                    links = [link.replace('vk.com', 'vk.ru') for link in links]
                     all_links.extend(links)
                     print(f"    Найдено: {len(links)} видео")
                 else:
