@@ -454,7 +454,7 @@ class VkIntegrationNew:
             if self.current_video_index == 0:
                 random.shuffle(self.video_links)
 
-            message = f"🎬 Случайное видео:\n\n{video_url}"
+            message = f"🎬\n\n{video_url}"
             self.send_to_channel(message)
             return video_url
 
