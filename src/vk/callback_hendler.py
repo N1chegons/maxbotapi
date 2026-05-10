@@ -18,7 +18,8 @@ async def vk_callback_handler(request):
 
     # Подтверждение сервера
     if event_type == 'confirmation':
-        return web.Response(text=VK_CONFIRMATION_CODE, status=200)
+        return VK_CONFIRMATION_CODE
+        # return web.Response(text=VK_CONFIRMATION_CODE, status=200)
 
     # Обработка событий
     elif event_type == 'wall_post_new':
