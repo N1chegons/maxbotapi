@@ -6,9 +6,8 @@ import os
 project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
-# Теперь импорты будут работать
 from src.vk.repository import VkIntegrationNew
 
 if __name__ == "__main__":
     vk = VkIntegrationNew()
-    vk.send_random_video()
+    vk.update_video_links()
