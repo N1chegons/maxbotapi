@@ -550,8 +550,3 @@ class VkIntegrationNew:
 
         except Exception as e:
             print(f"❌ Ошибка: {e}")
-
-
-
-vk = VkIntegrationNew()
-vk.send_random_clip()
