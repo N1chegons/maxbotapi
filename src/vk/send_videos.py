@@ -12,3 +12,4 @@ from src.vk.repository import VkIntegrationNew
 if __name__ == "__main__":
     vk = VkIntegrationNew()
     vk.send_random_video()
+    vk.send_random_clip()
