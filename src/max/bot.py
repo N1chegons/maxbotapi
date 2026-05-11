@@ -553,7 +553,7 @@ async def handle_memory_none(callback):
     )
     await asyncio.sleep(20)
     await callback.message.answer(
-        text="Напиши, что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
         attachments=[]
     )
 @dp.message_callback(F.callback.payload == "mem_memory_none")
@@ -583,7 +583,7 @@ async def handle_memory_dialog(callback):
     await asyncio.sleep(20)
     # Показываем главное меню
     await callback.message.answer(
-        text="Напиши, что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?", attachments=[]
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?", attachments=[]
     )
 @dp.message_callback(F.callback.payload == "mem_memory_dialog")
 async def handle_mem_memory_none(callback):
@@ -611,7 +611,7 @@ async def handle_memory_full(callback):
     )
     await asyncio.sleep(20)
     await callback.message.answer(
-        text="Напиши, что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
         attachments=[]
     )
 @dp.message_callback(F.callback.payload == "mem_memory_full")
