@@ -7,11 +7,18 @@ import urllib.parse
 from pathlib import Path
 from ftplib import FTP
 import re
+
+from aiofiles import os
 from bs4 import BeautifulSoup
 
 from src.config import settings
+import asyncio
+import re
+from playwright.async_api import async_playwright
 
-
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+э
 class VkIntegration:
     def __init__(self):
         self.channel_id = settings.MAX_CHANNEL_ID
@@ -369,6 +376,7 @@ class VkIntegrationNew:
 
         self.current_video_index = 0
         self.video_links = []
+        self.clips_file = "clips_links.txt"
 
         self.playlist = [
             "https://vkvideo.ru/playlist/420142_35",
@@ -463,3 +471,86 @@ class VkIntegrationNew:
         except Exception as e:
             print(f"❌ Ошибка: {e}")
             return None
+
+    async def update_clips(self):
+        """Собирает ID клипов и сохраняет чистые ссылки"""
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+
+            await page.goto("https://vk.ru/clips/plangod", timeout=60000)
+
+            # Скроллим
+            for _ in range(5):
+                await page.evaluate("window.scrollBy(0, window.innerHeight)")
+                await asyncio.sleep(2)
+
+            # Ищем клипы
+            links = await page.evaluate('''() => {
+                const items = document.querySelectorAll('a[href*="clip-"]');
+                const result = [];
+                items.forEach(a => {
+                    let href = a.getAttribute('href');
+                    if (href && href.includes('clip-') && !href.includes('search')) {
+                        result.push(href);
+                    }
+                });
+                return [...new Set(result)];
+            }''')
+
+            await browser.close()
+
+            # Очищаем ссылки: оставляем только clip-owner_id_id
+            clean_links = []
+            for link in links:
+                # Ищем clip-xxx_xxx
+                match = re.search(r'(clip-\d+_\d+)', link)
+                if match:
+                    clean_links.append(f"https://vk.com/{match.group(1)}")
+
+            if clean_links:
+                with open(self.clips_file, "w") as f:
+                    f.write("\n".join(clean_links))
+                print(f"✅ Сохранено {len(clean_links)} клипов")
+                for link in clean_links[:5]:
+                    print(f"  {link}")
+            else:
+                print("❌ Клипы не найдены")
+
+    def send_random_clip(self):
+        """Отправляет случайный клип в канал MAX"""
+        try:
+            if not os.path.exists(self.clips_file):
+                print("❌ Файл с клипами не найден")
+                return
+
+            with open(self.clips_file, "r") as f:
+                clips = f.read().splitlines()
+
+            if not clips:
+                print("❌ Нет клипов в файле")
+                return
+
+            clip_url = random.choice(clips)
+
+            url = f"https://platform-api.max.ru/messages?chat_id={self.channel_id}"
+            headers = {
+                "Authorization": self.bot_token,
+                "Content-Type": "application/json"
+            }
+            payload = {"text": f"🎬\n\n{clip_url}"}
+
+            response = requests.post(url, headers=headers, json=payload, timeout=20)
+
+            if response.status_code == 200:
+                print(f"✅ Отправлен клип")
+            else:
+                print(f"❌ Ошибка отправки: {response.status_code}")
+
+        except Exception as e:
+            print(f"❌ Ошибка: {e}")
+
+
+
+vk = VkIntegrationNew()
+vk.send_random_clip()
