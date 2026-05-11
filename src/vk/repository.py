@@ -18,7 +18,7 @@ from playwright.async_api import async_playwright
 
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-э
+
 class VkIntegration:
     def __init__(self):
         self.channel_id = settings.MAX_CHANNEL_ID
