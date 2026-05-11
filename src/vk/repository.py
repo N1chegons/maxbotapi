@@ -532,6 +532,7 @@ class VkIntegrationNew:
                 return
 
             clip_url = random.choice(clips)
+            clip_url = clip_url.replace('vk.com', 'vk.ru')
 
             url = f"https://platform-api.max.ru/messages?chat_id={self.channel_id}"
             headers = {
