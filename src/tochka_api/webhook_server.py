@@ -6,11 +6,21 @@ logging.basicConfig(level=logging.INFO)
 
 
 async def handle_tochka(request):
-    """Принимает вебхук от Точки и печатает в консоль"""
     body = await request.text()
-    print("Вебхук Точки:", body)
+    print("🔔 Получен вебхук от Точки:", body)
 
-    # Всегда отвечаем 200 OK
+    # 2. Парсим JSON
+    try:
+        data = json.loads(body)
+    except:
+        data = {}
+
+    # 3. Если это тестовый вебхук — просто логируем
+    if data.get('webhookType') == 'incomingPayment':
+        print("✅ Получен платёжный вебхук")
+        # Здесь потом будешь активировать подписку
+
+    # 4. Всегда отвечаем 200 OK
     return web.Response(status=200, text="OK")
 
 
