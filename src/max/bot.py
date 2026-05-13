@@ -483,7 +483,7 @@ async def handle_disagree(callback):
     )
 
 @dp.message_callback(F.callback.payload == "agree_subs")
-async def handle_agree(callback):
+async def handle_agree_subs(callback):
     user_id = callback.callback.user.user_id
 
     # 1. Запускаем триал (если ещё не запущен)
