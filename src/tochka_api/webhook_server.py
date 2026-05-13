@@ -27,7 +27,7 @@ async def handle(request: web.Request):
     return web.Response(status=200)
 
 app = web.Application()
-app.router.add_post('/tochka/webhook', handle)
+app.router.add_route("POST", '/tochka/webhook', handle)
 
 if __name__ == '__main__':
     web.run_app(app, host='127.0.0.1', port=8084)
