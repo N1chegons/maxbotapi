@@ -439,7 +439,7 @@ async def handle_continue(callback):
     user = await MaxService.get_user(user_id)
     await MaxService.update_user_state(user_id, UserState.ONBOARDING_DISCLAIMER)
 
-    if user.state == SubsStatus.none:
+    if user.subscription_status == SubsStatus.none:
         reply_kb = InlineKeyboardBuilder()
         reply_kb.row(
             CallbackButton(
