@@ -283,17 +283,54 @@ class MaxService:
                 await session.commit()
 
     @classmethod
+    async def expire_active_if_needed(cls, user_id: int):
+        user = await cls.get_user(user_id)
+
+        if user.state != UserState.PAID:
+            return
+
+        if user.subscription_ends_at and user.subscription_ends_at <= datetime.utcnow():
+            async with async_session() as session:
+                await session.execute(
+                    update(User)
+                    .where(User.user_id == user_id)
+                    .values(state=UserState.CHURNED)
+                )
+                await session.commit()
+
+    @classmethod
     async def activate_subscription(cls, user_id: int, tier: SubsTier):
         async with async_session() as session:
             await session.execute(
                 update(User)
                 .filter_by(user_id=user_id)
                 .values(
-                    subscription_status=SubsStatus.active,
                     subscription_tier=tier,
                     subscription_ends_at=datetime.utcnow() + timedelta(days=30),
                     state=UserState.PAID
                 )
+            )
+            await session.commit()
+
+    @classmethod
+    async def change_subscription_status(cls, user_id: int, status: SubsStatus):
+        async with async_session() as session:
+            await session.execute(
+                update(User)
+                .filter_by(user_id=user_id)
+                .values(
+                    subscription_status=status,
+                )
+            )
+            await session.commit()
+
+    @classmethod
+    async def save_payment_method(cls, user_id: int, payment_method_id: str):
+        async with async_session() as session:
+            await session.execute(
+                update(User)
+                .where(User.user_id == user_id)
+                .values(payment_method_id=payment_method_id)
             )
             await session.commit()
 
