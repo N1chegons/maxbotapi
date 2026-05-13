@@ -11,18 +11,18 @@ jwk_key = jwt.jwk_from_dict(key)
 
 
 async def handle(request: web.Request):
-    payload = await request.text()
-
-    try:
-        # тело вебхука
-        webhook_jwt = jwt.JWT().decode(
-            message=payload,
-            key=jwk_key,
-        )
-        return web.Response(status=200, text="OK")
-    except exceptions.JWTDecodeError:
-        pass
-
+    # payload = await request.text()
+    #
+    # try:
+    #     # тело вебхука
+    #     webhook_jwt = jwt.JWT().decode(
+    #         message=payload,
+    #         key=jwk_key,
+    #     )
+    #     return web.Response(status=200, text="OK")
+    # except exceptions.JWTDecodeError:
+    #     pass
+    #
     return web.Response(status=200)
 
 app = web.Application()
