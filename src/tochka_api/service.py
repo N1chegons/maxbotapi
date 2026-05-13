@@ -1,11 +1,11 @@
 import http.client
 import json
 
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, update
 
 from src.config import settings
 from src.db import async_session
-from src.max.models import Payment
+from src.max.models import Payment, PaymentStatus
 
 conn = http.client.HTTPSConnection("enter.tochka.com")
 
@@ -34,6 +34,12 @@ class TochkaApiService:
             await session.execute(stmt)
             await session.commit()
 
+    @classmethod
+    async def update_status_payment(cls, operation_id: str):
+        async with async_session() as session:
+            stmt = update(Payment).values(status=PaymentStatus.succeeded).filter_by(payment_id=operation_id)
+            await session.execute(stmt)
+            await session.commit()
 
     def create_payment_link(self, amount: float, user_id: int):
         payload = json.dumps({

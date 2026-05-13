@@ -8,7 +8,7 @@ import logging
 project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
-from src.max.models import SubsTier
+from src.max.models import SubsTier, SubsStatus
 from src.max.repository import MaxService
 from src.config import settings
 from src.tochka_api.service import TochkaApiService
@@ -32,18 +32,25 @@ async def handle_webhook(request):
         # Извлекаем поля (строго по документации)
         webhook_type = decoded.get('webhookType')
         status = decoded.get('status')
-        payment_link_id = decoded.get('paymentLinkId')  # это твой номер заказа (user_id)
+        payment_link_id = decoded.get('operationId')
         operation_id = decoded.get('operationId')
+        payment_method_id = decoded.get('paymentMethodId')
+
 
         logging.info(f"Тип: {webhook_type}, Статус: {status}, paymentLinkId: {payment_link_id}")
 
-        # Обрабатываем только успешные платежи по ссылкам
         if webhook_type == 'acquiringInternetPayment' and status == 'APPROVED':
             if payment_link_id:
-                # Пробуем найти пользователя по payment_link_id
                 user_id = await TochkaApiService.find_user_by_operation_id(payment_link_id)
                 if user_id:
+                    if payment_method_id:
+                        await MaxService.save_payment_method(user_id, payment_method_id)
+                        logging.info(f"💳 Сохранён токен карты: {payment_method_id}")
+                    else:
+                        logging.info("ℹ️ Клиент не сохранил карту")
+
                     await MaxService.activate_subscription(user_id, SubsTier.basic)
+                    await MaxService.change_subscription_status(user_id, SubsStatus.trial)
                     logging.info(f"✅ Подписка активирована для {user_id}")
                 else:
                     logging.warning(f"⚠️ Пользователь не найден для payment_link_id: {payment_link_id}")

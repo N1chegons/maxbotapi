@@ -704,6 +704,7 @@ async def handle_message(event: MessageCreated):
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
     await MaxService.expire_trial_if_needed(user_id)
+    # await MaxService.expire_active_if_needed(user_id)
 
     if not session_user:
         await bot.send_message(
@@ -717,6 +718,13 @@ async def handle_message(event: MessageCreated):
             text="Извини, у тебя закончился пробный период. Сделай что-нибудь."
         )
         return
+
+    # elif user.subscription_tier == SubsStatus.expired and user.state == UserState:
+    #     await bot.send_message(
+    #         user_id=user_id,
+    #         text="Извини, подписка неактивна. Сделай что-нибудь."
+    #     )
+    #     return
 
     else:
         selected_topic = "Консультации"
@@ -782,7 +790,6 @@ async def handle_voice_message(event: MessageCreated):
             user_id=user_id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
-
 
     elif user.state == UserState.TRIAL_ENDED_NOT_PAID:
         await bot.send_message(
