@@ -1,37 +1,65 @@
+import sys
+
 from aiohttp import web
 import jwt
 from jwt import exceptions
 import json
 import logging
-import sys
-
-
 project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
-from src.max.repository import MaxService
-from src.tochka_api.service import TochkaApiService
 from src.max.models import SubsTier
+from src.max.repository import MaxService
+from src.config import settings
+from src.tochka_api.service import TochkaApiService
 
-# Публичный ключ Точки (получен из документации)
-key_json = '{"kty":"RSA","e":"AQAB","n":"rwm77av7GIttq-JF1itEgLCGEZW_zz16RlUQVYlLbJtyRSu61fCec_rroP6PxjXU2uLzUOaGaLgAPeUZAJrGuVp9nryKgbZceHckdHDYgJd9TsdJ1MYUsXaOb9joN9vmsCscBx1lwSlFQyNQsHUsrjuDk-opf6RCuazRQ9gkoDCX70HV8WBMFoVm-YWQKJHZEaIQxg_DU4gMFyKRkDGKsYKA0POL-UgWA1qkg6nHY5BOMKaqxbc5ky87muWB5nNk4mfmsckyFv9j1gBiXLKekA_y4UwG2o1pbOLpJS3bP_c95rm4M9ZBmGXqfOQhbjz8z-s9C11i-jmOQ2ByohS-ST3E5sqBzIsxxrxyQDTw--bZNhzpbciyYW4GfkkqyeYoOPd_84jPTBDKQXssvj8ZOj2XboS77tvEO1n1WlwUzh8HPCJod5_fEgSXuozpJtOggXBv0C2ps7yXlDZf-7Jar0UYc_NJEHJF-xShlqd6Q3sVL02PhSCM-ibn9DN9BKmD"}'
-key = json.loads(key_json)
+logging.basicConfig(level=logging.INFO)
+
+# Публичный ключ Точки
+KEY_JSON = '{"kty":"RSA","e":"AQAB","n":"rwm77av7GIttq-JF1itEgLCGEZW_zz16RlUQVYlLbJtyRSu61fCec_rroP6PxjXU2uLzUOaGaLgAPeUZAJrGuVp9nryKgbZceHckdHDYgJd9TsdJ1MYUsXaOb9joN9vmsCscBx1lwSlFQyNQsHUsrjuDk-opf6RCuazRQ9gkoDCX70HV8WBMFoVm-YWQKJHZEaIQxg_DU4gMFyKRkDGKsYKA0POL-UgWA1qkg6nHY5BOMKaqxbc5ky87muWB5nNk4mfmsckyFv9j1gBiXLKekA_y4UwG2o1pbOLpJS3bP_c95rm4M9ZBmGXqfOQhbjz8z-s9C11i-jmOQ2ByohS-ST3E5sqBzIsxxrxyQDTw--bZNhzpbciyYW4GfkkqyeYoOPd_84jPTBDKQXssvj8ZOj2XboS77tvEO1n1WlwUzh8HPCJod5_fEgSXuozpJtOggXBv0C2ps7yXlDZf-7Jar0UYc_NJEHJF-xShlqd6Q3sVL02PhSCM-ibn9DN9BKmD"}'
+key = json.loads(KEY_JSON)
 jwk_key = jwt.jwk_from_dict(key)
 
-
-async def handle(request: web.Request):
+async def handle_webhook(request):
     body = await request.text()
-    print("🔔 Вебхук Точки:", body)
+    logging.info(f"🔔 Вебхук получен: {body[:200]}")
 
-    # 2. Проверяем подпись (отклоняем левые запросы)
     try:
-        decoded = jwt.JWT().decode(message=body, key=jwk_key)
-        return web.Response(status=200, text=f"✅ Подпись верна: {decoded}")
+        # Расшифровываем JWT
+        decoded = jwt.JWT().decode(body, key=jwk_key)
+        logging.info(f"✅ Расшифровано: {decoded}")
+
+        # Извлекаем поля (строго по документации)
+        webhook_type = decoded.get('webhookType')
+        status = decoded.get('status')
+        payment_link_id = decoded.get('paymentLinkId')  # это твой номер заказа (user_id)
+        operation_id = decoded.get('operationId')
+
+        logging.info(f"Тип: {webhook_type}, Статус: {status}, paymentLinkId: {payment_link_id}")
+
+        # Обрабатываем только успешные платежи по ссылкам
+        if webhook_type == 'acquiringInternetPayment' and status == 'APPROVED':
+            if payment_link_id:
+                # Пробуем найти пользователя по payment_link_id
+                user_id = await TochkaApiService.find_user_by_operation_id(payment_link_id)
+                if user_id:
+                    await MaxService.activate_subscription(user_id, SubsTier.basic)
+                    logging.info(f"✅ Подписка активирована для {user_id}")
+                else:
+                    logging.warning(f"⚠️ Пользователь не найден для payment_link_id: {payment_link_id}")
+            else:
+                logging.warning("⚠️ paymentLinkId отсутствует в вебхуке")
+
     except exceptions.JWTDecodeError:
+        logging.error("❌ Ошибка: неверная подпись JWT")
         return web.Response(status=400, text="Invalid signature")
+    except Exception as e:
+        logging.error(f"❌ Ошибка: {e}")
+
+    return web.Response(status=200, text="OK")
 
 app = web.Application()
-app.router.add_route("POST", '/tochka_api/webhook', handle)
+app.router.add_post('/tochka_api/webhook', handle_webhook)
 
 if __name__ == '__main__':
     web.run_app(app, host='127.0.0.1', port=8084)
