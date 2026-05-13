@@ -2,6 +2,9 @@ from aiohttp import web
 import json
 import logging
 
+from src.max.repository import MaxService
+from src.tochka_api.service import TochkaApiService
+
 logging.basicConfig(level=logging.INFO)
 
 
@@ -12,15 +15,19 @@ async def handle_tochka(request):
     # 2. Парсим JSON
     try:
         data = json.loads(body)
-    except:
-        data = {}
+        if data.get('status') == 'SUCCEEDED':
+            operation_id = data.get('operationId')
+            if operation_id:
+                # Ищем пользователя по operation_id
+                user_id = await TochkaApiService.find_user_by_operation_id(operation_id)
+                if user_id:
+                    await MaxService.activate_subscription(user_id)
+                    print(f"✅ Подписка активирована для user_id {user_id}")
+                else:
+                    print(f"⚠️ Пользователь для operation_id {operation_id} не найден")
+    except Exception as e:
+        print("❌ Ошибка обработки вебхука:", e)
 
-    # 3. Если это тестовый вебхук — просто логируем
-    if data.get('webhookType') == 'incomingPayment':
-        print("✅ Получен платёжный вебхук")
-        # Здесь потом будешь активировать подписку
-
-    # 4. Всегда отвечаем 200 OK
     return web.Response(status=200, text="OK")
 
 

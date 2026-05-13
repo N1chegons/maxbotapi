@@ -1,59 +1,71 @@
 import http.client
 import json
-import os
+
+from sqlalchemy import select, insert
 
 from src.config import settings
-import requests
-import json
+from src.db import async_session
+from src.max.models import Payment
 
 conn = http.client.HTTPSConnection("enter.tochka.com")
 
-payload = json.dumps({
-  "Data": {
-    "accountId": "40802810709500018912/044525104",
-    "customerCode": "301970249",
-    "SecondSide": {
-      "accountId": "40702810801000028776/044525555",
-      "legalAddress": "400002, РОССИЯ, ВОЛОГОДСКАЯ ОБЛ, ВОЛГОГРАД г, МИРОЗОВСКАЯ ул, ДОМ 69, офис КВ. 1",
-      "kpp": "346001001",
-      "bankName": "ПАО БАНК ПСБ",
-      "bankCorrAccount": "30101810400000000555",
-      "taxCode": "3460071285",
-      "type": "company",
-      "secondSideName": "ООО ВЭС"
-    },
-    "Content": {
-      "Invoice": {
-        "Positions": [
-          {
-            "positionName": "Название товара",
-            "unitCode": "шт.",
-            "ndsKind": "nds_0",
-            "price": "1234.56",
-            "quantity": "1234.567",
-            "totalAmount": "1234.56",
-            "totalNds": "1234.56"
-          }
-        ],
-        "date": "2026-04-25",
-        "totalAmount": "0",
-        "totalNds": "0",
-        "number": "1",
-        "basedOn": "Основание платежа",
-        "comment": "Комментарий к платежу",
-        "paymentExpiryDate": "2026-04-30"
-      }
-    }
-  }
-})
+class TochkaApiService:
+    def __init__(self):
+        self.jwt_tochka_api = settings.JWT_TOKEN_TOCHKA_API
+        self.account_id = settings.TOCHKA_ACCOUNT_DATA
+        self.customer_code = settings.CUSTOMER_CODE
 
-headers = {
-  'Content-Type': 'application/json',
-  'Accept': 'application/json',
-  'Authorization': f'Bearer {settings.JWT_TOKEN_TOCHKA_API}'
-}
+    @classmethod
+    async def find_user_by_operation_id(cls, operation_id: str) -> int:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Payment.user_id).where(Payment.payment_id == operation_id)
+            )
+            return result.scalar_one_or_none()
 
-conn.request("POST", "/uapi/invoice/v1.0/bills", payload, headers)
-res = conn.getresponse()
-data = res.read()
-print(data.decode("utf-8"))
+    @classmethod
+    async def save_payment(cls, user_id: int, operation_id: str, payment_link: str, amount: float):
+        async with async_session() as session:
+            stmt = insert(Payment).values(
+                payment_id=operation_id,
+                user_id=user_id,
+                amount=amount,
+            )
+            await session.execute(stmt)
+            await session.commit()
+
+
+    def create_payment_link(self, amount: float, user_id: int):
+        payload = json.dumps({
+            "Data": {
+                "customerCode": f"{self.customer_code}",
+                "amount": amount,
+                "purpose": f"Оплата подписки на бота для пользователя {user_id}",
+                "paymentMode": ["card"],
+                "saveCard": True,
+                "merchantId": "200000000037987",
+                "preAuthorization": False,
+                "ttl": 1000
+            }
+        })
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': f'Bearer {self.jwt_tochka_api}'
+        }
+
+        conn.request("POST", "https://enter.tochka.com/uapi/acquiring/v1.0/payments", payload, headers)
+        res = conn.getresponse()
+        data = json.loads(res.read().decode("utf-8"))
+
+        operation_id = data.get("Data", {}).get("operationId")
+        payment_link = data.get("Data", {}).get("paymentLink")
+
+        return {
+            "payment_id": operation_id,
+            "payment_link": payment_link
+        }
+
+
+
