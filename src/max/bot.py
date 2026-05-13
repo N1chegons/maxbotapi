@@ -510,7 +510,7 @@ async def handle_agree_subs(callback):
 
     # 4. Отправляем ссылку на оплату
     kb = InlineKeyboardBuilder()
-    kb.row(LinkButton(text="💳 Оплатить 14 ₽", url=payment_data["payment_link"]))
+    kb.row(LinkButton(text="💳 14 рублей за 14 дней теста", url=payment_data["payment_link"]))
 
     await callback.message.edit(
         text=(
