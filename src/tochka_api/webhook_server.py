@@ -19,8 +19,9 @@ async def handle(request: web.Request):
             message=payload,
             key=jwk_key,
         )
+        print("Вебхук успешно расшифрован:", webhook_jwt)
     except exceptions.JWTDecodeError:
-        # Неверная подпись, вебхук не от Точка Банка или с ним что-то не так
+        print("Ошибка: неверная подпись JWT")
         pass
 
     return web.Response(status=200)
