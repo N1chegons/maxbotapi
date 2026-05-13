@@ -3,6 +3,10 @@ import jwt
 from jwt import exceptions
 import json
 import logging
+import sys
+
+project_root = '/home/psylogic/maxapibotnew'
+sys.path.insert(0, project_root)
 
 from src.max.repository import MaxService
 from src.tochka_api.service import TochkaApiService
