@@ -325,18 +325,6 @@ class MaxService:
             await session.commit()
 
     @classmethod
-    async def change_subscription_status(cls, user_id: int, status: SubsStatus):
-        async with async_session() as session:
-            await session.execute(
-                update(User)
-                .filter_by(user_id=user_id)
-                .values(
-                    subscription_status=status,
-                )
-            )
-            await session.commit()
-
-    @classmethod
     async def save_payment_method(cls, user_id: int, payment_method_id: str):
         async with async_session() as session:
             await session.execute(
