@@ -66,3 +66,5 @@ class TochkaApiService:
             "payment_id": operation_id,
             "payment_link": payment_link
         }
+
+
