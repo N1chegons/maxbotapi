@@ -503,7 +503,7 @@ async def handle_agree_subs(callback):
     # 3. Сохраняем operation_id в БД (чтобы потом привязать оплату к пользователю)
     await TochkaApiService.save_payment(
         user_id=user_id,
-        operation_id=payment_data["operation_id"],
+        operation_id=payment_data["payment_id"],
         payment_link=payment_data["payment_link"],
         amount=14.00
     )
