@@ -2,6 +2,9 @@ from aiohttp import web
 import json
 import logging
 
+project_root = '/home/psylogic/maxapibotnew'
+sys.path.insert(0, project_root)
+
 from src.max.repository import MaxService
 from src.tochka_api.service import TochkaApiService
 
