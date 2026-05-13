@@ -492,9 +492,7 @@ async def handle_agree_subs(callback):
         await MaxService.start_trial(user_id)
 
     # 2. Создаём платёжную ссылку
-    payment_data = TochkaApiService().create_payment_link(14.00, user_id)
-    operation_id = payment_data["Data"].get("operationId")
-    payment_link = payment_data["Data"].get("paymentLink")
+    payment_data = TochkaApiService().create_payment_link(14, user_id=user_id)
 
     if not payment_data or not payment_data.get("payment_link"):
         await callback.message.edit(
@@ -505,8 +503,8 @@ async def handle_agree_subs(callback):
     # 3. Сохраняем operation_id в БД (чтобы потом привязать оплату к пользователю)
     await TochkaApiService.save_payment(
         user_id=user_id,
-        operation_id=operation_id,
-        payment_link=payment_link,
+        operation_id=payment_data["operation_id"],
+        payment_link=payment_data["payment_link"],
         amount=14.00
     )
 
