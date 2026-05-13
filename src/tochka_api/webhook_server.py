@@ -25,27 +25,10 @@ async def handle(request: web.Request):
 
     # 2. Проверяем подпись (отклоняем левые запросы)
     try:
-        decoded = jwt.JWT().decode(body, key=jwk_key, do_verify=True)
-        print("✅ Подпись верна")
+        decoded = jwt.JWT().decode(message=body, key=jwk_key)
+        return web.Response(status=200, text=f"✅ Подпись верна: {decoded}")
     except exceptions.JWTDecodeError:
-        print("❌ Неверная подпись")
         return web.Response(status=400, text="Invalid signature")
-
-    # 3. Обрабатываем успешный платёж
-    status = decoded.get('status')
-    if status == 'APPROVED' or status == 'SUCCEEDED':
-        payment_link_id = decoded.get('paymentLinkId')
-        if payment_link_id:
-            # Ищем пользователя по payment_link_id (он у тебя хранится в БД)
-            user_id = await TochkaApiService.find_user_by_operation_id(payment_link_id)
-            if user_id:
-                await MaxService.activate_subscription(user_id, SubsTier.basic)
-                print(f"✅ Подписка активирована для {user_id}")
-            else:
-                print(f"⚠️ Пользователь для payment_link_id {payment_link_id} не найден")
-
-    # 4. Всегда отвечаем 200 OK
-    return web.Response(status=200, text="OK")
 
 app = web.Application()
 app.router.add_route("POST", '/tochka_api/webhook', handle)
