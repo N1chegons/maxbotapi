@@ -43,15 +43,14 @@ async def handle_webhook(request):
             if payment_link_id:
                 user_id = await TochkaApiService.find_user_by_operation_id(payment_link_id)
                 if user_id:
+                    await MaxService.activate_subscription(user_id, SubsTier.basic)
+                    await MaxService.change_subscription_status(user_id, SubsStatus.trial)
+                    await TochkaApiService.update_status_payment(operation_id)
                     if payment_method_id:
                         await MaxService.save_payment_method(user_id, payment_method_id)
                         logging.info(f"💳 Сохранён токен карты: {payment_method_id}")
                     else:
                         logging.info("ℹ️ Клиент не сохранил карту")
-
-                    await MaxService.activate_subscription(user_id, SubsTier.basic)
-                    await MaxService.change_subscription_status(user_id, SubsStatus.trial)
-                    await TochkaApiService.update_status_payment(operation_id)
                     logging.info(f"✅ Подписка активирована для {user_id}")
                 else:
                     logging.warning(f"⚠️ Пользователь не найден для payment_link_id: {payment_link_id}")
