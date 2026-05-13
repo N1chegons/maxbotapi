@@ -596,7 +596,7 @@ async def handle_contact(message):
     phone = contact.phone_number
     name = contact.first_name
 
-    history = await MaxService.get_last_messages(user_id, limit=20)
+    history = await MaxService.get_last_messages(user_id, limit=200)
     history_text = "\n".join([
         f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
         for msg in history
@@ -643,7 +643,7 @@ async def handle_voice(message):
     else:
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history(user_id, limit=10)
+        history = await MaxService.get_history(user_id, limit=200)
         file_info = await bot.get_file(message.voice.file_id)
 
         file_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_info.file_path}"
@@ -700,7 +700,7 @@ async def handle_message(message):
     else:
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history(user_id, limit=10)
+        history = await MaxService.get_history(user_id, limit=200)
         answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
 

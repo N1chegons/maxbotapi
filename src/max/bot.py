@@ -15,9 +15,10 @@ from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 from src.admin.repository import AdminService
 
 from src.config import settings
-from src.max.models import UserState, MemoryMode
+from src.max.models import UserState, MemoryMode, SubsTier, SubsStatus
 from src.max.repository import MaxService, AudioService
 from src.max.utils import upload_to_s3
+from src.tochka_api.service import TochkaApiService
 from src.yandexai.config import THEMES_INDEXES
 from src.yandexai.orchestrator import ask_ai_with_index
 
@@ -435,19 +436,33 @@ async def handle_continue(callback):
 @dp.message_callback(F.callback.payload == "continue")
 async def handle_continue(callback):
     user_id = callback.callback.user.user_id
+    user = await MaxService.get_user(user_id)
     await MaxService.update_user_state(user_id, UserState.ONBOARDING_DISCLAIMER)
 
-    reply_kb = InlineKeyboardBuilder()
-    reply_kb.row(
-        CallbackButton(
-            text="Конечно согласен",
-            payload="agree"
-        ),
-        CallbackButton(
-            text="Не согласен",
-            payload="disagree"
-        ),
-    )
+    if user.state == SubsStatus.none:
+        reply_kb = InlineKeyboardBuilder()
+        reply_kb.row(
+            CallbackButton(
+                text="Конечно согласен",
+                payload="agree_subs"
+            ),
+            CallbackButton(
+                text="Не согласен",
+                payload="disagree"
+            ),
+       )
+    else:
+        reply_kb = InlineKeyboardBuilder()
+        reply_kb.row(
+            CallbackButton(
+                text="Конечно согласен",
+                payload="agree"
+            ),
+            CallbackButton(
+                text="Не согласен",
+                payload="disagree"
+            ),
+        )
 
     await callback.message.edit(
         text=(
@@ -465,6 +480,43 @@ async def handle_disagree(callback):
         text=(
             "Понял. Возвращайся, если передумаешь"
         ), attachments=[]
+    )
+
+@dp.message_callback(F.callback.payload == "agree_subs")
+async def handle_agree(callback):
+    user_id = callback.callback.user.user_id
+
+    # 1. Запускаем триал (если ещё не запущен)
+    user = await MaxService.get_user(user_id)
+    if user and user.state != UserState.TRIAL_ACTIVE:
+        await MaxService.start_trial(user_id)
+
+    # 2. Создаём платёжную ссылку
+    payment_data = TochkaApiService().create_payment_link(14.00, user_id)
+
+    if not payment_data or not payment_data.get("payment_link"):
+        await callback.message.edit(
+            text="❌ Ошибка при создании платежа. Попробуйте позже."
+        )
+        return
+
+    # 3. Сохраняем operation_id в БД (чтобы потом привязать оплату к пользователю)
+    await TochkaApiService.save_payment(
+        user_id=user_id,
+        operation_id=payment_data["operation_id"],
+        payment_link=payment_data["payment_link"],
+        amount=14.00
+    )
+
+    # 4. Отправляем ссылку на оплату
+    kb = InlineKeyboardBuilder()
+    kb.row(LinkButton(text="💳 Оплатить 14 ₽", url=payment_data["payment_link"]))
+
+    await callback.message.edit(
+        text=(
+            "Ссылка для оплаты."
+        ),
+        attachments=[kb.as_markup()]
     )
 
 @dp.message_callback(F.callback.payload == "agree")
@@ -669,7 +721,7 @@ async def handle_message(event: MessageCreated):
     else:
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history(user_id, limit=10)
+        history = await MaxService.get_history(user_id, limit=200)
         answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
         if "112" in answer:
@@ -742,7 +794,7 @@ async def handle_voice_message(event: MessageCreated):
     else:
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history(user_id, limit=10)
+        history = await MaxService.get_history(user_id, limit=200)
 
 
         audio_attachment = None
