@@ -5,7 +5,6 @@ import datetime
 import enum
 from src.db import Base
 
-
 class UserState(enum.Enum):
     NEW = "new" # не проходил /new
     ONBOARDING_DISCLAIMER = "onboarding_disclaimer" # показали дисклеймер, ждём согласия
@@ -26,12 +25,21 @@ class MemoryMode(enum.Enum):
 
 class SubsStatus(enum.Enum):
     none = "none"
+    trial = "trial"
     active = "active"
+    grace_period = "grace_period"
+    cancelled = "cancelled"
     expired = "expired"
 
 class SubsTier(enum.Enum):
     basic = "basic"
     deep = "deep"
+
+class PaymentStatus(enum.Enum):
+    pending = "pending"
+    succeeded = "succeeded"
+    cancelled = "cancelled"
+    failed = "failed"
 
 class User(Base):
     __tablename__ = "users"
@@ -44,16 +52,42 @@ class User(Base):
     )
     memory_mode: Mapped[MemoryMode] = mapped_column(default=MemoryMode.none)
     state: Mapped[UserState] = mapped_column(default=UserState.NEW)
+
     trial_started_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
     trial_ends_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
+
     messages_count_trial: Mapped[int] = mapped_column(default=0)
+
     subscription_status: Mapped[SubsStatus] = mapped_column(default=SubsStatus.none)
     subscription_tier: Mapped[SubsTier] = mapped_column(nullable=True)
+
     subscription_ends_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
+
     last_active_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
     disclaimer_agreed_at:  Mapped[datetime.datetime] = mapped_column(nullable=True)
+
     is_memory_setup_completed: Mapped[bool] = mapped_column(default=False)
 
+    payment_method_id: Mapped[str] = mapped_column(nullable=True)
+    cancelled_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    payment_id: Mapped[str] = mapped_column(unique=True, index=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    amount: Mapped[float] = mapped_column()
+    currency: Mapped[str] = mapped_column(default="RUB")
+    status: Mapped[PaymentStatus] = mapped_column(default=PaymentStatus.pending)
+
+    is_recurrent: Mapped[bool] = mapped_column(default=False)
+
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        server_default=text("TIMEZONE('utc', now())")
+    )
+    paid_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
 class Session(Base):
     __tablename__ = "sessions"
@@ -83,7 +117,6 @@ class Message(Base):
     is_crisis_flagged: Mapped[bool] = mapped_column(default=False)
 
     session: Mapped["Session"] = relationship(back_populates="messages")
-
 
 class Request(Base):
     __tablename__ = "requests"

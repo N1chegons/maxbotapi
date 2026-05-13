@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     JWT_TOKEN_TOCHKA_API: str
     ACCOUNT_ID: str
     BIK_TOCHKA: str
+    CUSTOMER_CODE: str
 
     SECRET_WEBHOOK_KEY: str
 
