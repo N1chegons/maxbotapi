@@ -23,7 +23,7 @@ async def handle(request: web.Request):
     # except exceptions.JWTDecodeError:
     #     pass
     #
-    return web.Response(status=200)
+    return web.Response(status=200, text="OK")
 
 app = web.Application()
 app.router.add_route("POST", '/tochka_api/webhook', handle)
