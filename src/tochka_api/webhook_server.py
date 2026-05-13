@@ -5,6 +5,8 @@ import json
 import logging
 import sys
 
+from src.max.models import SubsTier
+
 project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
@@ -37,7 +39,7 @@ async def handle(request: web.Request):
             # Ищем пользователя по payment_link_id (он у тебя хранится в БД)
             user_id = await TochkaApiService.find_user_by_operation_id(payment_link_id)
             if user_id:
-                await MaxService.activate_subscription(user_id)
+                await MaxService.activate_subscription(user_id, SubsTier.basic)
                 print(f"✅ Подписка активирована для {user_id}")
             else:
                 print(f"⚠️ Пользователь для payment_link_id {payment_link_id} не найден")
