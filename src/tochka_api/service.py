@@ -41,6 +41,17 @@ class TochkaApiService:
             await session.execute(stmt)
             await session.commit()
 
+    @classmethod
+    async def get_last_payment(cls, user_id: int):
+        async with async_session() as session:
+            result = await session.execute(
+                select(Payment)
+                .where(Payment.user_id == user_id)
+                .order_by(Payment.created_at.desc())
+                .limit(1)
+            )
+            return result.scalar_one_or_none()
+
     def create_payment_link(self, amount: float, user_id: int):
         payload = json.dumps({
             "Data": {

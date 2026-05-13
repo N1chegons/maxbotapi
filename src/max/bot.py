@@ -15,7 +15,7 @@ from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 from src.admin.repository import AdminService
 
 from src.config import settings
-from src.max.models import UserState, MemoryMode, SubsTier, SubsStatus
+from src.max.models import UserState, MemoryMode, SubsTier, SubsStatus, PaymentStatus
 from src.max.repository import MaxService, AudioService
 from src.max.utils import upload_to_s3
 from src.tochka_api.service import TochkaApiService
@@ -482,6 +482,7 @@ async def handle_disagree(callback):
         ), attachments=[]
     )
 
+
 @dp.message_callback(F.callback.payload == "agree_subs")
 async def handle_agree_subs(callback):
     user_id = callback.callback.user.user_id
@@ -511,13 +512,37 @@ async def handle_agree_subs(callback):
     # 4. Отправляем ссылку на оплату
     kb = InlineKeyboardBuilder()
     kb.row(LinkButton(text="💳 14 рублей за 14 дней теста", url=payment_data["payment_link"]))
+    kb.row(CallbackButton(text="✅ Я оплатил", payload="check_payment"))
 
     await callback.message.edit(
         text=(
-            "Ссылка для оплаты."
+            "Ссылка для оплаты. После оплаты нажмите на кнопку '✅ Я оплатил' для проверки."
         ),
         attachments=[kb.as_markup()]
     )
+
+async def show_main_menu(callback):
+    reply_kb = InlineKeyboardBuilder()
+    reply_kb.row(
+        CallbackButton(text="Запрос >", payload="query"),
+        LinkButton(text="про Бота >", url="https://disk.yandex.ru/i/AHiHqufv2KT9bQ"),
+        LinkButton(text="про Эксперта >", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"),
+    )
+    await callback.message.edit(
+        text="Отлично. Что хочешь дальше?\n\nВыбирай❗",
+        attachments=[reply_kb.as_markup()]
+    )
+
+@dp.message_callback(F.callback.payload == "check_payment")
+async def check_payment(callback):
+    user_id = callback.callback.user.user_id
+    last_stat = await TochkaApiService.get_last_payment(user_id)
+
+    if last_stat.status == PaymentStatus.succeeded:
+        await show_main_menu(callback)
+    else:
+        await callback.message.answer("⏳ Платёж ещё не обработан. Попробуйте через минуту.")
+
 
 @dp.message_callback(F.callback.payload == "agree")
 async def handle_agree(callback):
