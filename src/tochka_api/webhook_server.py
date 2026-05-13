@@ -51,6 +51,7 @@ async def handle_webhook(request):
 
                     await MaxService.activate_subscription(user_id, SubsTier.basic)
                     await MaxService.change_subscription_status(user_id, SubsStatus.trial)
+                    await TochkaApiService.update_status_payment(operation_id)
                     logging.info(f"✅ Подписка активирована для {user_id}")
                 else:
                     logging.warning(f"⚠️ Пользователь не найден для payment_link_id: {payment_link_id}")
