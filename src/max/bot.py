@@ -554,7 +554,7 @@ async def handle_agree_subs(callback):
     kb.row(LinkButton(text="💳 14 рублей за 14 дней теста", url=payment_data["payment_link"]))
     kb.row(LinkButton(text="Изучить сайт", url="https://psy.nepovinnyh.ru"))
 
-    await callback.message.edit(
+    await callback.message.answer(
         text=(
             "Ты посмотрел видео и выбрал память. Оцени свой уровень доверия ⚠️\n Если информации недостаточно, изучи сайт. Сначала тест, потом автоматические списания по 650р каждый 31 день."
         ),
