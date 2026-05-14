@@ -54,12 +54,9 @@ async def handle_webhook(request):
                         logging.info("ℹ️ Клиент не сохранил карту")
 
                     if float(amount) == 14.00:
-                        await bot.send_message(
-                            user_id=user_id,
-                            text="✅ Оплата прошла успешно"
-                        )
 
                         await show_chat(user_id)
+
                         await MaxService.start_trial(user_id)
                         await MaxService.change_subscription_status(user_id, SubsStatus.trial)
                         logging.info(f"Статус тестовой подписки изменен: {user_id}, {SubsStatus.trial}")
