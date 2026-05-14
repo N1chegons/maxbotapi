@@ -1,12 +1,9 @@
 import sys
-
 from aiohttp import web
 import jwt
 from jwt import exceptions
 import json
 import logging
-
-from src.telegram.bot import show_chat_tg
 
 project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
@@ -14,6 +11,7 @@ sys.path.insert(0, project_root)
 from src.max.models import SubsTier, SubsStatus, UserState, PaymentStatus
 from src.max.repository import MaxService
 from src.tochka_api.service import TochkaApiService
+from src.telegram.bot import show_chat_tg
 from src.max.bot import show_chat
 
 logging.basicConfig(level=logging.INFO)
