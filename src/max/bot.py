@@ -505,7 +505,6 @@ async def handle_agree_subs(callback):
     await TochkaApiService.save_payment(
         user_id=user_id,
         operation_id=payment_data["payment_id"],
-        payment_link=payment_data["payment_link"],
         amount=14.00
     )
 
@@ -720,6 +719,8 @@ async def igor_confirm(callback):
 @dp.message_created(F.message.body.text)
 async def handle_message(event: MessageCreated):
     text = event.message.body.text
+    if not text:
+        return
     if text.startswith('/'):
         return
 
@@ -729,7 +730,6 @@ async def handle_message(event: MessageCreated):
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
     await MaxService.expire_trial_if_needed(user_id)
-    # await MaxService.expire_active_if_needed(user_id)
 
     if not session_user:
         await bot.send_message(
@@ -744,21 +744,11 @@ async def handle_message(event: MessageCreated):
         )
         return
 
-    # elif user.subscription_tier == SubsStatus.expired and user.state == UserState:
-    #     await bot.send_message(
-    #         user_id=user_id,
-    #         text="Извини, подписка неактивна. Сделай что-нибудь."
-    #     )
-    #     return
-
     else:
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
         history = await MaxService.get_history(user_id, limit=200)
         answer = ask_ai_with_index(index_id, text, selected_topic, history)
-
-        if "112" in answer:
-            await MaxService.update_user_state(user_id, UserState.CRISIS_MODE)
 
         if answer:
             if user.memory_mode != MemoryMode.none:
