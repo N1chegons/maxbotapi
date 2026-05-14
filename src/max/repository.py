@@ -299,7 +299,7 @@ class MaxService:
                 await session.commit()
 
     @classmethod
-    async def activate_subscription(cls, user_id: int, tier: SubsTier):
+    async def activate_subscription(cls, user_id: int, tier: SubsTier, state: UserState):
         async with async_session() as session:
             await session.execute(
                 update(User)
@@ -307,7 +307,7 @@ class MaxService:
                 .values(
                     subscription_tier=tier,
                     subscription_ends_at=datetime.utcnow() + timedelta(days=30),
-                    state=UserState.PAID
+                    state=state
                 )
             )
             await session.commit()

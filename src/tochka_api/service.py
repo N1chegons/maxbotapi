@@ -24,7 +24,7 @@ class TochkaApiService:
             return result.scalar_one_or_none()
 
     @classmethod
-    async def save_payment(cls, user_id: int, operation_id: str, payment_link: str, amount: float):
+    async def save_payment(cls, user_id: int, operation_id: str, amount: float):
         async with async_session() as session:
             stmt = insert(Payment).values(
                 payment_id=operation_id,
@@ -37,7 +37,7 @@ class TochkaApiService:
     @classmethod
     async def update_status_payment(cls, operation_id: str):
         async with async_session() as session:
-            stmt = update(Payment).values(status=PaymentStatus.succeeded).filter_by(payment_id=operation_id)
+            stmt = update(Payment).filter_by(payment_id=operation_id).values(status=PaymentStatus.succeeded)
             await session.execute(stmt)
             await session.commit()
 
