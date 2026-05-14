@@ -753,7 +753,6 @@ async def handle_message(message):
         history = await MaxService.get_history(user_id, limit=200)
         answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
-
         if answer:
             if user_reg.memory_mode != MemoryMode.none:
                 last_exchange = f"Клиент: {text}\n\nБот: {answer}"
