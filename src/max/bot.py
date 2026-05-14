@@ -592,9 +592,9 @@ async def handle_memory_none(callback):
 
     await asyncio.sleep(10)
     if user.has_started_subscription:
-        await show_chat(callback)
+        await show_chat(user_id)
     else:
-        await handle_agree_subs(user_id)
+        await handle_agree_subs(callback)
 
 @dp.message_callback(F.callback.payload == "mem_memory_none")
 async def handle_mem_memory_none(callback):
@@ -625,7 +625,7 @@ async def handle_memory_dialog(callback):
 
     await asyncio.sleep(10)
     if user.has_started_subscription:
-        await show_chat(callback)
+        await show_chat(user_id)
     else:
         await handle_agree_subs(callback)
 @dp.message_callback(F.callback.payload == "mem_memory_dialog")
@@ -657,7 +657,7 @@ async def handle_memory_full(callback):
 
     await asyncio.sleep(10)
     if user.has_started_subscription:
-        await show_chat(callback)
+        await show_chat(user_id)
     else:
         await handle_agree_subs(callback)
 
