@@ -54,7 +54,6 @@ async def handle_webhook(request):
                         logging.info("ℹ️ Клиент не сохранил карту")
 
                     if float(amount) == 14.00:
-
                         await show_chat(user_id)
 
                         await MaxService.start_trial(user_id)
