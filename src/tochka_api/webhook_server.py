@@ -32,7 +32,7 @@ async def handle_webhook(request):
         webhook_type = decoded.get('webhookType')
         status = decoded.get('status')
         operation_id = decoded.get('operationId')
-        payment_method_id = decoded.get('paymentMethodId')
+        payment_method_id = decoded.get('consumerID')
         amount = decoded.get('amount')
 
 
