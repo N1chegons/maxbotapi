@@ -5,6 +5,9 @@ import jwt
 from jwt import exceptions
 import json
 import logging
+
+from src.max.bot import bot, show_chat
+
 project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
@@ -51,12 +54,16 @@ async def handle_webhook(request):
                         logging.info("ℹ️ Клиент не сохранил карту")
 
                     if float(amount) == 14.00:
-                        await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.TRIAL_ACTIVE)
-                        logging.info(f"Тестовая подписка активирована по: {user_id}, {SubsTier.basic}, {UserState.TRIAL_ACTIVE}")
+                        await bot.send_message(
+                            user_id=user_id,
+                            text="✅ Оплата прошла успешно"
+                        )
+
+                        await show_chat(user_id)
+                        await MaxService.start_trial(user_id)
                         await MaxService.change_subscription_status(user_id, SubsStatus.trial)
                         logging.info(f"Статус тестовой подписки изменен: {user_id}, {SubsStatus.trial}")
                         await TochkaApiService.update_status_payment(operation_id)
-                        await MaxService.start_trial(user_id)
                         logging.info(f"Статус платежа изменен на: {PaymentStatus.succeeded}")
                     else:
                         await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.TRIAL_ACTIVE)
