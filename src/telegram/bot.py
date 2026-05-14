@@ -5,6 +5,7 @@ import aiofiles
 import requests
 import telebot
 from aiohttp import web
+from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyKeyboardMarkup, \
     KeyboardButton
@@ -14,6 +15,7 @@ from src.max.models import UserState, MemoryMode
 from src.admin.repository import AdminService
 from src.max.repository import MaxService, AudioService
 from src.max.utils import upload_to_s3
+from src.tochka_api.service import TochkaApiService
 from src.yandexai.config import THEMES_INDEXES
 from src.yandexai.orchestrator import ask_ai_with_index
 from src.config import settings
@@ -461,10 +463,57 @@ async def handle_query(call: CallbackQuery):
         reply_markup=kb
     )
 
+
+async def handle_agree_subs(call: CallbackQuery):
+    user_id = call.from_user.id
+    payment_data = TochkaApiService().create_payment_link(14, user_id=user_id)
+
+    if not payment_data or not payment_data.get("payment_link"):
+        await bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="❌ Ошибка при создании платежа. Попробуйте позже."
+        )
+        return
+
+    await TochkaApiService.save_payment(
+        user_id=user_id,
+        operation_id=payment_data["payment_id"],
+        amount=14.00
+    )
+
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton(text="💳 14 рублей за 14 дней теста", url=payment_data["payment_link"]))
+    kb.add(InlineKeyboardButton(text="Изучить сайт", url="https://psy.nepovinnyh.ru"))
+
+    await bot.send_message(
+        chat_id=call.message.chat.id,
+        text=(
+            "Ты посмотрел видео и выбрал память. Оцени свой уровень доверия ⚠️ Если информации недостаточно, изучи сайт👇 Сначала тест, потом автоматические списания по 650р каждый месяц ❗️ Если что-то не понял и хочешь вернуться назад, напиши /new"
+        ),
+        reply_markup=kb
+    )
+    await asyncio.sleep(2)
+    await bot.send_message(
+        chat_id=call.message.chat.id,
+        text=(
+            "После оплаты 14 рублей начнётся консультация."
+        )
+    )
+
+async def show_chat_tg(user_id: int):
+    await bot.send_message(
+        chat_id=user_id,
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\n"
+             "Для начала нам нужна та эмоция, которая актуальна в данный момент. "
+             "Что ты чувствуешь? Что переживаешь?"
+    )
+
 @bot.callback_query_handler(func=lambda call: call.data == "memory_none")
 async def handle_memory_none(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
+    user = await MaxService.get_user(user_id)
 
     kb = InlineKeyboardMarkup()
     kb.add(InlineKeyboardButton(text="видео", url="https://disk.yandex.ru/i/F8LpWWDviR-Erw"))
@@ -476,12 +525,12 @@ async def handle_memory_none(call: CallbackQuery):
         reply_markup=kb
     )
 
-    await bot.send_message(
-        chat_id=call.message.chat.id,
-        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\n"
-        "Для начала нам нужна та эмоция, которая актуальна в данный момент. "
-        "Что ты чувствуешь? Что переживаешь?"
-    )
+    await asyncio.sleep(2.5)
+    if user.has_started_subscription:
+        await show_chat_tg(call)
+    else:
+        await handle_agree_subs(call)
+
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_none")
 async def handle_mem_memory_none(call: CallbackQuery):
     user_id = call.from_user.id
@@ -497,6 +546,7 @@ async def handle_mem_memory_none(call: CallbackQuery):
 async def handle_memory_dialog(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
+    user = await MaxService.get_user(user_id)
 
     kb = InlineKeyboardMarkup()
     kb.add(InlineKeyboardButton(text="видео", url="https://disk.yandex.ru/i/F8LpWWDviR-Erw"))
@@ -508,12 +558,12 @@ async def handle_memory_dialog(call: CallbackQuery):
         reply_markup=kb
     )
 
-    await bot.send_message(
-        chat_id=call.message.chat.id,
-        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\n"
-             "Для начала нам нужна та эмоция, которая актуальна в данный момент. "
-             "Что ты чувствуешь? Что переживаешь?"
-        )
+    await asyncio.sleep(2.5)
+    if user.has_started_subscription:
+        await show_chat_tg(call)
+    else:
+        await handle_agree_subs(call)
+
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_dialog")
 async def handle_mem_memory_dialog(call: CallbackQuery):
     user_id = call.from_user.id
@@ -529,6 +579,7 @@ async def handle_mem_memory_dialog(call: CallbackQuery):
 async def handle_memory_full(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.full)
+    user = await MaxService.get_user(user_id)
 
     kb = InlineKeyboardMarkup()
     kb.add(InlineKeyboardButton(text="видео", url="https://disk.yandex.ru/i/F8LpWWDviR-Erw"))
@@ -540,12 +591,11 @@ async def handle_memory_full(call: CallbackQuery):
         reply_markup=kb
     )
 
-    await bot.send_message(
-        chat_id=call.message.chat.id,
-        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\n"
-             "Для начала нам нужна та эмоция, которая актуальна в данный момент. "
-             "Что ты чувствуешь? Что переживаешь?"
-    )
+    await asyncio.sleep(2.5)
+    if user.has_started_subscription:
+        await show_chat_tg(call)
+    else:
+        await handle_agree_subs(call)
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_full")
 async def handle_mem_memory_full(call: CallbackQuery):
     user_id = call.from_user.id

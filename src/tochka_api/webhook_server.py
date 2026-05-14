@@ -6,15 +6,15 @@ from jwt import exceptions
 import json
 import logging
 
+from src.telegram.bot import show_chat_tg
 
 project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
 from src.max.models import SubsTier, SubsStatus, UserState, PaymentStatus
 from src.max.repository import MaxService
-from src.config import settings
 from src.tochka_api.service import TochkaApiService
-from src.max.bot import bot, show_chat
+from src.max.bot import show_chat
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,11 +28,9 @@ async def handle_webhook(request):
     logging.info(f"🔔 Вебхук получен: {body[:200]}")
 
     try:
-        # Расшифровываем JWT
         decoded = jwt.JWT().decode(body, key=jwk_key)
         logging.info(f"✅ Расшифровано: {decoded}")
 
-        # Извлекаем поля (строго по документации)
         webhook_type = decoded.get('webhookType')
         status = decoded.get('status')
         operation_id = decoded.get('operationId')
@@ -54,7 +52,11 @@ async def handle_webhook(request):
                         logging.info("ℹ️ Клиент не сохранил карту")
 
                     if float(amount) == 14.00:
-                        await show_chat(user_id)
+                        user = await MaxService.get_user(user_id)
+                        if user.platform == "MAX":
+                            await show_chat(user_id)
+                        else:
+                            await show_chat_tg(user_id)
 
                         await MaxService.start_trial(user_id)
                         await MaxService.change_subscription_status(user_id, SubsStatus.trial)
@@ -62,6 +64,7 @@ async def handle_webhook(request):
                         await TochkaApiService.update_status_payment(operation_id)
                         logging.info(f"Статус платежа изменен на: {PaymentStatus.succeeded}")
                     else:
+
                         await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.TRIAL_ACTIVE)
                         logging.info(f"Статус подписки изменен: {user_id}, {SubsTier.basic}, {UserState.TRIAL_ACTIVE}")
                         await MaxService.change_subscription_status(user_id, SubsStatus.trial)
