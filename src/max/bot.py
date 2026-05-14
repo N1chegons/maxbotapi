@@ -439,30 +439,18 @@ async def handle_continue(callback):
     user = await MaxService.get_user(user_id)
     await MaxService.update_user_state(user_id, UserState.ONBOARDING_DISCLAIMER)
 
-    if not user.has_started_subscription:
-        reply_kb = InlineKeyboardBuilder()
-        reply_kb.row(
-            CallbackButton(
-                text="Конечно согласен",
-                payload="agree_subs"
-            ),
-            CallbackButton(
-                text="Не согласен",
-                payload="disagree"
-            ),
-       )
-    else:
-        reply_kb = InlineKeyboardBuilder()
-        reply_kb.row(
-            CallbackButton(
-                text="Конечно согласен",
-                payload="agree"
-            ),
-            CallbackButton(
-                text="Не согласен",
-                payload="disagree"
-            ),
-        )
+
+    reply_kb = InlineKeyboardBuilder()
+    reply_kb.row(
+        CallbackButton(
+            text="Конечно согласен",
+            payload="agree"
+        ),
+        CallbackButton(
+            text="Не согласен",
+            payload="disagree"
+        ),
+    )
 
     await callback.message.edit(
         text=(
@@ -481,59 +469,6 @@ async def handle_disagree(callback):
             "Понял. Возвращайся, если передумаешь"
         ), attachments=[]
     )
-
-
-@dp.message_callback(F.callback.payload == "agree_subs")
-async def handle_agree_subs(callback):
-    user_id = callback.callback.user.user_id
-
-    payment_data = TochkaApiService().create_payment_link(14, user_id=user_id)
-
-    if not payment_data or not payment_data.get("payment_link"):
-        await callback.message.edit(
-            text="❌ Ошибка при создании платежа. Попробуйте позже."
-        )
-        return
-
-    await TochkaApiService.save_payment(
-        user_id=user_id,
-        operation_id=payment_data["payment_id"],
-        amount=14.00
-    )
-
-    kb = InlineKeyboardBuilder()
-    kb.row(LinkButton(text="💳 14 рублей за 14 дней теста", url=payment_data["payment_link"]))
-    kb.row(CallbackButton(text="✅ Я оплатил", payload="check_payment"))
-
-    await callback.message.edit(
-        text=(
-            "Ссылка для оплаты. После оплаты нажмите на кнопку '✅ Я оплатил' для проверки."
-        ),
-        attachments=[kb.as_markup()]
-    )
-
-async def show_main_menu(callback):
-    reply_kb = InlineKeyboardBuilder()
-    reply_kb.row(
-        CallbackButton(text="Запрос >", payload="query"),
-        LinkButton(text="про Бота >", url="https://disk.yandex.ru/i/AHiHqufv2KT9bQ"),
-        LinkButton(text="про Эксперта >", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"),
-    )
-    await callback.message.edit(
-        text="Отлично. Что хочешь дальше?\n\nВыбирай❗",
-        attachments=[reply_kb.as_markup()]
-    )
-
-@dp.message_callback(F.callback.payload == "check_payment")
-async def check_payment(callback):
-    user_id = callback.callback.user.user_id
-    last_stat = await TochkaApiService.get_last_payment(user_id)
-
-    if last_stat.status == PaymentStatus.succeeded:
-        await show_main_menu(callback)
-    else:
-        await callback.message.answer("⏳ Платёж ещё не обработан. Попробуйте через минуту.")
-
 
 @dp.message_callback(F.callback.payload == "agree")
 async def handle_agree(callback):
@@ -599,10 +534,51 @@ async def handle_query(callback):
         attachments=[reply_kb.as_markup()]
     )
 
+async def handle_agree_subs(callback):
+    user_id = callback.callback.user.user_id
+    payment_data = TochkaApiService().create_payment_link(14, user_id=user_id)
+
+    if not payment_data or not payment_data.get("payment_link"):
+        await callback.message.edit(
+            text="❌ Ошибка при создании платежа. Попробуйте позже."
+        )
+        return
+
+    await TochkaApiService.save_payment(
+        user_id=user_id,
+        operation_id=payment_data["payment_id"],
+        amount=14.00
+    )
+
+    kb = InlineKeyboardBuilder()
+    kb.row(LinkButton(text="💳 14 рублей за 14 дней теста", url=payment_data["payment_link"]))
+    kb.row(LinkButton(text="Изучить сайт", url="https://psy.nepovinnyh.ru"))
+
+    await callback.message.edit(
+        text=(
+            "Ты посмотрел видео и выбрал память. Оцени свой уровень доверия (смайл-треугольник с восклицательным знаком) Если информации недостаточно, изучи сайт. Сначала тест, потом автоматические списания по 650р каждый 31 день."
+        ),
+        attachments=[kb.as_markup()]
+    )
+    await asyncio.sleep(2)
+    await callback.message.answer(
+        text=(
+            "Ожидаем подтверждение от банка..."
+        )
+    )
+
+async def show_chat(user_id: int):
+    await bot.send_message(
+        user_id=user_id,
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
+    )
+
 @dp.message_callback(F.callback.payload == "memory_none")
 async def handle_memory_none(callback):
-    user_id = callback.callback.user.user_id
+    user_id = callback.callback.user.user_id# none, dialog, full
+
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
+    user = await MaxService.get_user(user_id)
 
     await callback.message.edit(
         text="🎬 Видео загружается, секунду...",
@@ -613,11 +589,13 @@ async def handle_memory_none(callback):
         text="",
         attachments=[video]
     )
-    await asyncio.sleep(20)
-    await callback.message.answer(
-        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
-        attachments=[]
-    )
+
+    await asyncio.sleep(10)
+    if user.has_started_subscription:
+        await show_chat(callback)
+    else:
+        await handle_agree_subs(user_id)
+
 @dp.message_callback(F.callback.payload == "mem_memory_none")
 async def handle_mem_memory_none(callback):
     user_id = callback.callback.user.user_id
@@ -631,7 +609,9 @@ async def handle_mem_memory_none(callback):
 @dp.message_callback(F.callback.payload == "memory_dialog")
 async def handle_memory_dialog(callback):
     user_id = callback.callback.user.user_id
+
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
+    user = await MaxService.get_user(user_id)
 
     await callback.message.edit(
         text="🎬 Видео загружается, секунду...",
@@ -642,11 +622,12 @@ async def handle_memory_dialog(callback):
         text="",
         attachments=[video]
     )
-    await asyncio.sleep(20)
-    # Показываем главное меню
-    await callback.message.answer(
-        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?", attachments=[]
-    )
+
+    await asyncio.sleep(10)
+    if user.has_started_subscription:
+        await show_chat(callback)
+    else:
+        await handle_agree_subs(callback)
 @dp.message_callback(F.callback.payload == "mem_memory_dialog")
 async def handle_mem_memory_none(callback):
     user_id = callback.callback.user.user_id
@@ -660,7 +641,9 @@ async def handle_mem_memory_none(callback):
 @dp.message_callback(F.callback.payload == "memory_full")
 async def handle_memory_full(callback):
     user_id = callback.callback.user.user_id
+
     await MaxService.update_memory_mode(user_id, MemoryMode.full)
+    user = await MaxService.get_user(user_id)
 
     await callback.message.edit(
         text="🎬 Видео загружается, секунду...",
@@ -671,11 +654,13 @@ async def handle_memory_full(callback):
         text="",
         attachments=[video]
     )
-    await asyncio.sleep(20)
-    await callback.message.answer(
-        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
-        attachments=[]
-    )
+
+    await asyncio.sleep(10)
+    if user.has_started_subscription:
+        await show_chat(callback)
+    else:
+        await handle_agree_subs(callback)
+
 @dp.message_callback(F.callback.payload == "mem_memory_full")
 async def handle_mem_memory_none(callback):
     user_id = callback.callback.user.user_id
@@ -705,8 +690,6 @@ async def igor_confirm(callback):
 @dp.message_created(F.message.body.text)
 async def handle_message(event: MessageCreated):
     text = event.message.body.text
-    if not text:
-        return
     if text.startswith('/'):
         return
 
