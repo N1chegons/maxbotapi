@@ -628,6 +628,7 @@ async def handle_memory_dialog(callback):
         await show_chat(user_id)
     else:
         await handle_agree_subs(callback)
+
 @dp.message_callback(F.callback.payload == "mem_memory_dialog")
 async def handle_mem_memory_none(callback):
     user_id = callback.callback.user.user_id
