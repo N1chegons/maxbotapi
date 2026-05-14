@@ -43,7 +43,7 @@ async def handle_webhook(request):
             if operation_id:
                 user_id = await TochkaApiService.find_user_by_operation_id(operation_id)
                 if user_id:
-
+                    await MaxService.mark_started_subscription(user_id)
                     if payment_method_id:
                         await MaxService.save_payment_method(user_id, payment_method_id)
                         logging.info(f"💳 Сохранён токен карты: {payment_method_id}")
@@ -52,10 +52,11 @@ async def handle_webhook(request):
 
                     if float(amount) == 14.00:
                         await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.TRIAL_ACTIVE)
-                        logging.info(f"Тестовая одписка активирована по: {user_id}, {SubsTier.basic}, {UserState.TRIAL_ACTIVE}")
+                        logging.info(f"Тестовая подписка активирована по: {user_id}, {SubsTier.basic}, {UserState.TRIAL_ACTIVE}")
                         await MaxService.change_subscription_status(user_id, SubsStatus.trial)
                         logging.info(f"Статус тестовой подписки изменен: {user_id}, {SubsStatus.trial}")
                         await TochkaApiService.update_status_payment(operation_id)
+                        await MaxService.start_trial(user_id)
                         logging.info(f"Статус платежа изменен на: {PaymentStatus.succeeded}")
                     else:
                         await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.TRIAL_ACTIVE)

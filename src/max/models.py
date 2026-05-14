@@ -70,6 +70,7 @@ class User(Base):
 
     payment_method_id: Mapped[str] = mapped_column(nullable=True)
     cancelled_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    has_started_subscription: Mapped[bool] = mapped_column(default=False)
 
 
 class Payment(Base):

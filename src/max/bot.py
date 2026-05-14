@@ -439,7 +439,7 @@ async def handle_continue(callback):
     user = await MaxService.get_user(user_id)
     await MaxService.update_user_state(user_id, UserState.ONBOARDING_DISCLAIMER)
 
-    if user.subscription_status == SubsStatus.none:
+    if not user.has_started_subscription:
         reply_kb = InlineKeyboardBuilder()
         reply_kb.row(
             CallbackButton(
@@ -487,12 +487,6 @@ async def handle_disagree(callback):
 async def handle_agree_subs(callback):
     user_id = callback.callback.user.user_id
 
-    # 1. Запускаем триал (если ещё не запущен)
-    user = await MaxService.get_user(user_id)
-    if user and user.state != UserState.TRIAL_ACTIVE:
-        await MaxService.start_trial(user_id)
-
-    # 2. Создаём платёжную ссылку
     payment_data = TochkaApiService().create_payment_link(14, user_id=user_id)
 
     if not payment_data or not payment_data.get("payment_link"):
@@ -501,14 +495,12 @@ async def handle_agree_subs(callback):
         )
         return
 
-    # 3. Сохраняем operation_id в БД (чтобы потом привязать оплату к пользователю)
     await TochkaApiService.save_payment(
         user_id=user_id,
         operation_id=payment_data["payment_id"],
         amount=14.00
     )
 
-    # 4. Отправляем ссылку на оплату
     kb = InlineKeyboardBuilder()
     kb.row(LinkButton(text="💳 14 рублей за 14 дней теста", url=payment_data["payment_link"]))
     kb.row(CallbackButton(text="✅ Я оплатил", payload="check_payment"))
@@ -547,12 +539,6 @@ async def check_payment(callback):
 async def handle_agree(callback):
     user_id = callback.callback.user.user_id
     await MaxService.update_user_state(user_id, UserState.ONBOARDING_MENU)
-
-    user = await MaxService.get_user(user_id)
-
-    if user and user.state != UserState.TRIAL_ACTIVE:
-        await MaxService.start_trial(user_id)
-
 
     reply_kb = InlineKeyboardBuilder()
     reply_kb.row(

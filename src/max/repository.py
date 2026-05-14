@@ -93,7 +93,7 @@ class MaxService:
             await session.commit()
 
     @classmethod
-    async def get_history(cls, user_id: int, limit: int = 10):
+    async def get_history(cls, user_id: int, limit: int = 200):
         async with async_session() as session:
             stmt = (
                 select(Message)
@@ -331,6 +331,16 @@ class MaxService:
                 update(User)
                 .where(User.user_id == user_id)
                 .values(payment_method_id=payment_method_id)
+            )
+            await session.commit()
+
+    @classmethod
+    async def mark_started_subscription(cls, user_id: int):
+        async with async_session() as session:
+            await session.execute(
+                update(User)
+                .where(User.user_id == user_id)
+                .values(has_started_subscription=True)
             )
             await session.commit()
 
