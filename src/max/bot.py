@@ -28,6 +28,8 @@ TOKEN = settings.MAX_BOT_TOKEN
 bot = Bot(TOKEN)
 dp = Dispatcher()
 
+from src.max.repository import MaxService, AudioService
+
 # Command
 @dp.message_created(Command('new'))
 async def new_session(event: MessageCreated):
@@ -870,4 +872,3 @@ async def main():
 if __name__ == '__main__':
     asyncio.run(main())
 
-from src.max.repository import MaxService, AudioService
