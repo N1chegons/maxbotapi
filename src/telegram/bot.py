@@ -32,6 +32,7 @@ bot = AsyncTeleBot(BOT_TOKEN)
 @bot.message_handler(commands=['start'])
 async def start(message):
     user_id = message.from_user.id
+    print("USER_MESSAGE =",user_id)
     user = await MaxService.get_user(user_id)
 
     if not user:
@@ -386,6 +387,7 @@ async def handle_delete_info_disagree(call: CallbackQuery):
 @bot.callback_query_handler(func=lambda call: call.data == "continue")
 async def handle_continue(call: CallbackQuery):
     user_id = call.from_user.id
+    print("USER_CALLBACK =",user_id)
     await MaxService.update_user_state(user_id, UserState.ONBOARDING_DISCLAIMER)
 
     kb = InlineKeyboardMarkup()
