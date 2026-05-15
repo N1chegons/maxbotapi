@@ -688,7 +688,6 @@ async def handle_message(event: MessageCreated):
         return
 
     user_id = event.message.sender.user_id
-    print("USER_ID_MESSAGE=", user_id)
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
