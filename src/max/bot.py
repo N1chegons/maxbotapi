@@ -16,7 +16,7 @@ from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 from src.admin.repository import AdminService
 
 from src.config import settings
-from src.max.models import UserState, MemoryMode
+from src.max.models import UserState, MemoryMode, SubsStatus
 from src.max.repository import MaxService, AudioService
 from src.max.utils import upload_to_s3
 from src.tochka_api.service import TochkaApiService
@@ -688,7 +688,6 @@ async def handle_message(event: MessageCreated):
         return
 
     user_id = event.message.sender.user_id
-    print("USER_ID_MESSAGE=", user_id)
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
@@ -700,6 +699,9 @@ async def handle_message(event: MessageCreated):
             user_id=user_id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
+
+    elif user.subscription_status == SubsStatus.none:
+        return
 
     elif user.state == UserState.TRIAL_ENDED_NOT_PAID:
         await bot.send_message(
