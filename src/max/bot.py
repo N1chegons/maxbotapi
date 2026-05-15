@@ -31,7 +31,7 @@ dp = Dispatcher()
 # Command
 @dp.message_created(Command('new'))
 async def new_session(event: MessageCreated):
-    user_id = event.from_user.user_id
+    user_id = event.message.sender.user_id
     await MaxService.delete_session(user_id)
     await MaxService.create_session(user_id)
     await MaxService.update_user_state(user_id, UserState.NEW)
@@ -57,7 +57,7 @@ async def new_session(event: MessageCreated):
 
 @dp.message_created(Command('mem'))
 async def mem_memory_choice(event: MessageCreated):
-    user_id = event.from_user.user_id
+    user_id = event.message.sender.user_id
     session_user = await MaxService.get_session(user_id)
 
     if not session_user:
@@ -96,7 +96,7 @@ async def mem_memory_choice(event: MessageCreated):
 
 @dp.message_created(Command('del'))
 async def delete_info(event: MessageCreated):
-    user_id = event.from_user.user_id
+    user_id = event.message.sender.user_id
     session_user = await MaxService.get_session(user_id)
 
     if not session_user:
@@ -127,7 +127,7 @@ async def delete_info(event: MessageCreated):
 
 @dp.message_created(Command('end'))
 async def closed_session(event: MessageCreated):
-    user_id = event.from_user.user_id
+    user_id = event.message.sender.user_id
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
@@ -181,7 +181,7 @@ async def closed_session(event: MessageCreated):
 
 @dp.message_created(Command('help'))
 async def instruction(event: MessageCreated):
-    user_id = event.from_user.user_id
+    user_id = event.message.sender.user_id
 
     reply_kb = InlineKeyboardBuilder()
     reply_kb.row(
@@ -209,7 +209,7 @@ async def instruction(event: MessageCreated):
 
 @dp.message_created(Command('igor'))
 async def igor_command(event: MessageCreated):
-    user_id = event.from_user.user_id
+    user_id = event.message.sender.user_id
     username = event.from_user.username
     session_user = await MaxService.get_session(user_id)
 
@@ -252,7 +252,7 @@ async def igor_command(event: MessageCreated):
 
 @dp.message_created(Command('admin'))
 async def admin_panel(event: MessageCreated):
-    user_id = event.from_user.user_id
+    user_id = event.message.sender.user_id
     if not AdminService.is_admin(user_id):
         await bot.send_message(user_id=user_id, text="⛔ Нет доступа")
         return
@@ -269,7 +269,7 @@ async def admin_panel(event: MessageCreated):
 
 @dp.message_created(Command('st'))
 async def stats_command(event: MessageCreated):
-    user_id = event.from_user.user_id
+    user_id = event.message.sender.user_id
     if not AdminService.is_admin(user_id):
         await bot.send_message(user_id=user_id, text="⛔ Нет доступа")
         return
@@ -296,7 +296,7 @@ async def stats_command(event: MessageCreated):
 
 @dp.message_created(Command('con'))
 async def view_appointment(event: MessageCreated):
-    user_id = event.from_user.user_id
+    user_id = event.message.sender.user_id
     if not AdminService.is_admin(user_id):
         await bot.send_message(user_id=user_id, text="⛔ Нет доступа")
         return
@@ -360,7 +360,7 @@ async def view_appointment(event: MessageCreated):
 
 @dp.message_created(Command('ha'))
 async def admin_help_command(event: MessageCreated):
-    user_id = event.from_user.user_id
+    user_id = event.message.sender.user_id
 
     if not AdminService.is_admin(user_id):
         await bot.send_message(user_id=user_id, text="⛔ Нет доступа")
@@ -592,7 +592,6 @@ async def handle_memory_none(callback):
         await show_chat(user_id)
     else:
         await handle_agree_subs(callback)
-
 @dp.message_callback(F.callback.payload == "mem_memory_none")
 async def handle_mem_memory_none(callback):
     user_id = callback.callback.user.user_id
@@ -625,7 +624,6 @@ async def handle_memory_dialog(callback):
         await show_chat(user_id)
     else:
         await handle_agree_subs(callback)
-
 @dp.message_callback(F.callback.payload == "mem_memory_dialog")
 async def handle_mem_memory_none(callback):
     user_id = callback.callback.user.user_id
@@ -658,7 +656,6 @@ async def handle_memory_full(callback):
         await show_chat(user_id)
     else:
         await handle_agree_subs(callback)
-
 @dp.message_callback(F.callback.payload == "mem_memory_full")
 async def handle_mem_memory_none(callback):
     user_id = callback.callback.user.user_id
