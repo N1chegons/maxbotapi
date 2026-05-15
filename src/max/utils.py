@@ -1,10 +1,6 @@
 import boto3
 import uuid
 from botocore.config import Config
-from maxapi import Bot
-from maxapi.types import InputMedia
-from maxapi.types.attachments import Video
-from maxapi.types.attachments.video import VideoThumbnail
 
 from src.config import settings
 
