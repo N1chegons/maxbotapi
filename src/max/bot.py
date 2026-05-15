@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-from datetime import datetime
 
 import aiofiles
 import aiohttp
@@ -12,7 +11,6 @@ from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import Command
 from maxapi.types import MessageCreated, BotStarted, CallbackButton, InputMedia, LinkButton, \
     RequestContactButton, MessageCallback
-from maxapi.types.callback import Callback
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
 from src.admin.repository import AdminService
