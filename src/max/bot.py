@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+
 import aiofiles
 import aiohttp
 import magic
@@ -10,7 +11,6 @@ from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import Command
 from maxapi.types import MessageCreated, BotStarted, CallbackButton, InputMedia, LinkButton, \
     RequestContactButton, MessageCallback
-from maxapi.types.callback import Callback
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
 from src.admin.repository import AdminService
@@ -250,7 +250,21 @@ async def igor_command(event: MessageCreated):
         attachments=[reply_kb.as_markup()]
     )
 
+@dp.message_created(Command('sub'))
+async def sub_command(event: MessageCreated):
+    user_id = event.message.sender.user_id
+    user = await MaxService.get_user(user_id)
+    session_user = await MaxService.get_session(user_id)
 
+    if not session_user:
+        await bot.send_message(
+            user_id=user_id,
+            text="Данные не найдены.\n\nИспользуйте команду /new"
+        )
+    else:
+        pass
+
+# admin
 @dp.message_created(Command('admin'))
 async def admin_panel(event: MessageCreated):
     user_id = event.message.sender.user_id

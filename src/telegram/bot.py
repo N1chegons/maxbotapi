@@ -4,8 +4,7 @@ import os
 import aiofiles
 import requests
 import telebot
-from aiohttp import web
-from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
+from aiohttp import
 
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyKeyboardMarkup, \
     KeyboardButton
@@ -458,7 +457,6 @@ async def handle_query(call: CallbackQuery):
         message_id=call.message.message_id,
         reply_markup=kb
     )
-
 
 async def handle_agree_subs(call: CallbackQuery):
     user_id = call.from_user.id
