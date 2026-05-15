@@ -11,8 +11,7 @@ project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
 from src.max.models import SubsTier, SubsStatus, UserState, PaymentStatus
-from src.max.repository import MaxService
-from src.tochka_api.service import TochkaApiService
+
 from src.telegram.bot import show_chat_tg
 from src.max.bot import show_chat
 
@@ -93,3 +92,6 @@ app.router.add_post('/tochka_api/webhook', handle_webhook)
 
 if __name__ == '__main__':
     web.run_app(app, host='127.0.0.1', port=8084)
+
+from src.max.repository import MaxService
+from src.tochka_api.service import TochkaApiService
