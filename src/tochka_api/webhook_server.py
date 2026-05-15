@@ -11,7 +11,6 @@ project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
 from src.max.models import SubsTier, SubsStatus, UserState, PaymentStatus
-
 from src.telegram.bot import show_chat_tg
 from src.max.bot import show_chat
 
@@ -21,6 +20,9 @@ logging.basicConfig(level=logging.INFO)
 KEY_JSON = '{"kty":"RSA","e":"AQAB","n":"rwm77av7GIttq-JF1itEgLCGEZW_zz16RlUQVYlLbJtyRSu61fCec_rroP6PxjXU2uLzUOaGaLgAPeUZAJrGuVp9nryKgbZceHckdHDYgJd9TsdJ1MYUsXaOb9joN9vmsCscBx1lwSlFQyNQsHUsrjuDk-opf6RCuazRQ9gkoDCX70HV8WBMFoVm-YWQKJHZEaIQxg_DU4gMFyKRkDGKsYKA0POL-UgWA1qkg6nHY5BOMKaqxbc5ky87muWB5nNk4mfmsckyFv9j1gBiXLKekA_y4UwG2o1pbOLpJS3bP_c95rm4M9ZBmGXqfOQhbjz8z-s9C11i-jmOQ2ByohS-ST3E5sqBzIsxxrxyQDTw--bZNhzpbciyYW4GfkkqyeYoOPd_84jPTBDKQXssvj8ZOj2XboS77tvEO1n1WlwUzh8HPCJod5_fEgSXuozpJtOggXBv0C2ps7yXlDZf-7Jar0UYc_NJEHJF-xShlqd6Q3sVL02PhSCM-ibn9DN9BKmD"}'
 key = json.loads(KEY_JSON)
 jwk_key = jwt.jwk_from_dict(key)
+
+from src.max.repository import MaxService
+from src.tochka_api.service import TochkaApiService
 
 async def handle_webhook(request):
     body = await request.text()
@@ -92,6 +94,3 @@ app.router.add_post('/tochka_api/webhook', handle_webhook)
 
 if __name__ == '__main__':
     web.run_app(app, host='127.0.0.1', port=8084)
-
-from src.max.repository import MaxService
-from src.tochka_api.service import TochkaApiService
