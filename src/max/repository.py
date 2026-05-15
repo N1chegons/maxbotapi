@@ -6,7 +6,6 @@ from sqlalchemy import select, update, insert, delete
 
 from src.config import settings
 from src.db import async_session
-from src.max.bot import bot
 from src.max.models import Session, Message, Request, User, UserState, SubsStatus, SubsTier, MemoryMode
 from src.tochka_api.service import TochkaApiService
 
@@ -451,3 +450,5 @@ class VideoService:
             file_path = os.path.join(self.cache_dir, file_name)
             if os.path.exists(file_path):
                 self.video_media_cache[key] = InputMedia(path=file_path)
+
+from src.max.bot import bot
