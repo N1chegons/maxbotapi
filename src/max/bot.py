@@ -589,7 +589,6 @@ async def handle_memory_none(callback: MessageCallback):
         attachments=[video]
     )
 
-    await asyncio.sleep(10)
     if user.has_started_subscription:
         await show_chat(user_id)
     else:
@@ -621,7 +620,6 @@ async def handle_memory_dialog(callback: MessageCallback):
         attachments=[video]
     )
 
-    await asyncio.sleep(10)
     if user.has_started_subscription:
         await show_chat(user_id)
     else:
@@ -653,12 +651,10 @@ async def handle_memory_full(callback: MessageCallback):
         attachments=[video]
     )
 
-    await asyncio.sleep(10)
     if user.has_started_subscription:
         await show_chat(user_id)
     else:
         await handle_agree_subs(callback)
-
 @dp.message_callback(F.callback.payload == "mem_memory_full")
 async def handle_mem_memory_none(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -692,6 +688,7 @@ async def handle_message(event: MessageCreated):
         return
 
     user_id = event.message.sender.user_id
+    print("USER_ID_MESSAGE=", user_id)
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
