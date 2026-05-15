@@ -9,7 +9,7 @@ import subprocess
 from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import Command
 from maxapi.types import MessageCreated, BotStarted, CallbackButton, InputMedia, LinkButton, \
-    RequestContactButton
+    RequestContactButton, MessageCallback
 from maxapi.types.callback import Callback
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
@@ -416,8 +416,8 @@ async def bot_started(event: BotStarted):
         )
 
 @dp.message_callback(F.callback.payload == "delete_agree")
-async def handle_continue(callback: Callback):
-    user_id = callback.user.user_id
+async def handle_continue(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
     await MaxService.delete_session(user_id)
     await MaxService.create_session(user_id)
 
@@ -427,16 +427,16 @@ async def handle_continue(callback: Callback):
     )
 
 @dp.message_callback(F.callback.payload == "delete_disagree")
-async def handle_continue(callback: Callback):
-    user_id = callback.user.user_id
+async def handle_continue(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
     await callback.message.edit(
         text="Давай продолжим. На чём мы остановились",
         attachments=[]
     )
 
 @dp.message_callback(F.callback.payload == "continue")
-async def handle_continue(callback: Callback):
-    user_id = callback.user.user_id
+async def handle_continue(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
     user = await MaxService.get_user(user_id)
     await MaxService.update_user_state(user_id, UserState.ONBOARDING_DISCLAIMER)
 
@@ -464,7 +464,7 @@ async def handle_continue(callback: Callback):
     )
 
 @dp.message_callback(F.callback.payload == "disagree")
-async def handle_disagree(callback: Callback):
+async def handle_disagree(callback: MessageCallback):
     await callback.message.edit(
         text=(
             "Понял. Возвращайся, если передумаешь"
@@ -472,8 +472,8 @@ async def handle_disagree(callback: Callback):
     )
 
 @dp.message_callback(F.callback.payload == "agree")
-async def handle_agree(callback: Callback):
-    user_id = callback.user.user_id
+async def handle_agree(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
     await MaxService.update_user_state(user_id, UserState.ONBOARDING_MENU)
 
     reply_kb = InlineKeyboardBuilder()
@@ -499,8 +499,8 @@ async def handle_agree(callback: Callback):
     )
 
 @dp.message_callback(F.callback.payload == "query")
-async def handle_query(callback: Callback):
-    user_id = callback.user.user_id
+async def handle_query(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
     user = await MaxService.get_user(user_id)
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
@@ -532,8 +532,8 @@ async def handle_query(callback: Callback):
         attachments=[reply_kb.as_markup()]
     )
 
-async def handle_agree_subs(callback: Callback):
-    user_id = callback.user.user_id
+async def handle_agree_subs(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
     payment_data = TochkaApiService().create_payment_link(14, user_id=user_id)
 
     if not payment_data or not payment_data.get("payment_link"):
@@ -572,8 +572,8 @@ async def show_chat(user_id: int):
     )
 
 @dp.message_callback(F.callback.payload == "memory_none")
-async def handle_memory_none(callback: Callback):
-    user_id = callback.user.user_id
+async def handle_memory_none(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
 
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
     user = await MaxService.get_user(user_id)
@@ -594,8 +594,8 @@ async def handle_memory_none(callback: Callback):
     else:
         await handle_agree_subs(callback)
 @dp.message_callback(F.callback.payload == "mem_memory_none")
-async def handle_mem_memory_none(callback):
-    user_id = callback.user.user_id
+async def handle_mem_memory_none(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
 
     await callback.message.edit(
@@ -604,8 +604,8 @@ async def handle_mem_memory_none(callback):
     )
 
 @dp.message_callback(F.callback.payload == "memory_dialog")
-async def handle_memory_dialog(callback: Callback):
-    user_id = callback.user.user_id
+async def handle_memory_dialog(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
 
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
     user = await MaxService.get_user(user_id)
@@ -626,8 +626,8 @@ async def handle_memory_dialog(callback: Callback):
     else:
         await handle_agree_subs(callback)
 @dp.message_callback(F.callback.payload == "mem_memory_dialog")
-async def handle_mem_memory_none(callback: Callback):
-    user_id = callback.user.user_id
+async def handle_mem_memory_none(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
 
     await callback.message.edit(
@@ -636,8 +636,8 @@ async def handle_mem_memory_none(callback: Callback):
     )
 
 @dp.message_callback(F.callback.payload == "memory_full")
-async def handle_memory_full(callback: Callback):
-    user_id = callback.user.user_id
+async def handle_memory_full(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
 
     await MaxService.update_memory_mode(user_id, MemoryMode.full)
     user = await MaxService.get_user(user_id)
@@ -658,8 +658,8 @@ async def handle_memory_full(callback: Callback):
     else:
         await handle_agree_subs(callback)
 @dp.message_callback(F.callback.payload == "mem_memory_full")
-async def handle_mem_memory_none(callback: Callback):
-    user_id = callback.user.user_id
+async def handle_mem_memory_none(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
     await MaxService.update_memory_mode(user_id, MemoryMode.full)
 
     await callback.message.edit(
@@ -668,8 +668,8 @@ async def handle_mem_memory_none(callback: Callback):
     )
 
 @dp.message_callback(F.callback.payload == "consult_agree")
-async def igor_confirm(callback: Callback):
-    user_id = callback.user.user_id
+async def igor_confirm(callback: MessageCallback):
+    user_id = callback.message.sender.user_id
 
     reply_kb = InlineKeyboardBuilder()
     reply_kb.row(
