@@ -27,6 +27,8 @@ WEBHOOK_URL = f"https://bot.nepovinnyh.ru{WEBHOOK_PATH}"
 app = web.Application()
 bot = AsyncTeleBot(BOT_TOKEN)
 
+from src.max.repository import MaxService, AudioService
+
 @bot.message_handler(commands=['start'])
 async def start(message):
     user_id = message.from_user.id
@@ -775,5 +777,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-from src.max.repository import MaxService, AudioService
