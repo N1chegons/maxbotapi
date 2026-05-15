@@ -83,7 +83,7 @@ class Payment(Base):
     currency: Mapped[str] = mapped_column(default="RUB")
     status: Mapped[PaymentStatus] = mapped_column(default=PaymentStatus.pending)
 
-    is_recurrent: Mapped[bool] = mapped_column(default=False)
+    is_recurrent: Mapped[bool] = mapped_column(default=True)
 
     created_at: Mapped[datetime.datetime] = mapped_column(
         server_default=text("TIMEZONE('utc', now())")

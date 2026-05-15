@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import os
+from datetime import datetime
+
 import aiofiles
 import aiohttp
 import magic
@@ -250,7 +252,21 @@ async def igor_command(event: MessageCreated):
         attachments=[reply_kb.as_markup()]
     )
 
+@dp.message_created(Command('sub'))
+async def sub_command(event: MessageCreated):
+    user_id = event.message.sender.user_id
+    user = await MaxService.get_user(user_id)
+    session_user = await MaxService.get_session(user_id)
 
+    if not session_user:
+        await bot.send_message(
+            user_id=user_id,
+            text="Данные не найдены.\n\nИспользуйте команду /new"
+        )
+    else:
+        pass
+
+# admin
 @dp.message_created(Command('admin'))
 async def admin_panel(event: MessageCreated):
     user_id = event.message.sender.user_id

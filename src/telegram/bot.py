@@ -459,7 +459,6 @@ async def handle_query(call: CallbackQuery):
         reply_markup=kb
     )
 
-
 async def handle_agree_subs(call: CallbackQuery):
     user_id = call.from_user.id
     payment_data = TochkaApiService().create_payment_link(14, user_id=user_id)

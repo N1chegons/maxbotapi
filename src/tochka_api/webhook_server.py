@@ -1,4 +1,6 @@
 import sys
+from datetime import datetime, timedelta
+
 from aiohttp import web
 import jwt
 from jwt import exceptions
@@ -32,7 +34,6 @@ async def handle_webhook(request):
         webhook_type = decoded.get('webhookType')
         status = decoded.get('status')
         operation_id = decoded.get('operationId')
-        payment_method_id = decoded.get('consumerID')
         amount = decoded.get('amount')
 
 
@@ -41,14 +42,11 @@ async def handle_webhook(request):
         if webhook_type == 'acquiringInternetPayment' and status == 'APPROVED':
             if operation_id:
                 user_id = await TochkaApiService.find_user_by_operation_id(operation_id)
+                user = await MaxService.get_user(user_id)
                 if user_id:
                     await MaxService.mark_started_subscription(user_id)
-                    if payment_method_id:
-                        await MaxService.save_payment_method(user_id, payment_method_id)
-                        logging.info(f"💳 Сохранён токен карты: {payment_method_id}")
-                    else:
-                        logging.info("ℹ️ Клиент не сохранил карту")
-
+                    await MaxService.save_payment_method(user_id, operation_id)
+                    logging.info(f"💳 Сохранён токен карты: {operation_id}")
                     if float(amount) == 14.00:
                         user = await MaxService.get_user(user_id)
                         if user.platform == "MAX":
@@ -62,13 +60,19 @@ async def handle_webhook(request):
                         await TochkaApiService.update_status_payment(operation_id)
                         logging.info(f"Статус платежа изменен на: {PaymentStatus.succeeded}")
                     else:
+                        if user.subscription_status == SubsStatus.active and user.subscription_ends_at:
+                            # Продлеваем существующую подписку
+                            new_end_date = user.subscription_ends_at + timedelta(days=30)
+                        else:
+                            new_end_date = datetime.utcnow() + timedelta(days=30)
 
-                        await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.TRIAL_ACTIVE)
-                        logging.info(f"Статус подписки изменен: {user_id}, {SubsTier.basic}, {UserState.TRIAL_ACTIVE}")
-                        await MaxService.change_subscription_status(user_id, SubsStatus.trial)
-                        logging.info(f"💳 Сохранён токен карты: {payment_method_id}")
+                        await MaxService.update_subscription_end_date(user_id, new_end_date)
+                        await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.PAID)
+                        logging.info(f"Статус подписки изменен: {user_id}, {SubsTier.basic}, {UserState.PAID}")
+                        await MaxService.change_subscription_status(user_id, SubsStatus.active)
+                        logging.info(f"💳 Сохранён токен карты: {operation_id}")
                         await TochkaApiService.update_status_payment(operation_id)
-                        logging.info(f"💳 Сохранён токен карты: {payment_method_id}")
+                        logging.info(f"💳 Сохранён токен карты: {operation_id}")
 
                     logging.info(f"✅ Подписка активирована для {user_id}")
                 else:

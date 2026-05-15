@@ -34,3 +34,5 @@ async def upload_to_s3(audio_data: bytes) -> str:
     )
     return f"https://storage.yandexcloud.net/{settings.S3_BUCKET_NAME}/{file_key}"
 
+
+

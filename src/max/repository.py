@@ -6,7 +6,9 @@ from sqlalchemy import select, update, insert, delete
 
 from src.config import settings
 from src.db import async_session
+from src.max.bot import bot
 from src.max.models import Session, Message, Request, User, UserState, SubsStatus, SubsTier, MemoryMode
+from src.tochka_api.service import TochkaApiService
 
 FOLDER_ID = settings.YC_FOLDER_ID
 API_KEY = settings.YC_API_SPEECHKIT
@@ -335,6 +337,16 @@ class MaxService:
             await session.commit()
 
     @classmethod
+    async def update_subscription_end_date(cls, user_id: int, new_end_date: datetime):
+        async with async_session() as session:
+            await session.execute(
+                update(User)
+                .where(User.user_id == user_id)
+                .values(subscription_ends_at=new_end_date)
+            )
+            await session.commit()
+
+    @classmethod
     async def mark_started_subscription(cls, user_id: int):
         async with async_session() as session:
             await session.execute(
@@ -354,6 +366,40 @@ class MaxService:
 
         # Можно писать, если статус НЕ в запрещённых
         return state not in forbidden_states
+
+    @classmethod
+    async def get_users_with_expiring_subscription(cls, days_before: int = 3):
+        async with async_session() as session:
+            now = datetime.utcnow()
+            end_date_limit = now + timedelta(days=days_before)
+
+            result = await session.execute(
+                select(User)
+                .where(
+                    User.subscription_status == SubsStatus.active,
+                    User.subscription_ends_at <= end_date_limit,
+                    User.subscription_ends_at > now  # ещё не истекла
+                )
+            )
+            return result.scalars().all()
+
+    @classmethod
+    async def check_and_charge_expiring_subscriptions(cls):
+        """Проверяет подписки, которые истекают через N дней"""
+        users = await MaxService.get_users_with_expiring_subscription(days_before=3)
+
+        for user in users:
+            payment = await TochkaApiService().find_operation(user.payment_method_id)
+            if user.subscription_ends_at <= datetime.utcnow() + timedelta(days=3) and payment.is_recurrent == True:
+                # Списываем 560 ₽
+                success = TochkaApiService().charge_payments(560.00, user.payment_method_id)
+
+                if success:
+                    # Ждём вебхук, там обновится subscription_ends_at
+                    await bot.send_message(
+                        user_id=user.user_id,
+                        text="💰 Производится списание 560 ₽ за следующий период."
+                    )
 
 class AudioService:
     @classmethod
