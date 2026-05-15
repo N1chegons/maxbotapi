@@ -589,6 +589,7 @@ async def handle_memory_none(callback: MessageCallback):
         attachments=[video]
     )
 
+    await asyncio.sleep(10)
     if user.has_started_subscription:
         await show_chat(user_id)
     else:
@@ -620,6 +621,7 @@ async def handle_memory_dialog(callback: MessageCallback):
         attachments=[video]
     )
 
+    await asyncio.sleep(10)
     if user.has_started_subscription:
         await show_chat(user_id)
     else:
@@ -651,6 +653,7 @@ async def handle_memory_full(callback: MessageCallback):
         attachments=[video]
     )
 
+    await asyncio.sleep(10)
     if user.has_started_subscription:
         await show_chat(user_id)
     else:
