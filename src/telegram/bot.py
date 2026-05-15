@@ -29,7 +29,6 @@ WEBHOOK_URL = f"https://bot.nepovinnyh.ru{WEBHOOK_PATH}"
 app = web.Application()
 bot = AsyncTeleBot(BOT_TOKEN)
 
-
 @bot.message_handler(commands=['start'])
 async def start(message):
     user_id = message.from_user.id
@@ -524,13 +523,10 @@ async def handle_memory_none(call: CallbackQuery):
         message_id=call.message.message_id,
         reply_markup=kb
     )
-
-    await asyncio.sleep(2.5)
     if user.has_started_subscription:
-        await show_chat_tg(call)
+        await show_chat_tg(user_id)
     else:
         await handle_agree_subs(call)
-
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_none")
 async def handle_mem_memory_none(call: CallbackQuery):
     user_id = call.from_user.id
@@ -557,13 +553,10 @@ async def handle_memory_dialog(call: CallbackQuery):
         message_id=call.message.message_id,
         reply_markup=kb
     )
-
-    await asyncio.sleep(2.5)
     if user.has_started_subscription:
-        await show_chat_tg(call)
+        await show_chat_tg(user_id)
     else:
         await handle_agree_subs(call)
-
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_dialog")
 async def handle_mem_memory_dialog(call: CallbackQuery):
     user_id = call.from_user.id
@@ -590,10 +583,8 @@ async def handle_memory_full(call: CallbackQuery):
         message_id=call.message.message_id,
         reply_markup=kb
     )
-
-    await asyncio.sleep(2.5)
     if user.has_started_subscription:
-        await show_chat_tg(call)
+        await show_chat_tg(user_id)
     else:
         await handle_agree_subs(call)
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_full")
