@@ -4,7 +4,7 @@ import os
 import aiofiles
 import requests
 import telebot
-from aiohttp import
+from aiohttp import web
 
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyKeyboardMarkup, \
     KeyboardButton
