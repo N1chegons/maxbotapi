@@ -17,7 +17,6 @@ from src.admin.repository import AdminService
 
 from src.config import settings
 from src.max.models import UserState, MemoryMode, SubsStatus
-from src.max.repository import MaxService, AudioService
 from src.max.utils import upload_to_s3
 from src.tochka_api.service import TochkaApiService
 from src.yandexai.config import THEMES_INDEXES
@@ -870,3 +869,5 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+
+from src.max.repository import MaxService, AudioService
