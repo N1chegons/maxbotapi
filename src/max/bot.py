@@ -15,7 +15,7 @@ from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 from src.admin.repository import AdminService
 
 from src.config import settings
-from src.max.models import UserState, MemoryMode, SubsTier, SubsStatus, PaymentStatus
+from src.max.models import UserState, MemoryMode
 from src.max.repository import MaxService, AudioService
 from src.max.utils import upload_to_s3
 from src.tochka_api.service import TochkaApiService
@@ -502,10 +502,7 @@ async def handle_query(callback):
     user_id = callback.callback.user.user_id
     user = await MaxService.get_user(user_id)
 
-    if not user.is_memory_setup_completed:
-        await MaxService.update_user_state(user_id, UserState.MEMORY_SETUP)
-    else:
-        await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
+    await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
     reply_kb = InlineKeyboardBuilder()
     reply_kb.row(

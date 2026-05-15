@@ -439,10 +439,7 @@ async def handle_query(call: CallbackQuery):
     user_id = call.from_user.id
     user = await MaxService.get_user(user_id)
 
-    if not user.is_memory_setup_completed:
-        await MaxService.update_user_state(user_id, UserState.MEMORY_SETUP)
-    else:
-        await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
+    await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
     kb = InlineKeyboardMarkup()
     kb.add(
