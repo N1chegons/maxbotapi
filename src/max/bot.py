@@ -637,7 +637,7 @@ async def handle_mem_memory_none(callback: MessageCallback):
 
 @dp.message_callback(F.callback.payload == "memory_full")
 async def handle_memory_full(callback: MessageCallback):
-    user_id = callback.callback.user.id
+    user_id = callback.callback.user.user_id
     print("USER_ID_CALLBACK =",user_id)
     await MaxService.update_memory_mode(user_id, MemoryMode.full)
     user = await MaxService.get_user(user_id)
