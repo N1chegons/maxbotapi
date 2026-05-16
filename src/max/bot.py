@@ -576,7 +576,7 @@ async def handle_agree_subs(callback: MessageCallback):
         ),
         attachments=[kb.as_markup()]
     )
-    await asyncio.sleep(2)
+
     await callback.message.answer(
         text=(
             "После оплаты 14 рублей начнётся консультация."
@@ -610,7 +610,7 @@ async def handle_memory_none(callback: MessageCallback):
 
     asyncio.create_task(send_video(callback))
 
-    await asyncio.sleep(2.5)
+    await asyncio.sleep(10)
     if user.has_started_subscription:
         await show_chat(user.user_id)
     else:
@@ -642,7 +642,7 @@ async def handle_memory_dialog(callback: MessageCallback):
 
     asyncio.create_task(send_video(callback))
 
-    await asyncio.sleep(2.5)
+    await asyncio.sleep(10)
     if user.has_started_subscription:
         await show_chat(user.user_id)
     else:
@@ -673,7 +673,7 @@ async def handle_memory_full(callback: MessageCallback):
 
     asyncio.create_task(send_video(callback))
 
-    await asyncio.sleep(2.5)
+    await asyncio.sleep(10)
     if user.has_started_subscription:
         await show_chat(user.user_id)
     else:
