@@ -64,7 +64,7 @@ class TochkaApiService:
         payload = json.dumps({
             "Data": {
                 "customerCode": f"{self.customer_code}",
-                "amount": "14.00",
+                "amount": amount,
                 "purpose": "Оплата подписки на бота для пользователя",
                 "saveCard": True,
                 "recurring": True,
