@@ -81,13 +81,12 @@ class TochkaApiService:
         conn.request("POST", "/uapi/acquiring/v1.0/subscriptions", payload, headers)
         res = conn.getresponse()
         data = json.loads(res.read().decode("utf-8"))
-        response_text = res.read().decode("utf-8")
 
         print(f"Статус: {res.status}")
-        print(f"Ответ API: {response_text}")  # <-- ЭТО ВАЖНО
+        print(f"Ответ API: {data}")  # <-- ЭТО ВАЖНО
 
         if res.status != 200:
-            print(f"Ошибка: {response_text}")
+            print(f"Ошибка: {data}")
             return None
 
         operation_id = data.get("Data", {}).get("operationId")
