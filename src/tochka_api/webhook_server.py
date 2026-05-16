@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime, timedelta
+import datetime
 
 from aiohttp import web
 import jwt
@@ -63,9 +63,9 @@ async def handle_webhook(request):
                     else:
                         if user.subscription_status == SubsStatus.active and user.subscription_ends_at:
                             # Продлеваем существующую подписку
-                            new_end_date = user.subscription_ends_at + timedelta(days=30)
+                            new_end_date = user.subscription_ends_at + datetime.timedelta(days=30)
                         else:
-                            new_end_date = datetime.utcnow() + timedelta(days=30)
+                            new_end_date = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=30)
 
                         await MaxService.update_subscription_end_date(user_id, new_end_date)
                         await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.PAID)
