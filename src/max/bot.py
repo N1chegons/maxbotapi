@@ -554,6 +554,7 @@ async def handle_agree_subs(callback: MessageCallback):
     print(payment_data)
 
     if not payment_data or not payment_data.get("payment_link"):
+        await callback.message.answer()
         await callback.message.edit(
             text="❌ Ошибка при создании платежа. Попробуйте позже."
         )
