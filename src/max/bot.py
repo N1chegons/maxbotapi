@@ -588,20 +588,12 @@ async def show_chat(user_id: int):
         text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
     )
 async def send_video(callback: MessageCallback):
-    user_id = callback.callback.user.user_id
-    user = await MaxService.get_user(user_id)
-
     video = InputMedia(path="video_cache/04.mp4")
     await callback.message.edit(
         text="",
         attachments=[video]
     )
 
-    await asyncio.sleep(2.5)
-    if user.has_started_subscription:
-        await show_chat(user.user_id)
-    else:
-        await handle_agree_subs(callback)
 
 @dp.message_callback(F.callback.payload == "memory_none")
 async def handle_memory_none(callback: MessageCallback):
@@ -617,6 +609,12 @@ async def handle_memory_none(callback: MessageCallback):
         )
 
     asyncio.create_task(send_video(callback))
+
+    await asyncio.sleep(2.5)
+    if user.has_started_subscription:
+        await show_chat(user.user_id)
+    else:
+        await handle_agree_subs(callback)
 
 
 @dp.message_callback(F.callback.payload == "mem_memory_none")
@@ -644,6 +642,12 @@ async def handle_memory_dialog(callback: MessageCallback):
 
     asyncio.create_task(send_video(callback))
 
+    await asyncio.sleep(2.5)
+    if user.has_started_subscription:
+        await show_chat(user.user_id)
+    else:
+        await handle_agree_subs(callback)
+
 @dp.message_callback(F.callback.payload == "mem_memory_dialog")
 async def handle_mem_memory_none(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -668,6 +672,12 @@ async def handle_memory_full(callback: MessageCallback):
     )
 
     asyncio.create_task(send_video(callback))
+
+    await asyncio.sleep(2.5)
+    if user.has_started_subscription:
+        await show_chat(user.user_id)
+    else:
+        await handle_agree_subs(callback)
 
 @dp.message_callback(F.callback.payload == "mem_memory_full")
 async def handle_mem_memory_none(callback: MessageCallback):
