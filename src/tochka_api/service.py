@@ -68,7 +68,7 @@ class TochkaApiService:
                 "purpose": "Оплата подписки на бота для пользователя",
                 "saveCard": True,
                 "recurring": True,
-                "paymentLinkId": f"Payment user by id: {user_id}"
+                "paymentLinkId": f"Оплата подписки для пользователя с id: {user_id}"
             }
         })
 
