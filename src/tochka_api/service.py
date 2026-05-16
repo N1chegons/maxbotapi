@@ -60,7 +60,7 @@ class TochkaApiService:
             )
             return result.scalar_one_or_none()
 
-    def create_payment_link(self, amount: float, user_id: int):
+    def create_payment_link(self, amount: float, user_id: int, platform: str):
         payload = json.dumps({
             "Data": {
                 "customerCode": f"{self.customer_code}",
@@ -68,7 +68,7 @@ class TochkaApiService:
                 "purpose": "Оплата подписки на бота для пользователя",
                 "saveCard": True,
                 "recurring": True,
-                "paymentLinkId": f"Оплата подписки для пользователя с id: {user_id}"
+                "paymentLinkId": f"Payment user by {platform} id: {user_id}"
             }
         })
 
