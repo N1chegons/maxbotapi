@@ -604,11 +604,11 @@ async def handle_memory_none(callback: MessageCallback):
     user = await MaxService.get_user(user_id)
 
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
+    await callback.answer()
     await callback.message.edit(
             text="🎬 Видео загружается, секунду...",
             attachments=[]
         )
-    await callback.answer()
 
     asyncio.create_task(send_video(callback, user))
 
