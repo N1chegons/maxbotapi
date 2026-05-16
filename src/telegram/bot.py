@@ -461,7 +461,7 @@ async def handle_query(call: CallbackQuery):
 
 async def handle_agree_subs(call: CallbackQuery):
     user_id = call.from_user.id
-    payment_data = TochkaApiService().create_payment_link(14, user_id=user_id)
+    payment_data = TochkaApiService().create_payment_link(14, user_id=user_id, platform="TELEGRAM")
 
     if not payment_data or not payment_data.get("payment_link"):
         await bot.edit_message_text(
