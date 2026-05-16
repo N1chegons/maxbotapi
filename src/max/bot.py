@@ -551,6 +551,7 @@ async def handle_query(callback: MessageCallback):
 async def handle_agree_subs(callback: MessageCallback):
     user_id = callback.callback.user.user_id
     payment_data = TochkaApiService().create_payment_link(14, user_id=user_id)
+    print(payment_data)
 
     if not payment_data or not payment_data.get("payment_link"):
         await callback.message.edit(
