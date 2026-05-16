@@ -632,7 +632,7 @@ async def handle_memory_dialog(callback: MessageCallback):
     user_id = callback.callback.user.user_id
     user = await MaxService.get_user(user_id)
 
-    await MaxService.update_memory_mode(user_id, MemoryMode.none)
+    await MaxService.update_memory_mode(user_id, MemoryMode.session)
 
     await callback.answer()
     await callback.message.edit(
@@ -663,7 +663,7 @@ async def handle_memory_full(callback: MessageCallback):
     user_id = callback.callback.user.user_id
     user = await MaxService.get_user(user_id)
 
-    await MaxService.update_memory_mode(user_id, MemoryMode.none)
+    await MaxService.update_memory_mode(user_id, MemoryMode.full)
 
     await callback.answer()
     await callback.message.edit(
