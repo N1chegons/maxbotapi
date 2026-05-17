@@ -252,99 +252,73 @@ async def show_subscription_info(event: MessageCreated):
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
-    if not user:
+    if not session_user:
         await bot.send_message(
             user_id=user_id,
-            text="❌ Пользователь не найден. Напишите /new"
+            text="Данные не найдены.\n\nИспользуйте команду /new"
         )
-        return
 
     now = datetime.datetime.now(datetime.UTC)
     is_active = False
-    next_payment_date = None
+    next_date = None
     status_text = ""
 
-    # 1. Активная подписка
-    if user.subscription_status == SubsStatus.active and user.subscription_ends_at:
-        if user.subscription_ends_at > now:
+    # Проверяем активную подписку (active или grace_period)
+    if user.subscription_status in (SubsStatus.active, SubsStatus.grace_period):
+        if user.subscription_ends_at and user.subscription_ends_at > now:
             is_active = True
-            next_payment_date = user.subscription_ends_at
+            next_date = user.subscription_ends_at
             status_text = "✅ Активна"
         else:
             status_text = "❌ Истекла"
 
-    # 2. Льготный период
-    elif user.subscription_status == SubsStatus.grace_period and user.subscription_ends_at:
-        if user.subscription_ends_at > now:
+    elif user.subscription_status == SubsStatus.cancelled:
+        if user.subscription_ends_at and user.subscription_ends_at > now:
             is_active = True
-            next_payment_date = user.subscription_ends_at
-            status_text = "⚠️ Льготный период (попытка списания)"
+            next_date = user.subscription_ends_at
+            status_text = "⏸ Отменена (доступ до даты)"
         else:
             status_text = "❌ Истекла"
 
-    # 3. Отменённая, но ещё действующая
-    elif user.subscription_status == SubsStatus.cancelled and user.subscription_ends_at:
-        if user.subscription_ends_at > now:
-            is_active = True
-            next_payment_date = user.subscription_ends_at
-            status_text = "⏸️ Отменена (доступ до даты)"
-        else:
-            status_text = "❌ Истекла"
-
-    # 4. Триал
-    elif user.subscription_status == SubsStatus.trial and user.trial_ends_at:
-        if user.trial_ends_at > now:
-            is_active = True
-            next_payment_date = user.trial_ends_at
-            status_text = "🧪 Пробный период"
-        else:
-            status_text = "❌ Триал истёк"
-
-    # 5. Нет подписки
     else:
         status_text = "❌ Нет активной подписки"
 
-    # Формируем сообщение
+    # Формируем текст
     text = f"💳 **Подписка**\n"
     text += f"📌 Статус: {status_text}\n"
+    text += f"💰 Тариф: Базовый (650 ₽/мес)\n"
 
-    if next_payment_date:
-        days_left = (next_payment_date - now).days
-        text += f"📅 Следующее списание: {next_payment_date.strftime('%d.%m.%Y')}\n"
+    if next_date:
+        days_left = (next_date - now).days
+        text += f"📅 Следующее списание: {next_date.strftime('%d.%m.%Y')}\n"
         text += f"⏰ Осталось дней: {days_left}\n"
-
-    text += f"💰 Тариф: Базовый (650 ₽/мес)\n\n"
 
     # Кнопки
     kb = InlineKeyboardBuilder()
-
 
     if is_active:
         kb.row(CallbackButton(text="❌ Отменить подписку", payload="cancel_subscription"))
     else:
         if user.has_started_subscription:
-            payment_data = TochkaApiService().create_payment_link(650, user_id=user_id, platform="MAX")
-            kb.row(LinkButton(text="💳 Оплатить 650 ₽", url=payment_data["payment_link"]))
-            await TochkaApiService.save_payment(
-                user_id=user_id,
-                operation_id=payment_data["payment_id"],
-                amount=650.00
-            )
+            amount = 650.00
+            payment_link = await TochkaApiService().create_payment_link(amount, user_id, "MAX")
+            kb.row(LinkButton(text="💳 Оплатить 650 ₽", url=payment_link["payment_link"]))
         else:
-            payment_data = TochkaApiService().create_payment_link(14, user_id=user_id, platform="MAX")
-            kb.row(LinkButton(text="💳 Стартовая подписка 14 ₽", url=payment_data["payment_link"]))
-            await TochkaApiService.save_payment(
-                user_id=user_id,
-                operation_id=payment_data["payment_id"],
-                amount=14.00
-            )
+            amount = 14.00
+            payment_link = await TochkaApiService().create_payment_link(amount, user_id, "MAX")
+            kb.row(LinkButton(text="💳 Стартовая подписка 14 ₽", url=payment_link["payment_link"]))
+
+        await TochkaApiService.save_payment(
+            user_id=user_id,
+            operation_id=payment_link["payment_id"],
+            amount=amount
+        )
 
     await bot.send_message(
         user_id=user_id,
         text=text,
         attachments=[kb.as_markup()]
     )
-
 # admin
 @dp.message_created(Command('admin'))
 async def admin_panel(event: MessageCreated):
@@ -780,6 +754,25 @@ async def igor_confirm(callback: MessageCallback):
     await callback.message.edit(
         text="Пожалуйста, поделись своим номером телефона, чтобы я мог записать тебя на консультацию.",
         attachments=[reply_kb.as_markup()]
+    )
+
+@dp.message_callback(F.callback.payload == "cancel_subscription")
+async def cancel_subscription_callback(callback: MessageCallback):
+    user_id = callback.callback.user.user_id
+
+    user = await MaxService.get_user(user_id)
+
+    if user.subscription_status not in (SubsStatus.active, SubsStatus.grace_period):
+        await callback.message.edit(text="❌ У вас нет активной подписки для отмены.")
+        return
+
+    # Меняем статус на cancelled
+    await MaxService.change_subscription_status(user_id, SubsStatus.cancelled)
+
+    await callback.message.edit(
+        text=f"✅ Подписка отменена.\n"
+             f"Доступ сохранится до {user.subscription_ends_at.strftime('%d.%m.%Y')}.\n"
+             f"Чтобы возобновить, оплатите через /sub"
     )
 
 @dp.message_created(F.message.body.text)
