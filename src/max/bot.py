@@ -9,6 +9,7 @@ import magic
 import subprocess
 
 from maxapi import Bot, Dispatcher, F
+from maxapi.enums.upload_type import UploadType
 from maxapi.filters.command import Command
 from maxapi.types import MessageCreated, BotStarted, CallbackButton, InputMedia, LinkButton, \
     RequestContactButton, MessageCallback
@@ -607,7 +608,7 @@ async def show_chat(user_id: int):
         text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
     )
 async def send_video(callback: MessageCallback):
-    video = InputMedia(type="video", path="video_cache/04.mp4")
+    video = InputMedia(path="video_cache/04.mp4", type=UploadType.VIDEO)
     await callback.message.edit(
         text="",
         attachments=[video]
@@ -634,6 +635,7 @@ async def handle_memory_none(callback: MessageCallback):
         await show_chat(user.user_id)
     else:
         await handle_agree_subs(callback)
+
 @dp.message_callback(F.callback.payload == "mem_memory_none")
 async def handle_mem_memory_none(callback: MessageCallback):
     user_id = callback.callback.user.user_id
