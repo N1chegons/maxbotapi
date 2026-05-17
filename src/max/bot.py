@@ -574,7 +574,6 @@ async def handle_agree_subs(callback: MessageCallback):
     payment_data = TochkaApiService().create_payment_link(amount=14, user_id=user_id, platform="MAX")
 
     if not payment_data or not payment_data.get("payment_link"):
-        await callback.message.answer()
         await callback.message.edit(
             text="❌ Ошибка при создании платежа. Попробуйте позже."
         )
@@ -631,10 +630,10 @@ async def handle_memory_none(callback: MessageCallback):
     asyncio.create_task(send_video(callback))
 
     await asyncio.sleep(10)
-    # if user.has_started_subscription:
-    #     await show_chat(user.user_id)
-    # else:
-    #     await handle_agree_subs(callback)
+    if user.has_started_subscription:
+        await show_chat(user.user_id)
+    else:
+        await handle_agree_subs(callback)
 
 @dp.message_callback(F.callback.payload == "mem_memory_none")
 async def handle_mem_memory_none(callback: MessageCallback):
