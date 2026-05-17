@@ -395,14 +395,13 @@ class MaxService:
     @classmethod
     async def get_users_for_auto_charge(cls):
         async with async_session() as session:
-            import datetime
-            now = datetime.datetime.now(datetime.UTC)
+            now = datetime.utcnow()  # ← naive datetime (без timezone)
             three_days_ago = now - timedelta(days=3)
 
             result = await session.execute(
                 select(User)
                 .where(
-                    User.subscription_status == SubsStatus.active,  # ← только active, cancelled не трогаем
+                    User.subscription_status == SubsStatus.active,
                     User.payment_method_id.isnot(None),
                     User.subscription_ends_at <= now,
                     User.subscription_ends_at >= three_days_ago
@@ -413,8 +412,7 @@ class MaxService:
     @classmethod
     async def get_users_with_expired_trial(cls):
         async with async_session() as session:
-            import datetime
-            now = datetime.datetime.now(datetime.UTC)
+            now = datetime.utcnow()  # ← naive
             result = await session.execute(
                 select(User)
                 .where(
@@ -437,13 +435,13 @@ class MaxService:
     @classmethod
     async def activate_subscription_after_trial(cls, user_id: int):
         async with async_session() as session:
-            import datetime
+            new_end = datetime.utcnow() + timedelta(days=31)  # ← naive
             await session.execute(
                 update(User)
                 .where(User.user_id == user_id)
                 .values(
                     subscription_status=SubsStatus.active,
-                    subscription_ends_at=datetime.datetime.now(datetime.UTC) + timedelta(days=31),
+                    subscription_ends_at=new_end,
                     trial_ends_at=None,
                     has_started_subscription=True,
                     state=UserState.PAID,
