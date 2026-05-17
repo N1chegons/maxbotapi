@@ -275,9 +275,9 @@ async def send_sub_buttons(user_id: int, user):
     else:
         # Создаём ссылку на 14 ₽
         payment_link = await create_payment_link(14.00, user_id)
-        kb.row(LinkButton(text="💳 Стартовая подписка 14 ₽", url=payment_link))
+        kb.row(LinkButton(text="💳 14 рублей за 14 дней теста", url=payment_link))
 
-    await bot.send_message(user_id=user_id, text="💳 Оплата:", attachments=[kb.as_markup()])
+    await bot.send_message(user_id=user_id, text="Оплатите подписку:", attachments=[kb.as_markup()])
 async def get_subscription_status(user):
     now = datetime.datetime.now(datetime.UTC)
     next_date = None
