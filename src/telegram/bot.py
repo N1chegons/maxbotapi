@@ -691,7 +691,7 @@ async def handle_consult_disagree(call: CallbackQuery):
         text="Ты отменил заявку на консультацию. Если хочешь записаться на консультацию - /igor"
     )
 
-@bot.callback_query_handler(func=lambda call: call.data == "cancel_subscription")
+@bot.callback_query_handler(func=             lambda call: call.data == "cancel_subscription")
 async def cancel_subscription_callback(call: CallbackQuery):
     user_id = call.from_user.id
 
