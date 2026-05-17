@@ -4,13 +4,14 @@ import os
 import aiofiles
 import requests
 import telebot
+import datetime
 from aiohttp import web
 
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyKeyboardMarkup, \
     KeyboardButton
 from telebot.async_telebot import AsyncTeleBot
 
-from src.max.models import UserState, MemoryMode
+from src.max.models import UserState, MemoryMode, SubsStatus
 from src.admin.repository import AdminService
 from src.max.utils import upload_to_s3
 from src.tochka_api.service import TochkaApiService
@@ -237,7 +238,81 @@ async def igor_command(message):
             reply_markup=kb
         )
 
+async def create_payment_link(amount: float, user_id: int) -> str:
+    payment_data = TochkaApiService().create_payment_link(amount, user_id, "TELEGRAM")
+    if payment_data and payment_data.get("payment_link"):
+        await TochkaApiService.save_payment(
+            user_id=user_id,
+            operation_id=payment_data["payment_id"],
+            amount=amount
+        )
+        return payment_data["payment_link"]
+    return None
+async def send_sub_buttons(user_id: int, user, message):
+    kb = InlineKeyboardMarkup()
 
+    if user.subscription_status in (SubsStatus.active, SubsStatus.grace_period):
+        if user.subscription_ends_at and user.subscription_ends_at > datetime.datetime.now(datetime.UTC):
+            kb.add(InlineKeyboardButton(text="❌ Отменить подписку", callback_data="cancel_subscription"))
+            await bot.send_message(chat_id=message.chat.id, text="🔧 Управление подпиской:", reply_markup=kb)
+            return
+
+    if user.has_started_subscription:
+        payment_link = await create_payment_link(650.00, user_id)
+        kb.row(InlineKeyboardButton(text="💳 Оплатить 650 ₽", url=payment_link))
+    else:
+        payment_link = await create_payment_link(14.00, user_id)
+        kb.row(InlineKeyboardButton(text="💳 14 рублей за 14 дней теста", url=payment_link))
+
+    await bot.send_message(chat_id=message.chat.id, text="Оплатите подписку:", reply_markup=kb)
+async def get_subscription_status(user):
+    now = datetime.datetime.now(datetime.UTC)
+    next_date = None
+    status_text = ""
+
+    if user.subscription_status in (SubsStatus.active, SubsStatus.grace_period):
+        if user.subscription_ends_at and user.subscription_ends_at > now:
+            next_date = user.subscription_ends_at
+            status_text = "✅ Активна"
+        else:
+            status_text = "❌ Истекла"
+
+    elif user.subscription_status == SubsStatus.cancelled:
+        if user.subscription_ends_at and user.subscription_ends_at > now:
+            next_date = user.subscription_ends_at
+            status_text = "⏸ Отменена (доступ до даты)"
+        else:
+            status_text = "❌ Истекла"
+
+    else:
+        status_text = "❌ Нет активной подписки"
+
+    return status_text, next_date
+@bot.message_handler(commands=['sub'])
+async def cmd_sub(message):
+    user_id = message.from_user.id
+    user = await MaxService.get_user(user_id)
+
+    if not user:
+        await bot.send_message(chat_id=message.chat.id, text="❌ Пользователь не найден. Напишите /start")
+        return
+
+    status_text, next_date = await get_subscription_status(user)
+
+    text = f"💳 **Подписка**\n"
+    text += f"📌 Статус: {status_text}\n"
+    text += f"💰 Тариф: Базовый (650 ₽/мес)\n"
+    if next_date:
+        days_left = (next_date - datetime.datetime.now(datetime.UTC)).days
+        text += f"📅 Следующее списание: {next_date.strftime('%d.%m.%Y')}\n"
+        text += f"⏰ Осталось дней: {days_left}\n"
+
+    await bot.send_message(chat_id=message.chat.id, text=text)
+
+    # Отправляем кнопки отдельным сообщением
+    await send_sub_buttons(user_id, user, message)
+
+# admin
 @bot.message_handler(commands=['admin'])
 async def admin_panel(message):
     user_id = message.from_user.id
@@ -489,7 +564,6 @@ async def handle_agree_subs(call: CallbackQuery):
             "После оплаты 14 рублей начнётся консультация."
         )
     )
-
 async def show_chat_tg(user_id: int):
     await bot.send_message(
         chat_id=user_id,
@@ -617,6 +691,30 @@ async def handle_consult_disagree(call: CallbackQuery):
         text="Ты отменил заявку на консультацию. Если хочешь записаться на консультацию - /igor"
     )
 
+@bot.callback_query_handler(func=lambda call: call.data == "cancel_subscription")
+async def cancel_subscription_callback(call: CallbackQuery):
+    user_id = call.from_user.id
+
+    user = await MaxService.get_user(user_id)
+
+    if user.subscription_status not in (SubsStatus.active, SubsStatus.grace_period):
+        await bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="❌ У вас нет активной подписки для отмены."
+    )
+        return
+
+    # Меняем статус на cancelled
+    await MaxService.change_subscription_status(user_id, SubsStatus.cancelled)
+
+    await bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=f"✅ Подписка отменена.\n"
+             f"Доступ сохранится до {user.subscription_ends_at.strftime('%d.%m.%Y')}.\n"
+             f"Чтобы возобновить, оплатите через /sub"
+    )
 
 
 @bot.message_handler(content_types=['contact'])

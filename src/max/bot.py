@@ -9,7 +9,6 @@ import magic
 import subprocess
 
 from maxapi import Bot, Dispatcher, F
-from maxapi.enums.upload_type import UploadType
 from maxapi.filters.command import Command
 from maxapi.types import MessageCreated, BotStarted, CallbackButton, InputMedia, LinkButton, \
     RequestContactButton, MessageCallback
