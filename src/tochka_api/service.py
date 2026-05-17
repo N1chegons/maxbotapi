@@ -82,6 +82,13 @@ class TochkaApiService:
         res = conn.getresponse()
         data = json.loads(res.read().decode("utf-8"))
 
+        print(f"Статус: {res.status}")
+        print(f"Ответ API: {data}")
+
+        if res.status != 200:
+            print(f"❌ Ошибка создания платежа: {data}")
+            return None
+
         operation_id = data.get("Data", {}).get("operationId")
         payment_link = data.get("Data", {}).get("paymentLink")
 
