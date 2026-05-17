@@ -4,7 +4,7 @@ import os
 import aiofiles
 import requests
 import telebot
-import datetime
+from datetime import datetime
 from aiohttp import web
 
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyKeyboardMarkup, \
@@ -246,7 +246,7 @@ async def send_sub_buttons(user_id: int, user, message):
     kb = InlineKeyboardMarkup()
 
     if user.subscription_status in (SubsStatus.active, SubsStatus.grace_period):
-        if user.subscription_ends_at and user.subscription_ends_at > datetime.datetime.now(datetime.UTC):
+        if user.subscription_ends_at and user.subscription_ends_at > datetime.utcnow():
             kb.add(InlineKeyboardButton(text="❌ Отменить подписку", callback_data="cancel_subscription"))
             await bot.send_message(chat_id=message.chat.id, text="🔧 Управление подпиской:", reply_markup=kb)
             return
@@ -260,7 +260,7 @@ async def send_sub_buttons(user_id: int, user, message):
 
     await bot.send_message(chat_id=message.chat.id, text="Оплатите подписку:", reply_markup=kb)
 async def get_subscription_status(user):
-    now = datetime.datetime.now(datetime.UTC)
+    now = datetime.utcnow()
     next_date = None
     status_text = ""
 
@@ -297,7 +297,7 @@ async def cmd_sub(message):
     text += f"📌 Статус: {status_text}\n"
     text += f"💰 Тариф: Базовый (650 ₽/мес)\n"
     if next_date:
-        days_left = (next_date - datetime.datetime.now(datetime.UTC)).days
+        days_left = (next_date - datetime.utcnow()).days
         text += f"📅 Следующее списание: {next_date.strftime('%d.%m.%Y')}\n"
         text += f"⏰ Осталось дней: {days_left}\n"
 

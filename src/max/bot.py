@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-import datetime
+from datetime import datetime
 
 import aiofiles
 import aiohttp
@@ -256,7 +256,7 @@ async def send_sub_buttons(user_id: int, user):
 
     # Если подписка активна — кнопка отмены
     if user.subscription_status in (SubsStatus.active, SubsStatus.grace_period):
-        if user.subscription_ends_at and user.subscription_ends_at > datetime.datetime.now(datetime.UTC):
+        if user.subscription_ends_at and user.subscription_ends_at > datetime.utcnow():
             kb.row(CallbackButton(text="❌ Отменить подписку", payload="cancel_subscription"))
             await bot.send_message(user_id=user_id, text="🔧 Управление подпиской:", attachments=[kb.as_markup()])
             return
@@ -273,7 +273,7 @@ async def send_sub_buttons(user_id: int, user):
 
     await bot.send_message(user_id=user_id, text="Оплатите подписку:", attachments=[kb.as_markup()])
 async def get_subscription_status(user):
-    now = datetime.datetime.now(datetime.UTC)
+    now = datetime.utcnow()
     next_date = None
     status_text = ""
 
@@ -311,7 +311,7 @@ async def cmd_sub(event: MessageCreated):
     text += f"📌 Статус: {status_text}\n"
     text += f"💰 Тариф: Базовый (650 ₽/мес)\n"
     if next_date:
-        days_left = (next_date - datetime.datetime.now(datetime.UTC)).days
+        days_left = (next_date - datetime.utcnow()).days
         text += f"📅 Следующее списание: {next_date.strftime('%d.%m.%Y')}\n"
         text += f"⏰ Осталось дней: {days_left}\n"
 
