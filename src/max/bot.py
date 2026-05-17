@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import datetime
 
 import aiofiles
 import aiohttp
@@ -246,18 +247,103 @@ async def igor_command(event: MessageCreated):
     )
 
 @dp.message_created(Command('sub'))
-async def sub_command(event: MessageCreated):
-    user_id = event.message.sender.user_id
+async def show_subscription_info(event: MessageCreated):
+    user_id = event.from_user.user_id
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
-    if not session_user:
+    if not user:
         await bot.send_message(
             user_id=user_id,
-            text="Данные не найдены.\n\nИспользуйте команду /new"
+            text="❌ Пользователь не найден. Напишите /new"
         )
+        return
+
+    now = datetime.datetime.now(datetime.UTC)
+    is_active = False
+    next_payment_date = None
+    status_text = ""
+
+    # 1. Активная подписка
+    if user.subscription_status == SubsStatus.active and user.subscription_ends_at:
+        if user.subscription_ends_at > now:
+            is_active = True
+            next_payment_date = user.subscription_ends_at
+            status_text = "✅ Активна"
+        else:
+            status_text = "❌ Истекла"
+
+    # 2. Льготный период
+    elif user.subscription_status == SubsStatus.grace_period and user.subscription_ends_at:
+        if user.subscription_ends_at > now:
+            is_active = True
+            next_payment_date = user.subscription_ends_at
+            status_text = "⚠️ Льготный период (попытка списания)"
+        else:
+            status_text = "❌ Истекла"
+
+    # 3. Отменённая, но ещё действующая
+    elif user.subscription_status == SubsStatus.cancelled and user.subscription_ends_at:
+        if user.subscription_ends_at > now:
+            is_active = True
+            next_payment_date = user.subscription_ends_at
+            status_text = "⏸️ Отменена (доступ до даты)"
+        else:
+            status_text = "❌ Истекла"
+
+    # 4. Триал
+    elif user.subscription_status == SubsStatus.trial and user.trial_ends_at:
+        if user.trial_ends_at > now:
+            is_active = True
+            next_payment_date = user.trial_ends_at
+            status_text = "🧪 Пробный период"
+        else:
+            status_text = "❌ Триал истёк"
+
+    # 5. Нет подписки
     else:
-        pass
+        status_text = "❌ Нет активной подписки"
+
+    # Формируем сообщение
+    text = f"💳 **Подписка**\n"
+    text += f"📌 Статус: {status_text}\n"
+
+    if next_payment_date:
+        days_left = (next_payment_date - now).days
+        text += f"📅 Следующее списание: {next_payment_date.strftime('%d.%m.%Y')}\n"
+        text += f"⏰ Осталось дней: {days_left}\n"
+
+    text += f"💰 Тариф: Базовый (650 ₽/мес)\n\n"
+
+    # Кнопки
+    kb = InlineKeyboardBuilder()
+
+
+    if is_active:
+        kb.row(CallbackButton(text="❌ Отменить подписку", payload="cancel_subscription"))
+    else:
+        if user.has_started_subscription:
+            payment_data = TochkaApiService().create_payment_link(650, user_id=user_id, platform="MAX")
+            kb.row(LinkButton(text="💳 Оплатить 650 ₽", url=payment_data["payment_link"]))
+            await TochkaApiService.save_payment(
+                user_id=user_id,
+                operation_id=payment_data["payment_id"],
+                amount=650.00
+            )
+        else:
+            payment_data = TochkaApiService().create_payment_link(14, user_id=user_id, platform="MAX")
+            kb.row(LinkButton(text="💳 Стартовая подписка 14 ₽", url=payment_data["payment_link"]))
+            await TochkaApiService.save_payment(
+                user_id=user_id,
+                operation_id=payment_data["payment_id"],
+                amount=14.00
+            )
+
+    await bot.send_message(
+        user_id=user_id,
+        text=text,
+        attachments=[kb.as_markup()]
+    )
 
 # admin
 @dp.message_created(Command('admin'))
@@ -545,7 +631,6 @@ async def handle_query(callback: MessageCallback):
 async def handle_agree_subs(callback: MessageCallback):
     user_id = callback.callback.user.user_id
     payment_data = TochkaApiService().create_payment_link(14, user_id=user_id, platform="MAX")
-    print(payment_data)
 
     if not payment_data or not payment_data.get("payment_link"):
         await callback.message.answer()
@@ -609,8 +694,6 @@ async def handle_memory_none(callback: MessageCallback):
         await show_chat(user.user_id)
     else:
         await handle_agree_subs(callback)
-
-
 @dp.message_callback(F.callback.payload == "mem_memory_none")
 async def handle_mem_memory_none(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -710,7 +793,6 @@ async def handle_message(event: MessageCreated):
     session_user = await MaxService.get_session(user_id)
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
-    await MaxService.expire_trial_if_needed(user_id)
 
     if not session_user:
         await bot.send_message(
@@ -718,13 +800,10 @@ async def handle_message(event: MessageCreated):
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
 
-    elif user.subscription_status == SubsStatus.none:
-        return
-
-    elif user.state == UserState.TRIAL_ENDED_NOT_PAID:
+    elif not await MaxService.can_send_message(user_id):
         await bot.send_message(
             user_id=user_id,
-            text="Извини, у тебя закончился пробный период. Сделай что-нибудь."
+            text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
         )
         return
 
@@ -782,7 +861,6 @@ async def handle_voice_message(event: MessageCreated):
     session_user = await MaxService.get_session(user_id)
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
-    await MaxService.expire_trial_if_needed(user_id)
 
     if not session_user:
         await bot.send_message(
@@ -790,10 +868,10 @@ async def handle_voice_message(event: MessageCreated):
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
 
-    elif user.state == UserState.TRIAL_ENDED_NOT_PAID:
+    elif not await MaxService.can_send_message(user_id):
         await bot.send_message(
             user_id=user_id,
-            text="Извини, у тебя закончился пробный период. Сделай что-нибудь."
+            text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
         )
         return
 

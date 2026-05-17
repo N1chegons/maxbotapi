@@ -7,7 +7,6 @@ from sqlalchemy import select, update, insert, delete
 from src.config import settings
 from src.db import async_session
 from src.max.models import Session, Message, Request, User, UserState, SubsStatus, SubsTier, MemoryMode
-from src.tochka_api.service import TochkaApiService
 
 FOLDER_ID = settings.YC_FOLDER_ID
 API_KEY = settings.YC_API_SPEECHKIT
@@ -279,7 +278,10 @@ class MaxService:
                 await session.execute(
                     update(User)
                     .where(User.user_id == user_id)
-                    .values(state=UserState.TRIAL_ENDED_NOT_PAID)
+                    .values(
+                        state=UserState.TRIAL_ENDED_NOT_PAID,
+                        subscription_status=SubsStatus.expired
+                    )
                 )
                 await session.commit()
 
@@ -357,48 +359,98 @@ class MaxService:
 
     @classmethod
     async def can_send_message(cls, user_id: int) -> bool:
-        """Может ли пользователь отправлять новые сообщения"""
-        state = await cls.check_and_update_trial_status(user_id)
+        import datetime
+        # Сначала обновляем статус триала
+        await cls.expire_trial_if_needed(user_id)
 
-        # Запрещённые статусы (здесь НЕЛЬЗЯ писать)
-        forbidden_states = [UserState.TRIAL_ENDED_NOT_PAID]
+        user = await cls.get_user(user_id)
+        if not user:
+            return False
+        now = datetime.datetime.now(datetime.UTC)
 
-        # Можно писать, если статус НЕ в запрещённых
-        return state not in forbidden_states
+        if user.subscription_status == SubsStatus.active:
+            return user.subscription_ends_at and user.subscription_ends_at > now
+
+        if user.subscription_status == SubsStatus.grace_period:
+            return user.subscription_ends_at and user.subscription_ends_at > now
+
+        if user.subscription_status == SubsStatus.cancelled:
+            return user.subscription_ends_at and user.subscription_ends_at > now
+
+        if user.subscription_status == SubsStatus.trial:
+            return user.trial_ends_at and user.trial_ends_at > now
+
+        return False
 
     @classmethod
-    async def get_users_with_expiring_subscription(cls, days_before: int = 3):
+    async def update_cancelled_at(cls, user_id: int, cancelled_at: datetime):
         async with async_session() as session:
-            now = datetime.utcnow()
-            end_date_limit = now + timedelta(days=days_before)
+            await session.execute(
+                update(User)
+                .where(User.user_id == user_id)
+                .values(cancelled_at=cancelled_at)
+            )
+            await session.commit()
+    # -------------------------------------- CRON ---------------------------------------
+    @classmethod
+    async def get_users_for_auto_charge(cls):
+        async with async_session() as session:
+            import datetime
+            now = datetime.datetime.now(datetime.UTC)
+            three_days_ago = now - timedelta(days=3)
 
             result = await session.execute(
                 select(User)
                 .where(
-                    User.subscription_status == SubsStatus.active,
-                    User.subscription_ends_at <= end_date_limit,
-                    User.subscription_ends_at > now  # ещё не истекла
+                    User.subscription_status == SubsStatus.active,  # ← только active, cancelled не трогаем
+                    User.payment_method_id.isnot(None),
+                    User.subscription_ends_at <= now,
+                    User.subscription_ends_at >= three_days_ago
                 )
             )
             return result.scalars().all()
 
     @classmethod
-    async def check_and_charge_expiring_subscriptions(cls):
-        """Проверяет подписки, которые истекают через N дней"""
-        users = await MaxService.get_users_with_expiring_subscription(days_before=3)
+    async def get_users_with_expired_trial(cls):
+        async with async_session() as session:
+            import datetime
+            now = datetime.datetime.now(datetime.UTC)
+            result = await session.execute(
+                select(User)
+                .where(
+                    User.subscription_status == SubsStatus.trial,
+                    User.trial_ends_at <= now
+                )
+            )
+            return result.scalars().all()
 
-        for user in users:
-            payment = await TochkaApiService().find_operation(user.payment_method_id)
-            if user.subscription_ends_at <= datetime.utcnow() + timedelta(days=3) and payment.is_recurrent == True:
-                # Списываем 560 ₽
-                success = TochkaApiService().charge_payments(560.00, user.payment_method_id)
+    @classmethod
+    async def update_grace_period_attempts(cls, user_id: int, attempts: int):
+        async with async_session() as session:
+            await session.execute(
+                update(User)
+                .where(User.user_id == user_id)
+                .values(grace_period_attempts=attempts)
+            )
+            await session.commit()
 
-                if success:
-                    # Ждём вебхук, там обновится subscription_ends_at
-                    await bot.send_message(
-                        user_id=user.user_id,
-                        text="💰 Производится списание 560 ₽ за следующий период."
-                    )
+    @classmethod
+    async def activate_subscription_after_trial(cls, user_id: int):
+        async with async_session() as session:
+            import datetime
+            await session.execute(
+                update(User)
+                .where(User.user_id == user_id)
+                .values(
+                    subscription_status=SubsStatus.active,
+                    subscription_ends_at=datetime.datetime.now(datetime.UTC) + timedelta(days=31),
+                    trial_ends_at=None,
+                    has_started_subscription=True,
+                    state=UserState.PAID,
+                    grace_period_attempts=0
+                )
+            )
+            await session.commit()
 
 class AudioService:
     @classmethod
@@ -451,4 +503,3 @@ class VideoService:
             if os.path.exists(file_path):
                 self.video_media_cache[key] = InputMedia(path=file_path)
 
-from src.max.bot import bot
