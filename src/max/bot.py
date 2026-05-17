@@ -258,66 +258,32 @@ async def show_subscription_info(event: MessageCreated):
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
 
-    now = datetime.datetime.now(datetime.UTC)
-    is_active = False
-    next_date = None
-    status_text = ""
-
-    # Проверяем активную подписку (active или grace_period)
-    if user.subscription_status in (SubsStatus.active, SubsStatus.grace_period):
-        if user.subscription_ends_at and user.subscription_ends_at > now:
-            is_active = True
-            next_date = user.subscription_ends_at
-            status_text = "✅ Активна"
-        else:
-            status_text = "❌ Истекла"
-
-    elif user.subscription_status == SubsStatus.cancelled:
-        if user.subscription_ends_at and user.subscription_ends_at > now:
-            is_active = True
-            next_date = user.subscription_ends_at
-            status_text = "⏸ Отменена (доступ до даты)"
-        else:
-            status_text = "❌ Истекла"
-
-    else:
-        status_text = "❌ Нет активной подписки"
-
-    # Формируем текст
-    text = f"💳 **Подписка**\n"
-    text += f"📌 Статус: {status_text}\n"
-    text += f"💰 Тариф: Базовый (650 ₽/мес)\n"
-
-    if next_date:
-        days_left = (next_date - now).days
-        text += f"📅 Следующее списание: {next_date.strftime('%d.%m.%Y')}\n"
-        text += f"⏰ Осталось дней: {days_left}\n"
-
+    text = ("Тест")
     # Кнопки
-    kb = InlineKeyboardBuilder()
+    # kb = InlineKeyboardBuilder()
 
-    if is_active:
-        kb.row(CallbackButton(text="❌ Отменить подписку", payload="cancel_subscription"))
-    else:
-        if user.has_started_subscription:
-            amount = 650.00
-            payment_link = await TochkaApiService().create_payment_link(amount, user_id, "MAX")
-            kb.row(LinkButton(text="💳 Оплатить 650 ₽", url=payment_link["payment_link"]))
-        else:
-            amount = 14.00
-            payment_link = await TochkaApiService().create_payment_link(amount, user_id, "MAX")
-            kb.row(LinkButton(text="💳 Стартовая подписка 14 ₽", url=payment_link["payment_link"]))
-
-        await TochkaApiService.save_payment(
-            user_id=user_id,
-            operation_id=payment_link["payment_id"],
-            amount=amount
-        )
+    # if is_active:
+    #     kb.row(CallbackButton(text="❌ Отменить подписку", payload="cancel_subscription"))
+    # else:
+    #     if user.has_started_subscription:
+    #         amount = 650.00
+    #         payment_link = await TochkaApiService().create_payment_link(amount, user_id, "MAX")
+    #         kb.row(LinkButton(text="💳 Оплатить 650 ₽", url=payment_link["payment_link"]))
+    #     else:
+    #         amount = 14.00
+    #         payment_link = await TochkaApiService().create_payment_link(amount, user_id, "MAX")
+    #         kb.row(LinkButton(text="💳 Стартовая подписка 14 ₽", url=payment_link["payment_link"]))
+    #
+    #     await TochkaApiService.save_payment(
+    #         user_id=user_id,
+    #         operation_id=payment_link["payment_id"],
+    #         amount=amount
+    #     )
 
     await bot.send_message(
         user_id=user_id,
         text=text,
-        attachments=[kb.as_markup()]
+        # attachments=[kb.as_markup()]
     )
 # admin
 @dp.message_created(Command('admin'))
@@ -641,7 +607,7 @@ async def show_chat(user_id: int):
         text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
     )
 async def send_video(callback: MessageCallback):
-    video = InputMedia(path="video_cache/04.mp4")
+    video = InputMedia(type="video", path="video_cache/04.mp4")
     await callback.message.edit(
         text="",
         attachments=[video]
