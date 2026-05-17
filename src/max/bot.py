@@ -248,7 +248,7 @@ async def igor_command(event: MessageCreated):
     )
 
 async def create_payment_link(amount: float, user_id: int) -> str:
-    payment_data = TochkaApiService().create_payment_link(amount, user_id)
+    payment_data = TochkaApiService().create_payment_link(amount, user_id, "MAX")
     if payment_data and payment_data.get("payment_link"):
         await TochkaApiService.save_payment(
             user_id=user_id,
