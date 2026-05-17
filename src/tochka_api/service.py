@@ -43,9 +43,9 @@ class TochkaApiService:
             await session.commit()
 
     @classmethod
-    async def update_status_payment(cls, operation_id: str):
+    async def update_status_payment(cls, operation_id: str, payment_status: PaymentStatus):
         async with async_session() as session:
-            stmt = update(Payment).filter_by(payment_id=operation_id).values(status=PaymentStatus.succeeded)
+            stmt = update(Payment).filter_by(payment_id=operation_id).values(status=payment_status)
             await session.execute(stmt)
             await session.commit()
 

@@ -40,46 +40,55 @@ async def handle_webhook(request):
 
         logging.info(f"Тип: {webhook_type}, Статус: {status}, paymentLinkId: {operation_id}")
 
-        if webhook_type == 'acquiringInternetPayment' and status == 'APPROVED':
+        if webhook_type == 'acquiringInternetPayment':
             if operation_id:
                 user_id = await TochkaApiService.find_user_by_operation_id(operation_id)
                 user = await MaxService.get_user(user_id)
                 if user_id:
-                    await MaxService.mark_started_subscription(user_id)
-                    await MaxService.save_payment_method(user_id, operation_id)
-                    logging.info(f"💳 Сохранён токен карты: {operation_id}")
-                    if float(amount) == 14.00:
-                        user = await MaxService.get_user(user_id)
-                        if user.platform == "MAX":
-                            await show_chat(user_id)
-                        else:
-                            await show_chat_tg(user_id)
+                    if status == 'APPROVED':
+                        await MaxService.mark_started_subscription(user_id)
+                        await MaxService.save_payment_method(user_id, operation_id)
+                        logging.info(f"💳 Сохранён токен карты: {operation_id}")
+                        if float(amount) == 14.00:
+                            user = await MaxService.get_user(user_id)
+                            if user.platform == "MAX":
+                                await show_chat(user_id)
+                            else:
+                                await show_chat_tg(user_id)
 
-                        await MaxService.start_trial(user_id)
-                        await MaxService.change_subscription_status(user_id, SubsStatus.trial)
-                        logging.info(f"Статус тестовой подписки изменен: {user_id}, {SubsStatus.trial}")
-                        await TochkaApiService.update_status_payment(operation_id)
-                        logging.info(f"Статус платежа изменен на: {PaymentStatus.succeeded}")
+                            await MaxService.start_trial(user_id)
+                            await MaxService.change_subscription_status(user_id, SubsStatus.trial)
+                            logging.info(f"Статус тестовой подписки изменен: {user_id}, {SubsStatus.trial}")
+                            await TochkaApiService.update_status_payment(operation_id, PaymentStatus.succeeded)
+                            logging.info(f"Статус платежа изменен на: {PaymentStatus.succeeded}")
+                        else:
+                            if user.subscription_status == SubsStatus.active and user.subscription_ends_at:
+                                # Продлеваем существующую подписку
+                                new_end_date = user.subscription_ends_at + datetime.timedelta(days=30)
+                            else:
+                                new_end_date = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=30)
+
+                            await MaxService.update_subscription_end_date(user_id, new_end_date)
+                            await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.PAID)
+                            logging.info(f"Статус подписки изменен: {user_id}, {SubsTier.basic}, {UserState.PAID}")
+                            await MaxService.change_subscription_status(user_id, SubsStatus.active)
+                            logging.info(f"Стаутс подписки изменен на активынй: {operation_id}")
+                            await TochkaApiService.update_status_payment(operation_id, PaymentStatus.succeeded)
+                            logging.info(f"Статус платежа обновлен на успешный")
+
+                        logging.info(f"✅ Подписка активирована для {user_id}")
                     else:
-                        if user.subscription_status == SubsStatus.active and user.subscription_ends_at:
-                            # Продлеваем существующую подписку
-                            new_end_date = user.subscription_ends_at + datetime.timedelta(days=30)
+                        if float(amount) == 14.00:
+                            await TochkaApiService.update_status_payment(operation_id, PaymentStatus.failed)
+                            logging.info(f"Статус платежа обновлен на неудачный")
                         else:
-                            new_end_date = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=30)
-
-                        await MaxService.update_subscription_end_date(user_id, new_end_date)
-                        await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.PAID)
-                        logging.info(f"Статус подписки изменен: {user_id}, {SubsTier.basic}, {UserState.PAID}")
-                        await MaxService.change_subscription_status(user_id, SubsStatus.active)
-                        logging.info(f"💳 Сохранён токен карты: {operation_id}")
-                        await TochkaApiService.update_status_payment(operation_id)
-                        logging.info(f"💳 Сохранён токен карты: {operation_id}")
-
-                    logging.info(f"✅ Подписка активирована для {user_id}")
+                            await TochkaApiService.update_status_payment(operation_id, PaymentStatus.failed)
+                            logging.info(f"Статус платежа обновлен на неудачный")
                 else:
                     logging.warning(f"⚠️ Пользователь не найден для payment_link_id: {operation_id}")
             else:
                 logging.warning("⚠️ paymentLinkId отсутствует в вебхуке")
+
 
     except exceptions.JWTDecodeError:
         logging.error("❌ Ошибка: неверная подпись JWT")
