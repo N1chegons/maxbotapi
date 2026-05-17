@@ -656,7 +656,6 @@ async def handle_voice(message):
     session_user = await MaxService.get_session(user_id)
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
-    await MaxService.expire_trial_if_needed(user_id)
 
     if not session_user:
         await bot.send_message(
@@ -664,10 +663,10 @@ async def handle_voice(message):
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
 
-    elif user_reg.state == UserState.TRIAL_ENDED_NOT_PAID:
+    elif not await MaxService.can_send_message(user_id):
         await bot.send_message(
             chat_id=message.chat.id,
-            text="Извини, у тебя закончился пробный период. Сделай что-нибудь."
+            text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
         )
         return
 
@@ -713,7 +712,6 @@ async def handle_message(message):
     session_user = await MaxService.get_session(user_id)
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
-    await MaxService.expire_trial_if_needed(user_id)
 
     if not session_user:
         await bot.send_message(
@@ -721,10 +719,10 @@ async def handle_message(message):
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
 
-    elif user_reg.state == UserState.TRIAL_ENDED_NOT_PAID:
+    elif not await MaxService.can_send_message(user_id):
         await bot.send_message(
             chat_id=message.chat.id,
-            text="Извини, у тебя закончился пробный период. Сделай что-нибудь."
+            text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
         )
         return
 
