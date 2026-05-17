@@ -608,7 +608,7 @@ async def show_chat(user_id: int):
         text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
     )
 async def send_video(callback: MessageCallback):
-    video = InputMedia(path="video_cache/04.mp4", type=UploadType.VIDEO)
+    video = InputMedia(path="video_cache/04.mp4")
     await callback.message.edit(
         text="",
         attachments=[video]
@@ -625,7 +625,7 @@ async def handle_memory_none(callback: MessageCallback):
     await callback.answer()
     await callback.message.edit(
             text="🎬 Видео загружается, секунду...",
-            attachments=[]
+            attachments=[None]
         )
 
     asyncio.create_task(send_video(callback))
@@ -666,7 +666,6 @@ async def handle_memory_dialog(callback: MessageCallback):
         await show_chat(user.user_id)
     else:
         await handle_agree_subs(callback)
-
 @dp.message_callback(F.callback.payload == "mem_memory_dialog")
 async def handle_mem_memory_none(callback: MessageCallback):
     user_id = callback.callback.user.user_id
