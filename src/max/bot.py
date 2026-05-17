@@ -630,11 +630,11 @@ async def handle_memory_none(callback: MessageCallback):
 
     asyncio.create_task(send_video(callback))
 
-    # await asyncio.sleep(10)
-    if user.has_started_subscription:
-        await show_chat(user.user_id)
-    else:
-        await handle_agree_subs(callback)
+    await asyncio.sleep(10)
+    # if user.has_started_subscription:
+    #     await show_chat(user.user_id)
+    # else:
+    #     await handle_agree_subs(callback)
 
 @dp.message_callback(F.callback.payload == "mem_memory_none")
 async def handle_mem_memory_none(callback: MessageCallback):
