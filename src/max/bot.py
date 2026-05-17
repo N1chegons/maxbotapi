@@ -571,7 +571,7 @@ async def handle_query(callback: MessageCallback):
 
 async def handle_agree_subs(callback: MessageCallback):
     user_id = callback.callback.user.user_id
-    payment_data = TochkaApiService().create_payment_link(14, user_id=user_id, platform="MAX")
+    payment_data = TochkaApiService().create_payment_link(amount=14, user_id=user_id, platform="MAX")
 
     if not payment_data or not payment_data.get("payment_link"):
         await callback.message.answer()
@@ -625,7 +625,7 @@ async def handle_memory_none(callback: MessageCallback):
     await callback.answer()
     await callback.message.edit(
             text="🎬 Видео загружается, секунду...",
-            attachments=[None]
+            attachments=[]
         )
 
     asyncio.create_task(send_video(callback))
