@@ -628,10 +628,9 @@ async def handle_memory_none(callback: MessageCallback):
             attachments=[]
         )
 
-    # asyncio.create_task(send_video(callback))
+    asyncio.create_task(send_video(callback))
 
-    await asyncio.sleep(10)
-
+    # await asyncio.sleep(10)
     if user.has_started_subscription:
         await show_chat(user.user_id)
     else:
