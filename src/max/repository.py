@@ -58,7 +58,7 @@ class MaxService:
     @classmethod
     async def get_session(cls, user_id: int):
         async with async_session() as session:
-            query = select(Session).filter_by(user_id=user_id)
+            query = select(Session).filter_by(user_id=user_id).order_by(Session.started_at.desc()).limit(1)
             result = await session.execute(query)
             res = result.scalar_one_or_none()
             return res
@@ -359,14 +359,14 @@ class MaxService:
 
     @classmethod
     async def can_send_message(cls, user_id: int) -> bool:
-        import datetime
         # Сначала обновляем статус триала
         await cls.expire_trial_if_needed(user_id)
 
         user = await cls.get_user(user_id)
         if not user:
             return False
-        now = datetime.datetime.now(datetime.UTC)
+
+        now = datetime.utcnow()
 
         if user.subscription_status == SubsStatus.active:
             return user.subscription_ends_at and user.subscription_ends_at > now

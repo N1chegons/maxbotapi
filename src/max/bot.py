@@ -805,7 +805,6 @@ async def handle_message(event: MessageCreated):
             user_id=user_id,
             text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
         )
-        return
 
     else:
         selected_topic = "Консультации"
@@ -873,7 +872,6 @@ async def handle_voice_message(event: MessageCreated):
             user_id=user_id,
             text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
         )
-        return
 
     else:
         selected_topic = "Консультации"
