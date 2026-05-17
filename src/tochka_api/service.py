@@ -68,7 +68,6 @@ class TochkaApiService:
                 "purpose": "Оплата подписки на бота для пользователя",
                 "saveCard": True,
                 "recurring": True,
-                "paymentLinkId": f"Payment user by {platform} id: {user_id}"
             }
         })
 
@@ -81,13 +80,6 @@ class TochkaApiService:
         conn.request("POST", "/uapi/acquiring/v1.0/subscriptions", payload, headers)
         res = conn.getresponse()
         data = json.loads(res.read().decode("utf-8"))
-
-        print(f"Статус: {res.status}")
-        print(f"Ответ API: {data}")
-
-        if res.status != 200:
-            print(f"❌ Ошибка создания платежа: {data}")
-            return None
 
         operation_id = data.get("Data", {}).get("operationId")
         payment_link = data.get("Data", {}).get("paymentLink")

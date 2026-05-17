@@ -247,45 +247,86 @@ async def igor_command(event: MessageCreated):
         attachments=[reply_kb.as_markup()]
     )
 
+async def create_payment_link(amount: float, user_id: int) -> str:
+    payment_data = TochkaApiService().create_payment_link(amount, user_id)
+    if payment_data and payment_data.get("payment_link"):
+        await TochkaApiService.save_payment(
+            user_id=user_id,
+            operation_id=payment_data["payment_id"],
+            amount=amount
+        )
+        return payment_data["payment_link"]
+    return None
+async def send_sub_buttons(user_id: int, user):
+    kb = InlineKeyboardBuilder()
+
+    # Если подписка активна — кнопка отмены
+    if user.subscription_status in (SubsStatus.active, SubsStatus.grace_period):
+        if user.subscription_ends_at and user.subscription_ends_at > datetime.datetime.now(datetime.UTC):
+            kb.row(CallbackButton(text="❌ Отменить подписку", payload="cancel_subscription"))
+            await bot.send_message(user_id=user_id, text="🔧 Управление подпиской:", attachments=[kb.as_markup()])
+            return
+
+    # Если нет активной подписки — кнопка оплаты
+    if user.has_started_subscription:
+        # Создаём ссылку на 650 ₽
+        payment_link = await create_payment_link(650.00, user_id)
+        kb.row(LinkButton(text="💳 Оплатить 650 ₽", url=payment_link))
+    else:
+        # Создаём ссылку на 14 ₽
+        payment_link = await create_payment_link(14.00, user_id)
+        kb.row(LinkButton(text="💳 Стартовая подписка 14 ₽", url=payment_link))
+
+    await bot.send_message(user_id=user_id, text="💳 Оплата:", attachments=[kb.as_markup()])
+async def get_subscription_status(user):
+    now = datetime.datetime.now(datetime.UTC)
+    next_date = None
+    status_text = ""
+
+    if user.subscription_status in (SubsStatus.active, SubsStatus.grace_period):
+        if user.subscription_ends_at and user.subscription_ends_at > now:
+            next_date = user.subscription_ends_at
+            status_text = "✅ Активна"
+        else:
+            status_text = "❌ Истекла"
+
+    elif user.subscription_status == SubsStatus.cancelled:
+        if user.subscription_ends_at and user.subscription_ends_at > now:
+            next_date = user.subscription_ends_at
+            status_text = "⏸ Отменена (доступ до даты)"
+        else:
+            status_text = "❌ Истекла"
+
+    else:
+        status_text = "❌ Нет активной подписки"
+
+    return status_text, next_date
 @dp.message_created(Command('sub'))
-async def show_subscription_info(event: MessageCreated):
+async def cmd_sub(event: MessageCreated):
     user_id = event.from_user.user_id
     user = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user_id)
 
-    if not session_user:
-        await bot.send_message(
-            user_id=user_id,
-            text="Данные не найдены.\n\nИспользуйте команду /new"
-        )
+    if not user:
+        await bot.send_message(user_id=user_id, text="❌ Пользователь не найден. Напишите /start")
+        return
 
-    text = ("Тест")
-    # Кнопки
-    # kb = InlineKeyboardBuilder()
+    # Проверяем статус и формируем текст
+    status_text, next_date = await get_subscription_status(user)
 
-    # if is_active:
-    #     kb.row(CallbackButton(text="❌ Отменить подписку", payload="cancel_subscription"))
-    # else:
-    #     if user.has_started_subscription:
-    #         amount = 650.00
-    #         payment_link = await TochkaApiService().create_payment_link(amount, user_id, "MAX")
-    #         kb.row(LinkButton(text="💳 Оплатить 650 ₽", url=payment_link["payment_link"]))
-    #     else:
-    #         amount = 14.00
-    #         payment_link = await TochkaApiService().create_payment_link(amount, user_id, "MAX")
-    #         kb.row(LinkButton(text="💳 Стартовая подписка 14 ₽", url=payment_link["payment_link"]))
-    #
-    #     await TochkaApiService.save_payment(
-    #         user_id=user_id,
-    #         operation_id=payment_link["payment_id"],
-    #         amount=amount
-    #     )
+    text = f"💳 **Подписка**\n"
+    text += f"📌 Статус: {status_text}\n"
+    text += f"💰 Тариф: Базовый (650 ₽/мес)\n"
+    if next_date:
+        days_left = (next_date - datetime.datetime.now(datetime.UTC)).days
+        text += f"📅 Следующее списание: {next_date.strftime('%d.%m.%Y')}\n"
+        text += f"⏰ Осталось дней: {days_left}\n"
 
-    await bot.send_message(
-        user_id=user_id,
-        text=text,
-        # attachments=[kb.as_markup()]
-    )
+    # Отправляем текст (без кнопок, чтобы не перегружать)
+    await bot.send_message(user_id=user_id, text=text)
+
+    # Отправляем кнопки отдельным сообщением
+    await send_sub_buttons(user_id, user)
+
 # admin
 @dp.message_created(Command('admin'))
 async def admin_panel(event: MessageCreated):
