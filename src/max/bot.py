@@ -628,7 +628,7 @@ async def handle_memory_none(callback: MessageCallback):
             attachments=[]
         )
 
-    asyncio.create_task(send_video(callback))
+    # asyncio.create_task(send_video(callback))
 
     await asyncio.sleep(10)
 
