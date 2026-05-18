@@ -85,6 +85,14 @@ async def mem_memory_choice(event: MessageCreated):
             ),
         )
 
+        reply_kb_vid = InlineKeyboardBuilder()
+        reply_kb_vid.row(
+            LinkButton(
+                text="про Память >",
+                url="https://disk.yandex.ru/i/4N1TT70-vEuRwg"
+            )
+        )
+
         await bot.send_message(
             user_id=user_id,
             text=(
@@ -96,6 +104,13 @@ async def mem_memory_choice(event: MessageCreated):
             ),
             attachments=[reply_kb.as_markup()]
         )
+
+        await bot.send_message(
+            user_id=user_id,
+            text="Перед выбором памяти",
+            attachments=[reply_kb_vid.as_markup()]
+        )
+
 
 @dp.message_created(Command('del'))
 async def delete_info(event: MessageCreated):
@@ -846,14 +861,12 @@ async def bot_report(callback: MessageCallback):
     await callback.message.edit(
         text="✅ Обращение отправлено! Богдан разберётся в ближайшее время 😉"
     )
-    await callback.answer()
 
 @dp.message_callback(F.callback.payload == "bot_dsend")
 async def bot_cancel(callback: MessageCallback):
     await callback.message.edit(
         text="❌ Обращение отменено. Если передумаешь — напиши /bot"
     )
-    await callback.answer()
 
 # messages
 @dp.message_created(F.message.body.text)
