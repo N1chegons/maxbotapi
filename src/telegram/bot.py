@@ -95,6 +95,7 @@ async def mem_memory_choice(message):
         InlineKeyboardButton(text="Один диалог", callback_data="mem_memory_dialog"),
         InlineKeyboardButton(text="Вся память", callback_data="mem_memory_full")
     )
+    kb.add(InlineKeyboardButton(text="про Память >", url="https://disk.yandex.ru/i/4N1TT70-vEuRwg"))
 
     await bot.send_message(
         chat_id=message.chat.id,
@@ -228,6 +229,32 @@ async def igor_command(message):
                 "Я сохраню последние двадцать сообщений: передам их Игорю.\n"
                 "Он оценит качество гипотезы и напишет тебе.\n\n"
                 "Ты уверен?(Выбери ДА/НЕТ)"
+            ),
+            reply_markup=kb
+        )
+
+@bot.message_handler(commands=['bot'])
+async def help_bot_command(message):
+    user_id = message.from_user.id
+    session_user = await MaxService.get_session(user_id)
+
+    if not session_user:
+        await bot.send_message(
+            chat_id=message.chat.id,
+            text="Данные не найдены.\n\nИспользуйте команду /new"
+        )
+
+    else:
+        kb = InlineKeyboardMarkup()
+        kb.add(
+            InlineKeyboardButton(text="✅ ОТПРАВИТЬ", callback_data="bot_send_problem"),
+            InlineKeyboardButton(text="❌ ОТМЕНА", callback_data="bot_dsend"),
+        )
+
+        await bot.send_message(
+            chat_id=message.chat.id,
+            text=(
+                "Если бот где-то затупил, то жми на кнопку отправить. Богдан разберётся 😉"
             ),
             reply_markup=kb
         )
@@ -685,7 +712,7 @@ async def handle_consult_disagree(call: CallbackQuery):
         text="Ты отменил заявку на консультацию. Если хочешь записаться на консультацию - /igor"
     )
 
-@bot.callback_query_handler(func=             lambda call: call.data == "cancel_subscription")
+@bot.callback_query_handler(func=lambda call: call.data == "cancel_subscription")
 async def cancel_subscription_callback(call: CallbackQuery):
     user_id = call.from_user.id
 
@@ -710,7 +737,52 @@ async def cancel_subscription_callback(call: CallbackQuery):
              f"Чтобы возобновить, оплатите через /sub"
     )
 
+@bot.callback_query_handler(func=lambda call: call.data == "bot_send_problem")
+async def bot_report(call: CallbackQuery):
+    user_id = call.from_user.id
+    username = call.from_user.username or "Не указан"
 
+    history = await MaxService.get_last_messages(user_id, limit=20)
+
+    history_text = "\n".join([
+        f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
+        for msg in history
+    ])
+
+    user = await MaxService.get_user(user_id)
+
+    md_content = f"# 🐞 Обращение в техподдержку\n\n"
+    md_content += f"**Пользователь:** {user_id}\n"
+    md_content += f"**Username:** {username}\n"
+    md_content += f"**Мессенджер:** {user.platform}\n"
+    md_content += f"**Время:** {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n\n"
+    md_content += "---\n\n"
+    md_content += "## 💬 Последние сообщения\n\n"
+    md_content += history_text if history_text else "Нет сообщений"
+
+    filename = f"bot_report_{user_id}_{int(datetime.now().timestamp())}.txt"
+    async with aiofiles.open(filename, "w", encoding='utf-8') as f:
+        await f.write(md_content)
+    with open(filename, "rb") as f:
+        await bot.send_document(chat_id=8177043133, document=f, caption=f"📋 Новое обращение от пользователя")
+
+    os.remove(filename)
+
+    await bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="✅ Обращение отправлено! Богдан разберётся в ближайшее время 😉"
+    )
+
+@bot.callback_query_handler(func=lambda call: call.data == "bot_dsend")
+async def bot_cancel(call: CallbackQuery):
+    await bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="❌ Обращение отменено. Если передумаешь — напиши /bot"
+    )
+
+# message
 @bot.message_handler(content_types=['contact'])
 async def handle_contact(message):
     contact = message.contact
