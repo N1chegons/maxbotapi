@@ -241,6 +241,32 @@ async def igor_command(event: MessageCreated):
         attachments=[reply_kb.as_markup()]
     )
 
+@dp.message_created(Command('bot'))
+async def help_bot_command(event: MessageCreated):
+    user_id = event.message.sender.user_id
+    session_user = await MaxService.get_session(user_id)
+
+    if not session_user:
+        await bot.send_message(
+            user_id=user_id,
+            text="Данные не найдены.\n\nИспользуйте команду /new"
+        )
+
+    else:
+        reply_kb = InlineKeyboardBuilder()
+        reply_kb.row(
+            CallbackButton(text="✅ ОТПРАВИТЬ", payload="bot_send_problem"),
+            CallbackButton(text="❌ ОТМЕНА", payload="bot_dsend"),
+        )
+
+        await bot.send_message(
+            user_id=user_id,
+            text=(
+                "Если бот где-то затупил, то жми на кнопку отправить. Богдан разберётся 😉"
+            ),
+            attachments=[reply_kb.as_markup()]
+        )
+
 async def create_payment_link(amount: float, user_id: int) -> str:
     payment_data = TochkaApiService().create_payment_link(amount, user_id, "MAX")
     if payment_data and payment_data.get("payment_link"):
@@ -271,7 +297,7 @@ async def send_sub_buttons(user_id: int, user):
         payment_link = await create_payment_link(14.00, user_id)
         kb.row(LinkButton(text="💳 14 рублей за 14 дней теста", url=payment_link))
 
-    await bot.send_message(user_id=user_id, text="Оплатите подписку:", attachments=[kb.as_markup()])
+    await bot.send_message(    user_id=user_id, text="Оплатите подписку:", attachments=[kb.as_markup()])
 async def get_subscription_status(user):
     now = datetime.utcnow()
     next_date = None
@@ -777,6 +803,59 @@ async def cancel_subscription_callback(callback: MessageCallback):
              f"Чтобы возобновить, оплатите через /sub"
     )
 
+@dp.message_callback(F.callback.payload == "bot_send_problem")
+async def bot_report(callback: MessageCallback):
+    user_id = callback.callback.user.user_id
+    username = callback.callback.user.username or "Не указан"
+
+    history = await MaxService.get_last_messages(user_id, limit=20)
+
+    history_text = "\n".join([
+        f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
+        for msg in history
+    ])
+
+    user = await MaxService.get_user(user_id)
+
+    md_content = f"# 🐞 Обращение в техподдержку\n\n"
+    md_content += f"**Пользователь:** {user_id}\n"
+    md_content += f"**Username:** {username}\n"
+    md_content += f"**Мессенджер:** {user.platform}\n"
+    md_content += f"**Время:** {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n\n"
+    md_content += "---\n\n"
+    md_content += "## 💬 Последние сообщения\n\n"
+    md_content += history_text if history_text else "Нет сообщений"
+
+    filename = f"bot_report_{user_id}_{int(datetime.now().timestamp())}.md"
+    async with aiofiles.open(filename, "w", encoding='utf-8') as f:
+        await f.write(md_content)
+
+    with open(filename, "rb") as f:
+        await bot.send_message(
+            user_id=235995783,
+            text=f"📋 Новое обращение от пользователя",
+            attachments=[
+                InputMedia(
+                    path=filename,
+                )
+            ]
+        )
+
+    os.remove(filename)
+
+    await callback.message.edit(
+        text="✅ Обращение отправлено! Богдан разберётся в ближайшее время 😉"
+    )
+    await callback.answer()
+
+@dp.message_callback(F.callback.payload == "bot_dsend")
+async def bot_cancel(callback: MessageCallback):
+    await callback.message.edit(
+        text="❌ Обращение отменено. Если передумаешь — напиши /bot"
+    )
+    await callback.answer()
+
+# messages
 @dp.message_created(F.message.body.text)
 async def handle_message(event: MessageCreated):
     text = event.message.body.text
