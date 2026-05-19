@@ -489,7 +489,7 @@ async def view_problem_appointment(message):
         text = "📋 **Заявки на консультацию:**\n\n"
         for apps in appointments:
             status = "✅" if apps.viewed else "🆕"
-            text += f"{status} id:{apps.id} — {apps.appointment_date.strftime('%d.%m.%Y 20:00')} — {apps.contact}\n"
+            text += f"{status} id:{apps.id} — {datetime.now().strftime('%d.%m.%Y 20:00')} — {apps.contact}\n"
 
         text += "\n📝 Для просмотра деталей: /req <id>(порядковый номер записи)"
 
