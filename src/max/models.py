@@ -139,6 +139,26 @@ class Request(Base):
     )
     viewed: Mapped[bool] = mapped_column(nullable=True, default=False)
 
+class ProblemRequest(Base):
+    __tablename__ = "problem_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    client_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        server_default=text(
+            "TIMEZONE('utc', now())")
+    )
+    contact: Mapped[str] = mapped_column(nullable=True)
+    messages: Mapped[str] = mapped_column(nullable=True)
+
+    appointment_date: Mapped[datetime.datetime] = mapped_column(
+        nullable=True,
+        server_default=text(
+            "TIMEZONE('utc', now())")
+    )
+    viewed: Mapped[bool] = mapped_column(nullable=True, default=False)
+
+
 class ThemeChoice(StatesGroup):
     first_choice = State()
 

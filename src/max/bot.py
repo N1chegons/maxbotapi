@@ -107,10 +107,9 @@ async def mem_memory_choice(event: MessageCreated):
 
         await bot.send_message(
             user_id=user_id,
-            text="Перед выбором памяти",
+            text="Можешь посмотреть видео",
             attachments=[reply_kb_vid.as_markup()]
         )
-
 
 @dp.message_created(Command('del'))
 async def delete_info(event: MessageCreated):
