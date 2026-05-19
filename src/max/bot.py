@@ -903,7 +903,8 @@ async def bot_report(callback: MessageCallback):
     )
 
     await callback.message.edit(
-        text="✅ Обращение отправлено! Богдан разберётся в ближайшее время 😉"
+        text="✅ Обращение отправлено! Богдан разберётся в ближайшее время 😉",
+        attachments=[]
     )
 
 @dp.message_callback(F.callback.payload == "bot_dsend")
