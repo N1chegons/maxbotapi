@@ -529,7 +529,7 @@ async def view_problem_appointment(event: MessageCreated):
             await bot.send_message(user_id=user_id, text="Нет новых обращений")
             return
 
-        text = "📋 **Заявки на консультацию:**\n\n"
+        text = "📋 **Обращения в поддержку:**\n\n"
         for app in appointments:
             status = "✅" if app.viewed else "🆕"
             text += f"{status} id:{app.id} — {datetime.now().strftime('%d.%m.%Y 20:00')}\n"
