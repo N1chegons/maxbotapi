@@ -471,7 +471,7 @@ async def view_appointment(event: MessageCreated):
         await bot.send_message(user_id=user_id, text=text)
 
 @dp.message_created(Command('req'))
-async def view_appointment(event: MessageCreated):
+async def view_problem_appointment(event: MessageCreated):
     user_id = event.message.sender.user_id
     username = event.message.sender.first_name or "Не указан"
     user = await MaxService.get_user(user_id)
@@ -903,7 +903,8 @@ async def bot_report(callback: MessageCallback):
     )
 
     await callback.message.edit(
-        text="✅ Обращение отправлено! Богдан разберётся в ближайшее время 😉"
+        text="✅ Обращение отправлено! Богдан разберётся в ближайшее время 😉",
+        attachments=[]
     )
 
 @dp.message_callback(F.callback.payload == "bot_dsend")
