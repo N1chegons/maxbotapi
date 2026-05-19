@@ -436,7 +436,7 @@ async def view_appointment(message):
         await bot.send_message(chat_id=message.chat.id, text=text)
 
 @bot.message_handler(commands=['req'])
-async def view_appointment(message):
+async def view_problem_appointment(message):
     user_id = message.from_user.id
     username = message.from_user.usernmae
     user = await MaxService.get_user(user_id)
