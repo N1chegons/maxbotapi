@@ -1,7 +1,10 @@
 import sys
+import os
 from datetime import datetime, timedelta
 import json
 import logging
+
+import aiofiles
 from aiohttp import web
 import jwt
 from jwt import exceptions
@@ -94,6 +97,28 @@ async def handle_webhook(request):
 
 app = web.Application()
 app.router.add_post('/tochka_api/webhook', handle_webhook)
+
+async def handle_consult_form(request: web.Request):
+    try:
+        data = await request.json()
+        contact = data.get('contact', 'Не указан')
+        question = data.get('question', 'Не указан')
+
+        await MaxService.add_request(
+            client_id=None,
+            contact=contact,
+            messages=question,
+            appointment_date=await MaxService.get_next_free_date()
+        )
+
+        return web.json_response({"status": "ok"})
+
+    except Exception as e:
+        print(f"Ошибка: {e}")
+        return web.json_response({"status": "error"}, status=500)
+
+
+app.router.add_post('/api/consult', handle_consult_form)
 
 if __name__ == '__main__':
     web.run_app(app, host='127.0.0.1', port=8084)
