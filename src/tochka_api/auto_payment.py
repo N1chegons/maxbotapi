@@ -1,8 +1,21 @@
+import sys
+import logging
 from src.max.manager_sending import send_notification_max
 from src.max.models import SubsStatus
 from src.max.repository import MaxService
 from src.telegram.manager_sending import send_notification_telegram
 from src.tochka_api.service import TochkaApiService
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('/home/psylogic/maxapibotnew/logs/auto_charge.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 
 async def auto_charge_active_subscriptions():
