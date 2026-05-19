@@ -470,6 +470,74 @@ async def view_appointment(event: MessageCreated):
 
         await bot.send_message(user_id=user_id, text=text)
 
+@dp.message_created(Command('req'))
+async def view_appointment(event: MessageCreated):
+    user_id = event.message.sender.user_id
+    username = event.message.sender.first_name or "Не указан"
+    user = await MaxService.get_user(user_id)
+
+    if not AdminService.is_admin(user_id):
+        await bot.send_message(user_id=user_id, text="⛔ Нет доступа")
+        return
+
+    parts = event.message.body.text.split()
+
+    if len(parts) >= 2:
+        try:
+            app_id = int(parts[1])
+        except ValueError:
+            await bot.send_message(user_id=user_id, text="❌ Неверный формат. Используйте: /con <id>(порядковый номер записи)")
+            return
+
+        request = await AdminService.get_problem_request_by_id(app_id)
+        if not request:
+            await bot.send_message(user_id=user_id, text=f"❌ Обращение с ID {app_id} не найдена")
+            return
+
+        await AdminService.mark_request_viewed(app_id)
+
+        md_content = f"# 🐞 Обращение в техподдержку\n\n"
+        md_content += f"**Пользователь:** {user_id}\n"
+        md_content += f"**Username:** {username}\n"
+        md_content += f"**Мессенджер:** {user.platform}\n"
+        md_content += f"**Время:** {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n\n"
+        md_content += "---\n\n"
+        md_content += "## 💬 Последние сообщения\n\n"
+        md_content += request.messages if request.messages else "Нет сообщений"
+
+        filename = f"bot_report_{user_id}_{int(datetime.now().timestamp())}.md"
+        async with aiofiles.open(filename, "w", encoding='utf-8') as f:
+            await f.write(md_content)
+
+        with open(filename, "rb") as f:
+            await bot.send_message(
+                user_id=user_id,
+                text=f"📋 Новое обращение от пользователя",
+                attachments=[
+                    InputMedia(
+                        path=filename,
+                    )
+                ]
+            )
+
+        os.remove(filename)
+
+    else:
+        appointments = await AdminService.get_unviewed_problem_request()
+
+        if not appointments:
+            await bot.send_message(user_id=user_id, text="Нет новых обращений")
+            return
+
+        text = "📋 **Заявки на консультацию:**\n\n"
+        for app in appointments:
+            status = "✅" if app.viewed else "🆕"
+            text += f"{status} id:{app.id} — {app.appointment_date.strftime('%d.%m.%Y 20:00')} — {app.contact}\n"
+
+        text += "\n📝 Для просмотра деталей: /req <id>(порядковый номер записи)"
+
+        await bot.send_message(user_id=user_id, text=text)
+
 @dp.message_created(Command('ha'))
 async def admin_help_command(event: MessageCreated):
     user_id = event.message.sender.user_id
@@ -820,7 +888,7 @@ async def cancel_subscription_callback(callback: MessageCallback):
 @dp.message_callback(F.callback.payload == "bot_send_problem")
 async def bot_report(callback: MessageCallback):
     user_id = callback.callback.user.user_id
-    username = callback.callback.user.username or "Не указан"
+    user = await MaxService.get_user(user_id)
 
     history = await MaxService.get_last_messages(user_id, limit=20)
 
@@ -829,33 +897,10 @@ async def bot_report(callback: MessageCallback):
         for msg in history
     ])
 
-    user = await MaxService.get_user(user_id)
-
-    md_content = f"# 🐞 Обращение в техподдержку\n\n"
-    md_content += f"**Пользователь:** {user_id}\n"
-    md_content += f"**Username:** {username}\n"
-    md_content += f"**Мессенджер:** {user.platform}\n"
-    md_content += f"**Время:** {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n\n"
-    md_content += "---\n\n"
-    md_content += "## 💬 Последние сообщения\n\n"
-    md_content += history_text if history_text else "Нет сообщений"
-
-    filename = f"bot_report_{user_id}_{int(datetime.now().timestamp())}.md"
-    async with aiofiles.open(filename, "w", encoding='utf-8') as f:
-        await f.write(md_content)
-
-    with open(filename, "rb") as f:
-        await bot.send_message(
-            user_id=235995783,
-            text=f"📋 Новое обращение от пользователя",
-            attachments=[
-                InputMedia(
-                    path=filename,
-                )
-            ]
-        )
-
-    os.remove(filename)
+    await AdminService.add_problem_request(
+        client_id=user_id,
+        messages=history_text
+    )
 
     await callback.message.edit(
         text="✅ Обращение отправлено! Богдан разберётся в ближайшее время 😉"

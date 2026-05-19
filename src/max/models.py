@@ -148,14 +148,7 @@ class ProblemRequest(Base):
         server_default=text(
             "TIMEZONE('utc', now())")
     )
-    contact: Mapped[str] = mapped_column(nullable=True)
     messages: Mapped[str] = mapped_column(nullable=True)
-
-    appointment_date: Mapped[datetime.datetime] = mapped_column(
-        nullable=True,
-        server_default=text(
-            "TIMEZONE('utc', now())")
-    )
     viewed: Mapped[bool] = mapped_column(nullable=True, default=False)
 
 

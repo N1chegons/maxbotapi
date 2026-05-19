@@ -435,6 +435,66 @@ async def view_appointment(message):
 
         await bot.send_message(chat_id=message.chat.id, text=text)
 
+@bot.message_handler(commands=['req'])
+async def view_appointment(message):
+    user_id = message.from_user.id
+    username = message.from_user.usernmae
+    user = await MaxService.get_user(user_id)
+
+    if not AdminService.is_admin(user_id):
+        await bot.send_message(chat_id=message.chat.id, text="⛔ Нет доступа")
+        return
+
+    parts = message.text.split()
+
+    if len(parts) >= 2:
+        try:
+            app_id = int(parts[1])
+        except ValueError:
+            await bot.send_message(chat_id=message.chat.id,
+                                   text="❌ Неверный формат. Используйте: /con <id>(порядковый номер записи)")
+            return
+
+        request = await AdminService.get_problem_request_by_id(app_id)
+        if not request:
+            await bot.send_message(chat_id=message.chat.id, text=f"❌ Заявка с ID {app_id} не найдена")
+            return
+
+        await MaxService.mark_request_viewed(app_id)
+
+        md_content = f"# 🐞 Обращение в техподдержку\n\n"
+        md_content += f"**Пользователь:** {user_id}\n"
+        md_content += f"**Username:** {username}\n"
+        md_content += f"**Мессенджер:** {user.platform}\n"
+        md_content += f"**Время:** {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n\n"
+        md_content += "---\n\n"
+        md_content += "## 💬 Последние сообщения\n\n"
+        md_content += request.messages if request.messages else "Нет сообщений"
+
+        filename = f"bot_report_{user_id}_{int(datetime.now().timestamp())}.txt"
+        async with aiofiles.open(filename, "w", encoding='utf-8') as f:
+            await f.write(md_content)
+        with open(filename, "rb") as f:
+            await bot.send_document(chat_id=message.chat.id, document=f, caption=f"📋 Новое обращение от пользователя")
+
+        os.remove(filename)
+
+    else:
+        appointments = await AdminService.get_unviewed_problem_request()
+
+        if not appointments:
+            await bot.send_message(chat_id=message.chat.id, text="Нет новых обращений")
+            return
+
+        text = "📋 **Заявки на консультацию:**\n\n"
+        for apps in appointments:
+            status = "✅" if apps.viewed else "🆕"
+            text += f"{status} id:{apps.id} — {apps.appointment_date.strftime('%d.%m.%Y 20:00')} — {apps.contact}\n"
+
+        text += "\n📝 Для просмотра деталей: /req <id>(порядковый номер записи)"
+
+        await bot.send_message(chat_id=message.chat.id, text=text)
+
 @bot.message_handler(commands=['ha'])
 async def admin_help_command(message):
     user_id = message.from_user.id
@@ -740,6 +800,7 @@ async def cancel_subscription_callback(call: CallbackQuery):
 @bot.callback_query_handler(func=lambda call: call.data == "bot_send_problem")
 async def bot_report(call: CallbackQuery):
     user_id = call.from_user.id
+    user = await MaxService.get_user(user_id)
     username = call.from_user.username or "Не указан"
 
     history = await MaxService.get_last_messages(user_id, limit=20)
@@ -749,24 +810,10 @@ async def bot_report(call: CallbackQuery):
         for msg in history
     ])
 
-    user = await MaxService.get_user(user_id)
-
-    md_content = f"# 🐞 Обращение в техподдержку\n\n"
-    md_content += f"**Пользователь:** {user_id}\n"
-    md_content += f"**Username:** {username}\n"
-    md_content += f"**Мессенджер:** {user.platform}\n"
-    md_content += f"**Время:** {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n\n"
-    md_content += "---\n\n"
-    md_content += "## 💬 Последние сообщения\n\n"
-    md_content += history_text if history_text else "Нет сообщений"
-
-    filename = f"bot_report_{user_id}_{int(datetime.now().timestamp())}.txt"
-    async with aiofiles.open(filename, "w", encoding='utf-8') as f:
-        await f.write(md_content)
-    with open(filename, "rb") as f:
-        await bot.send_document(chat_id=8177043133, document=f, caption=f"📋 Новое обращение от пользователя")
-
-    os.remove(filename)
+    await AdminService.add_problem_request(
+        client_id=user_id,
+        messages=history_text
+    )
 
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
