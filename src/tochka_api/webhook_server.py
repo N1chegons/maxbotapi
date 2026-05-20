@@ -95,27 +95,54 @@ async def handle_webhook(request):
     return web.Response(status=200, text="OK")
 
 async def handle_consult_form(request: web.Request):
-    try:
-        data = await request.json()
-        contact = data.get('contact', 'Не указан')
-        question = data.get('question', 'Не указан')
+    async def handle_consult_form(request: web.Request):
+        try:
+            data = await request.json()
+            contact = data.get('contact', 'Не указан')
+            question = data.get('question', 'Не указан')
 
-        await MaxService.add_request(
-            client_id=None,
-            contact=contact,
-            messages=question,
-            appointment_date=await MaxService.get_next_free_date()
-        )
+            appointment_date = await MaxService.get_next_free_date()
+            await MaxService.add_request(
+                client_id=None,
+                contact=contact,
+                messages=question,
+                appointment_date=appointment_date
+            )
 
-        return web.json_response({"status": "ok"})
+            return web.json_response(
+                {"status": "ok"},
+                headers={
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                }
+            )
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            return web.json_response(
+                {"status": "error"},
+                status=500,
+                headers={
+                    'Access-Control-Allow-Origin': '*',
+                }
+            )
 
-    except Exception as e:
-        print(f"Ошибка: {e}")
-        return web.json_response({"status": "error"}, status=500)
+
+async def handle_options(request: web.Request):
+    return web.Response(
+        status=200,
+        headers={
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+        }
+    )
+
 
 
 app = web.Application()
 app.router.add_post('/tochka_api/webhook', handle_webhook)
+app.router.add_options('/api/consult', handle_options)
 app.router.add_post('/api/consult', handle_consult_form)
 
 if __name__ == '__main__':
