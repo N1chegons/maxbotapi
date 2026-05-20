@@ -94,38 +94,38 @@ async def handle_webhook(request):
 
     return web.Response(status=200, text="OK")
 
+
 async def handle_consult_form(request: web.Request):
-    async def handle_consult_form(request: web.Request):
-        try:
-            data = await request.json()
-            contact = data.get('contact', 'Не указан')
-            question = data.get('question', 'Не указан')
+    try:
+        data = await request.json()
+        contact = data.get('contact', 'Не указан')
+        question = data.get('question', 'Не указан')
 
-            appointment_date = await MaxService.get_next_free_date()
-            await MaxService.add_request(
-                client_id=None,
-                contact=contact,
-                messages=question,
-                appointment_date=appointment_date
-            )
+        appointment_date = await MaxService.get_next_free_date()
+        await MaxService.add_request(
+            client_id=None,
+            contact=contact,
+            messages=question,
+            appointment_date=appointment_date
+        )
 
-            return web.json_response(
-                {"status": "ok"},
-                headers={
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-                    'Access-Control-Allow-Headers': 'Content-Type',
-                }
-            )
-        except Exception as e:
-            print(f"Ошибка: {e}")
-            return web.json_response(
-                {"status": "error"},
-                status=500,
-                headers={
-                    'Access-Control-Allow-Origin': '*',
-                }
-            )
+        return web.json_response(
+            {"status": "ok"},
+            headers={
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type',
+            }
+        )
+    except Exception as e:
+        print(f"Ошибка: {e}")
+        return web.json_response(
+            {"status": "error"},
+            status=500,
+            headers={
+                'Access-Control-Allow-Origin': '*',
+            }
+        )
 
 
 async def handle_options(request: web.Request):
