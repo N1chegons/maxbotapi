@@ -94,10 +94,6 @@ async def handle_webhook(request):
 
     return web.Response(status=200, text="OK")
 
-
-app = web.Application()
-app.router.add_post('/tochka_api/webhook', handle_webhook)
-
 async def handle_consult_form(request: web.Request):
     try:
         data = await request.json()
@@ -118,6 +114,8 @@ async def handle_consult_form(request: web.Request):
         return web.json_response({"status": "error"}, status=500)
 
 
+app = web.Application()
+app.router.add_post('/tochka_api/webhook', handle_webhook)
 app.router.add_post('/api/consult', handle_consult_form)
 
 if __name__ == '__main__':

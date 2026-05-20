@@ -402,8 +402,10 @@ async def view_appointment(message):
 
         await MaxService.mark_request_viewed(app_id)
 
+        client_id = request.client_id or "Запрос с сайта"
+
         md_content = f"# 📋 Консультация #{request.id}\n\n"
-        md_content += f"Клиент: {request.client_id}\n"
+        md_content += f"Клиент: {client_id}\n"
         md_content += f"Контакт: {request.contact}\n"
         md_content += f"Запись на: {request.appointment_date.strftime('%d.%m.%Y %H:%M')}\n"
         md_content += f"Дата подачи заявки: {request.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
