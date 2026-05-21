@@ -1,13 +1,9 @@
 import random
-import time
 import subprocess
-import json
 import requests
 import urllib.parse
 from pathlib import Path
 from ftplib import FTP
-import re
-
 from aiofiles import os
 from bs4 import BeautifulSoup
 
@@ -391,41 +387,41 @@ class VkIntegrationNew:
             "https://vkvideo.ru/playlist/420142_12"
         ]
 
+        self.scheduled_playlists = {
+            "Работаев": "https://vkvideo.ru/playlist/-141287828_2",
+            "Неповинных": "https://vkvideo.ru/playlist/-141287828_3",
+            "Прохоров": "https://vkvideo.ru/playlist/-141287828_4"
+        }
+
     def get_video_links_from_playlist(self, playlist_url: str) -> list:
         try:
-            # Запускаем yt-dlp, который собирает ссылки на видео
             result = subprocess.run(
                 [
                     "yt-dlp",
                     "--flat-playlist",
-                    "--print", "webpage_url",  # выводит ссылку на страницу видео
+                    "--print", "webpage_url",
                     playlist_url
                 ],
                 capture_output=True,
                 text=True,
                 timeout=120
             )
-
             if result.returncode != 0:
                 print(f"Ошибка yt-dlp: {result.stderr}")
                 return []
-
             links = [line.strip() for line in result.stdout.splitlines() if line.strip()]
             return links
-
         except Exception as e:
             print(f"Ошибка: {e}")
             return []
 
     def get_all_video_links(self) -> list:
         all_links = []
-
         for playlist_url in self.playlist:
             print(f"Обработка {playlist_url}...")
             links = self.get_video_links_from_playlist(playlist_url)
             all_links.extend(links)
             print(f"  Найдено {len(links)} видео")
-
         print(f"\n📊 ИТОГО: {len(all_links)} видео")
         return all_links
 
@@ -441,51 +437,33 @@ class VkIntegrationNew:
         return response.json()
 
     def send_random_video(self):
-        """Отправляет следующее видео по очереди (циклически)"""
         try:
-            # Загружаем список, если пустой
             if not self.video_links:
                 with open("video_links.txt", "r") as f:
                     self.video_links = f.read().splitlines()
-
                 self.video_links = [link.replace('vk.com', 'vk.ru') for link in self.video_links]
-
                 random.shuffle(self.video_links)
-
             if not self.video_links:
                 return None
-
             video_url = self.video_links[self.current_video_index]
-
-            # Переходим к следующему
             self.current_video_index = (self.current_video_index + 1) % len(self.video_links)
-
-            # Раз в N видео снова перемешиваем (опционально)
             if self.current_video_index == 0:
                 random.shuffle(self.video_links)
-
             message = f"🎬\n\n{video_url}"
             self.send_to_channel(message)
             return video_url
-
         except Exception as e:
             print(f"❌ Ошибка: {e}")
             return None
 
     async def update_clips(self):
-        """Собирает ID клипов и сохраняет чистые ссылки"""
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
-
             await page.goto("https://vk.ru/clips/plangod", timeout=60000)
-
-            # Скроллим
             for _ in range(5):
                 await page.evaluate("window.scrollBy(0, window.innerHeight)")
                 await asyncio.sleep(2)
-
-            # Ищем клипы
             links = await page.evaluate('''() => {
                 const items = document.querySelectorAll('a[href*="clip-"]');
                 const result = [];
@@ -497,56 +475,62 @@ class VkIntegrationNew:
                 });
                 return [...new Set(result)];
             }''')
-
             await browser.close()
-
-            # Очищаем ссылки: оставляем только clip-owner_id_id
             clean_links = []
             for link in links:
-                # Ищем clip-xxx_xxx
                 match = re.search(r'(clip-\d+_\d+)', link)
                 if match:
                     clean_links.append(f"https://vk.com/{match.group(1)}")
-
             if clean_links:
                 with open(self.clips_file, "w") as f:
                     f.write("\n".join(clean_links))
                 print(f"✅ Сохранено {len(clean_links)} клипов")
-                for link in clean_links[:5]:
-                    print(f"  {link}")
             else:
                 print("❌ Клипы не найдены")
 
     def send_random_clip(self):
-        """Отправляет случайный клип в канал MAX"""
         try:
+            # noinspection PySuspiciousBooleanCondition
             if not os.path.exists(self.clips_file):
                 print("❌ Файл с клипами не найден")
                 return
-
             with open(self.clips_file, "r") as f:
                 clips = f.read().splitlines()
-
             if not clips:
                 print("❌ Нет клипов в файле")
                 return
-
             clip_url = random.choice(clips)
             clip_url = clip_url.replace('vk.com', 'vk.ru')
-
             url = f"https://platform-api.max.ru/messages?chat_id={self.channel_id}"
-            headers = {
-                "Authorization": self.bot_token,
-                "Content-Type": "application/json"
-            }
+            headers = {"Authorization": self.bot_token, "Content-Type": "application/json"}
             payload = {"text": f"🎬\n\n{clip_url}"}
-
             response = requests.post(url, headers=headers, json=payload, timeout=20)
-
             if response.status_code == 200:
                 print(f"✅ Отправлен клип")
             else:
                 print(f"❌ Ошибка отправки: {response.status_code}")
-
         except Exception as e:
             print(f"❌ Ошибка: {e}")
+
+    def get_random_video_from_playlist(self, playlist_url: str) -> str:
+        """Возвращает случайную ссылку на видео из плейлиста"""
+        links = self.get_video_links_from_playlist(playlist_url)
+        if not links:
+            return None
+        return random.choice(links)
+
+    def post_scheduled_video(self, playlist_name: str):
+        """Публикует случайное видео из заданного плейлиста в канал"""
+        playlist_url = self.scheduled_playlists.get(playlist_name)
+        if not playlist_url:
+            print(f"❌ Плейлист {playlist_name} не найден")
+            return
+
+        video_url = self.get_random_video_from_playlist(playlist_url)
+        if not video_url:
+            print(f"❌ Нет видео в плейлисте {playlist_name}")
+            return
+
+        message = f"🎬\n{video_url}"
+        self.send_to_channel(message)
+        print(f"✅ Отправлено видео из плейлиста {playlist_name}")

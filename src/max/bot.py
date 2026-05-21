@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime
+from typing import Any
 
 import aiofiles
 import aiohttp
@@ -281,7 +282,7 @@ async def help_bot_command(event: MessageCreated):
             attachments=[reply_kb.as_markup()]
         )
 
-async def create_payment_link(amount: float, user_id: int) -> str:
+async def create_payment_link(amount: float, user_id: int) -> Any | None:
     payment_data = TochkaApiService().create_payment_link(amount, user_id, "MAX")
     if payment_data and payment_data.get("payment_link"):
         await TochkaApiService.save_payment(
@@ -291,6 +292,7 @@ async def create_payment_link(amount: float, user_id: int) -> str:
         )
         return payment_data["payment_link"]
     return None
+
 async def send_sub_buttons(user_id: int, user):
     kb = InlineKeyboardBuilder()
 
