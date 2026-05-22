@@ -395,16 +395,19 @@ class MaxService:
     @classmethod
     async def get_users_for_auto_charge(cls):
         async with async_session() as session:
-            now = datetime.utcnow()  # ← naive datetime (без timezone)
+            now = datetime.utcnow()
             three_days_ago = now - timedelta(days=3)
 
             result = await session.execute(
                 select(User)
                 .where(
-                    User.subscription_status == SubsStatus.active,
+                    User.subscription_status.in_([SubsStatus.active, SubsStatus.grace_period]),
                     User.payment_method_id.isnot(None),
                     User.subscription_ends_at <= now,
-                    User.subscription_ends_at >= three_days_ago
+                    or_(
+                        User.subscription_status == SubsStatus.grace_period,
+                        User.subscription_ends_at >= three_days_ago
+                    )
                 )
             )
             return result.scalars().all()
