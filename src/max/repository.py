@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta
 
 from maxapi.types import InputMedia
-from sqlalchemy import select, update, insert, delete
+from sqlalchemy import select, update, insert, delete, or_
 
 from src.config import settings
 from src.db import async_session
