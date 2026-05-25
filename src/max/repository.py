@@ -91,7 +91,7 @@ class MaxService:
 
     @classmethod
     async def delete_session(cls, user_id: int):
-        logger.warning(f"Удаление сессии и всех сообщений пользователя {user_id}")
+        logger.warning(f"Удаление сессии пользователя {user_id}")
         async with async_session() as session:
             await cls.delete_messages(user_id)
 
