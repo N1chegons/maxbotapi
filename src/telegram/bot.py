@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import os
+from typing import Any
+
 import aiofiles
 import requests
 import telebot
@@ -11,6 +13,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQu
     KeyboardButton
 from telebot.async_telebot import AsyncTeleBot
 
+from src.logger_config import setup_logger
 from src.max.models import UserState, MemoryMode, SubsStatus
 from src.admin.repository import AdminService
 from src.max.utils import upload_to_s3
@@ -18,6 +21,9 @@ from src.tochka_api.service import TochkaApiService
 from src.yandexai.config import THEMES_INDEXES
 from src.yandexai.orchestrator import ask_ai_with_index
 from src.config import settings
+
+logger = setup_logger('telegram_bot', 'telegram', 'TELEGRAM_bot.log')
+logger_admin = setup_logger('admin', 'admin', 'telegram_admin.log')
 
 logging.basicConfig(level=logging.INFO)
 
@@ -34,10 +40,12 @@ from src.max.repository import MaxService, AudioService
 async def start(message):
     user_id = message.from_user.id
     user = await MaxService.get_user(user_id)
+    logger.info(f"Пользователь {user_id} запустил бота")
 
     if not user:
         await MaxService.create_user(user_id, "TELEGRAM")
         await MaxService.create_session(user_id)
+        logger.info(f"Пользователь {user_id} успешно зарегестрировался")
 
         kb = InlineKeyboardMarkup()
         kb.add(InlineKeyboardButton(text="Продолжить >", callback_data="continue"))
@@ -51,6 +59,7 @@ async def start(message):
             reply_markup=kb
         )
     else:
+        logger.info(f"Пользователь {user_id} уже зарегистрирован")
         await bot.send_message(
             chat_id=message.chat.id,
             text="Привет 👋"
@@ -82,8 +91,10 @@ async def mem_memory_choice(message):
     user_id = message.from_user.id
     user_reg = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_reg.user_id)
+    logger.info(f"Смена памяти для пользователя {user_id}")
 
     if not session_user:
+        logger.warning(f"У пользователя {user_id} не найдена сессия")
         await bot.send_message(
             chat_id=message.chat.id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
@@ -111,8 +122,10 @@ async def mem_memory_choice(message):
 async def delete_info(message):
     user_id = message.from_user.id
     session_user = await MaxService.get_session(user_id)
+    logger.warning(f"Удаление данных для пользователя {user_id}")
 
     if not session_user:
+        logger.warning(f"У пользователя {user_id} не найдена сессия")
         await bot.send_message(
             chat_id=message.chat.id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
@@ -135,14 +148,17 @@ async def closed_session(message):
     user_id = message.from_user.id
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
+    logger.info(f"Пользователь {user_id} заканчивает диалог")
 
     if not session_user:
+        logger.warning(f"У пользователя {user_id} не найдена сессия")
         await bot.send_message(
             chat_id=message.chat.id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
     else:
         history = await MaxService.get_history(user_id)
+        logger.info(f"Получена история сообщений для пользоватля {user_id}")
 
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
@@ -156,17 +172,20 @@ async def closed_session(message):
         answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
         if user.memory_mode == MemoryMode.session:
+            logger.info(f"Пользоватлеь {user_id} заканчивает диалог с памятью {MemoryMode.none}")
             await MaxService.delete_messages(user_id)
             await bot.send_message(
                 chat_id=message.chat.id,
                 text=answer
             )
         elif user.memory_mode == MemoryMode.full:
+            logger.info(f"Пользоватлеь {user_id} заканчивает диалог с памятью {MemoryMode.full}")
             await bot.send_message(
                 chat_id=message.chat.id,
                 text=answer
             )
         else:
+            logger.info(f"Пользоватлеь {user_id} заканчивает диалог с памятью {MemoryMode.none}")
             await bot.send_message(
                 chat_id=message.chat.id,
                 text="Данные не найдены.\nИзмените тип памяти при помощи /mem"
@@ -197,17 +216,18 @@ async def instruction(message):
 async def igor_command(message):
     user_id = message.from_user.id
     session_user = await MaxService.get_session(user_id)
+    logger.info(f"Запись на консультацию для пользователя {user_id}")
 
     if not session_user:
+        logger.warning(f"У пользователя {user_id} не найдена сессия")
         await bot.send_message(
             chat_id=message.chat.id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
 
-    # await AdminService.log_command_admin(user_id, "/igor")
-
     already_request = await MaxService.get_request(user_id)
     if already_request:
+        logger.info(f"Пользователь {user_id} уже записан на консультацию")
         await bot.send_message(
             chat_id=message.chat.id,
             text="✔️ Вы уже отправили заявку на консультацию!\n\nВы можете продолжить задавать вопросы."
@@ -237,8 +257,10 @@ async def igor_command(message):
 async def help_bot_command(message):
     user_id = message.from_user.id
     session_user = await MaxService.get_session(user_id)
+    logger.info(f"Пользователь {user_id} отправил обращение")
 
     if not session_user:
+        logger.warning(f"У пользователя {user_id} не найдена сессия")
         await bot.send_message(
             chat_id=message.chat.id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
@@ -259,20 +281,24 @@ async def help_bot_command(message):
             reply_markup=kb
         )
 
-async def create_payment_link(amount: float, user_id: int) -> str:
+async def create_payment_link(amount: float, user_id: int) -> Any | None:
     payment_data = TochkaApiService().create_payment_link(amount, user_id, "TELEGRAM")
+    logger.info(f"Создание ссылки на оплату для пользователя {user_id}")
     if payment_data and payment_data.get("payment_link"):
+        logger.info(f"Платежная ссылка для пользователя {user_id} создана: {payment_data.get("payment_link")}")
         await TochkaApiService.save_payment(
             user_id=user_id,
             operation_id=payment_data["payment_id"],
             amount=amount
         )
         return payment_data["payment_link"]
+    logger.warning(f"Не удалось создать платжную ссылку для пользователя {user_id}")
     return None
 async def send_sub_buttons(user_id: int, user, message):
     kb = InlineKeyboardMarkup()
 
     if user.subscription_status in (SubsStatus.active, SubsStatus.grace_period):
+        # noinspection PyDeprecation
         if user.subscription_ends_at and user.subscription_ends_at > datetime.utcnow():
             kb.add(InlineKeyboardButton(text="❌ Отменить подписку", callback_data="cancel_subscription"))
             await bot.send_message(chat_id=message.chat.id, text="🔧 Управление подпиской:", reply_markup=kb)
@@ -287,6 +313,7 @@ async def send_sub_buttons(user_id: int, user, message):
 
     await bot.send_message(chat_id=message.chat.id, text="Оплатите подписку:", reply_markup=kb)
 async def get_subscription_status(user):
+    # noinspection PyDeprecation
     now = datetime.utcnow()
     next_date = None
     status_text = ""
@@ -309,12 +336,15 @@ async def get_subscription_status(user):
         status_text = "❌ Нет активной подписки"
 
     return status_text, next_date
+
 @bot.message_handler(commands=['sub'])
 async def cmd_sub(message):
     user_id = message.from_user.id
     user = await MaxService.get_user(user_id)
+    logger.info(f"Проверка подписки для пользователя {user_id}")
 
     if not user:
+        logger.warning(f"Пользователь по {user_id} не найден")
         await bot.send_message(chat_id=message.chat.id, text="❌ Пользователь не найден. Напишите /start")
         return
 
@@ -324,6 +354,7 @@ async def cmd_sub(message):
     text += f"📌 Статус: {status_text}\n"
     text += f"💰 Тариф: Базовый (650 ₽/мес)\n"
     if next_date:
+        # noinspection PyDeprecation
         days_left = (next_date - datetime.utcnow()).days
         text += f"📅 Следующее списание: {next_date.strftime('%d.%m.%Y')}\n"
         text += f"⏰ Осталось дней: {days_left}\n"
@@ -338,6 +369,7 @@ async def cmd_sub(message):
 async def admin_panel(message):
     user_id = message.from_user.id
     if not AdminService.is_admin(user_id):
+        logger_admin.warning(f"Пользователь {user_id} не является админом")
         await bot.send_message(chat_id=message.chat.id, text="⛔ Нет доступа")
         return
 
@@ -356,6 +388,7 @@ async def admin_panel(message):
 async def stats_command(message):
     user_id = message.from_user.id
     if not AdminService.is_admin(user_id):
+        logger_admin.warning(f"Пользователь {user_id} не является админом")
         await bot.send_message(chat_id=message.chat.id, text="⛔ Нет доступа")
         return
 
@@ -377,12 +410,14 @@ async def stats_command(message):
 
     report = f"📊 **Всего сообщений за {days} дн.: {count_message}**\n"
 
+    logger_admin.info(f"Админ {user_id} просмотрел статистику по сообщеиям за {count_message} дней")
     await bot.send_message(chat_id=message.chat.id, text=report)
 
 @bot.message_handler(commands=['con'])
 async def view_appointment(message):
     user_id = message.from_user.id
     if not AdminService.is_admin(user_id):
+        logger_admin.warning(f"Пользователь {user_id} не является админом")
         await bot.send_message(chat_id=message.chat.id, text="⛔ Нет доступа")
         return
 
@@ -392,12 +427,14 @@ async def view_appointment(message):
         try:
             app_id = int(parts[1])
         except ValueError:
+            logger_admin.warning(f"Админ {user_id} ввел неверный формат для просмотра информации по консультации")
             await bot.send_message(chat_id=message.chat.id,
                                    text="❌ Неверный формат. Используйте: /con <id>(порядковый номер записи)")
             return
 
         request = await MaxService.get_request_by_id(app_id)
         if not request:
+            logger_admin.warning(f"Консультация с id {app_id} не найдена")
             await bot.send_message(chat_id=message.chat.id, text=f"❌ Заявка с ID {app_id} не найдена")
             return
 
@@ -420,6 +457,7 @@ async def view_appointment(message):
         with open(filename, "rb") as f:
             await bot.send_document(chat_id=message.chat.id, document=f, caption=f"📋 Консультация #{request.id}")
 
+        logger_admin.info(f"Админ посмотрел консультацию с id {app_id}, файл подготовлен: {filename}")
         os.remove(filename)
 
     else:
@@ -436,6 +474,7 @@ async def view_appointment(message):
 
         text += "\n📝 Для просмотра деталей: /con <id>(порядковый номер записи)"
 
+        logger_admin.info(f"Админ посмотрел список консультаций")
         await bot.send_message(chat_id=message.chat.id, text=text)
 
 @bot.message_handler(commands=['req'])
@@ -445,6 +484,7 @@ async def view_problem_appointment(message):
     user = await MaxService.get_user(user_id)
 
     if not AdminService.is_admin(user_id):
+        logger_admin.warning(f"Пользователь {user_id} не является админом")
         await bot.send_message(chat_id=message.chat.id, text="⛔ Нет доступа")
         return
 
@@ -454,12 +494,14 @@ async def view_problem_appointment(message):
         try:
             app_id = int(parts[1])
         except ValueError:
+            logger_admin.warning(f"Админ {user_id} ввел неверный формат для просмотра информации по обращению")
             await bot.send_message(chat_id=message.chat.id,
                                    text="❌ Неверный формат. Используйте: /con <id>(порядковый номер записи)")
             return
 
         request = await AdminService.get_problem_request_by_id(app_id)
         if not request:
+            logger_admin.warning(f"Обращение с id {app_id} не найдена")
             await bot.send_message(chat_id=message.chat.id, text=f"❌ Заявка с ID {app_id} не найдена")
             return
 
@@ -480,6 +522,7 @@ async def view_problem_appointment(message):
         with open(filename, "rb") as f:
             await bot.send_document(chat_id=message.chat.id, document=f, caption=f"📋 Новое обращение от пользователя")
 
+        logger_admin.info(f"Админ {user_id} посмотрел обращение с id {app_id}, файл подготовлен: {filename}")
         os.remove(filename)
 
     else:
@@ -496,6 +539,7 @@ async def view_problem_appointment(message):
 
         text += "\n📝 Для просмотра деталей: /req <id>(порядковый номер записи)"
 
+        logger_admin.info(f"Админ {user_id} посмотрел список обращений")
         await bot.send_message(chat_id=message.chat.id, text=text)
 
 @bot.message_handler(commands=['ha'])
@@ -520,8 +564,10 @@ async def admin_help_command(message):
 @bot.callback_query_handler(func=lambda call: call.data == "delete_agree")
 async def handle_delete_info_agree(call: CallbackQuery):
     user_id = call.from_user.id
+
     await MaxService.delete_session(user_id)
     await MaxService.create_session(user_id)
+    logger.info("Пользователь успешно удалил все свои данные")
 
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
@@ -531,6 +577,9 @@ async def handle_delete_info_agree(call: CallbackQuery):
 
 @bot.callback_query_handler(func=lambda call: call.data == "delete_disagree")
 async def handle_delete_info_disagree(call: CallbackQuery):
+    user_id = call.from_user.id
+    logger.info(f"Пользователь {user_id} отменил удаление данных")
+
     await bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
@@ -592,7 +641,7 @@ async def handle_agree(call: CallbackQuery):
 async def handle_query(call: CallbackQuery):
     user_id = call.from_user.id
     user = await MaxService.get_user(user_id)
-
+    logger.info(f"Пользователь {user_id} делает выбор памяти")
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
     kb = InlineKeyboardMarkup()
@@ -660,7 +709,10 @@ async def show_chat_tg(user_id: int):
 @bot.callback_query_handler(func=lambda call: call.data == "memory_none")
 async def handle_memory_none(call: CallbackQuery):
     user_id = call.from_user.id
+
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
+    logger.info(f"Тип памяти {MemoryMode.none} выбран для пользователя {user_id}")
+
     user = await MaxService.get_user(user_id)
 
     kb = InlineKeyboardMarkup()
@@ -672,6 +724,7 @@ async def handle_memory_none(call: CallbackQuery):
         message_id=call.message.message_id,
         reply_markup=kb
     )
+
     if user.has_started_subscription:
         await show_chat_tg(user_id)
     else:
@@ -680,6 +733,7 @@ async def handle_memory_none(call: CallbackQuery):
 async def handle_mem_memory_none(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
+    logger.info(f"Тип памяти {MemoryMode.none} изменен для пользователя {user_id}")
 
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
@@ -691,6 +745,8 @@ async def handle_mem_memory_none(call: CallbackQuery):
 async def handle_memory_dialog(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
+    logger.info(f"Тип памяти {MemoryMode.session} выбран для пользователя {user_id}")
+
     user = await MaxService.get_user(user_id)
 
     kb = InlineKeyboardMarkup()
@@ -710,6 +766,7 @@ async def handle_memory_dialog(call: CallbackQuery):
 async def handle_mem_memory_dialog(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
+    logger.info(f"Тип памяти {MemoryMode.session} изменен для пользователя {user_id}")
 
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
@@ -722,6 +779,7 @@ async def handle_memory_full(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.full)
     user = await MaxService.get_user(user_id)
+    logger.info(f"Тип памяти {MemoryMode.full} выбран для пользователя {user_id}")
 
     kb = InlineKeyboardMarkup()
     kb.add(InlineKeyboardButton(text="видео", url="https://disk.yandex.ru/i/F8LpWWDviR-Erw"))
@@ -740,6 +798,7 @@ async def handle_memory_full(call: CallbackQuery):
 async def handle_mem_memory_full(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
+    logger.info(f"Тип памяти {MemoryMode.full} измене для пользователя {user_id}")
 
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
@@ -749,7 +808,10 @@ async def handle_mem_memory_full(call: CallbackQuery):
 
 @bot.callback_query_handler(func=lambda call: call.data == "consult_agree")
 async def handle_consult_agree(call: CallbackQuery):
+    user_id = call.from_user.id
+
     await bot.delete_message(call.message.chat.id, call.message.message_id)
+    logger.info(f"Пользователь {user_id} продолжил запись на консультацию")
 
     contact_button = KeyboardButton(
         text="📱 Поделиться номером",
@@ -770,6 +832,9 @@ async def handle_consult_agree(call: CallbackQuery):
 
 @bot.callback_query_handler(func=lambda call: call.data == "consult_disagree")
 async def handle_consult_disagree(call: CallbackQuery):
+    user_id = call.from_user.id
+    logger.info(f"Пользователь {user_id} отменил запись на консультацию")
+
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -783,6 +848,7 @@ async def cancel_subscription_callback(call: CallbackQuery):
     user = await MaxService.get_user(user_id)
 
     if user.subscription_status not in (SubsStatus.active, SubsStatus.grace_period):
+        logger.warning(f"Пользователь {user_id} не имеет активной подписки")
         await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -790,8 +856,8 @@ async def cancel_subscription_callback(call: CallbackQuery):
     )
         return
 
-    # Меняем статус на cancelled
     await MaxService.change_subscription_status(user_id, SubsStatus.cancelled)
+    logger.info(f"Пользователь {user_id} успешно отменил подписку, статус подписки: {SubsStatus.cancelled}")
 
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
@@ -819,6 +885,7 @@ async def bot_report(call: CallbackQuery):
         messages=history_text
     )
 
+    logger.info(f"Пользователь {user_id} отправил обращение")
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -827,6 +894,9 @@ async def bot_report(call: CallbackQuery):
 
 @bot.callback_query_handler(func=lambda call: call.data == "bot_dsend")
 async def bot_cancel(call: CallbackQuery):
+    user_id = call.from_user.id
+    logger.info(f"Пользователь {user_id} остановил отправку обращения")
+
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -856,6 +926,7 @@ async def handle_contact(message):
         messages=history_text,
         appointment_date=appointment_date
     )
+    logger.info(f"Пользователь {user_id} успешно поделился своим контактом")
 
     await bot.send_message(
         chat_id=message.chat.id,
@@ -870,15 +941,19 @@ async def handle_voice(message):
     user_reg = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
+    logger.info(f"Пользователь {user_id} отправил голосовое сообщение: {text[10:]}")
+
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
     if not session_user:
+        logger.warning(f"У пользователя {user_id} не найдена сессия")
         await bot.send_message(
             chat_id=message.chat.id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
 
     elif not await MaxService.can_send_message(user_id):
+        logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
         await bot.send_message(
             chat_id=message.chat.id,
             text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
@@ -907,13 +982,15 @@ async def handle_voice(message):
                     await MaxService.add_message(user_id, session_user.id, "user", recognized_text)
                     await MaxService.add_message(user_id, session_user.id, "assistant", answer)
                 await bot.send_message(chat_id=message.chat.id, text=answer)
+                logger.info(f"Пользователь {user_id} успешно получил ответ от ассистента")
             else:
+                logger.error(f"Пользователь {user_id} не получил ответ")
                 await bot.send_message(
                     chat_id=message.chat.id,
                     text="⚠️ Не удалось получить ответ. Попробуйте позже."
                 )
         except Exception as e:
-            print(f"Ошибка: {e}")
+            logger.exception(f"Ошибка обработки голосового сообщения от пользователя {user_id}, ошибка: {e}")
             await bot.send_message(chat_id=message.chat.id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
 
 @bot.message_handler(func=lambda message: True)
@@ -926,15 +1003,19 @@ async def handle_message(message):
     user_reg = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
+    logger.info(f"Пользователь {user_id} отправил сообщение: {text[10:]}")
+
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
     if not session_user:
+        logger.warning(f"У пользователя {user_id} не найдена сессия")
         await bot.send_message(
             chat_id=message.chat.id,
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
 
     elif not await MaxService.can_send_message(user_id):
+        logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
         await bot.send_message(
             chat_id=message.chat.id,
             text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
@@ -953,13 +1034,15 @@ async def handle_message(message):
                 await MaxService.add_message(user_id, session_user.id, "user", text)
                 await MaxService.add_message(user_id, session_user.id, "assistant", answer)
             await bot.send_message(chat_id=message.chat.id, text=answer)
+            logger.info(f"Пользователь {user_id} успешно получил ответ от ассистента")
         else:
+            logger.error(f"Пользователь {user_id} не получил ответ")
             await bot.send_message(
                 chat_id=message.chat.id,
                 text="⚠️ Не удалось получить ответ. Попробуйте позже."
             )
 
-
+# started
 async def handle_webhook(request):
     try:
         body = await request.json()
@@ -969,7 +1052,9 @@ async def handle_webhook(request):
     except Exception as e:
         print(f"Ошибка: {e}")
         return web.Response(status=200, text="OK")
+
 app.router.add_post(WEBHOOK_PATH, handle_webhook)
+
 async def main():
     await bot.delete_webhook()
     await bot.set_webhook(url=WEBHOOK_URL)
@@ -978,9 +1063,9 @@ async def main():
     await runner.setup()
     site = web.TCPSite(runner, host='127.0.0.1', port=8081)
     await site.start()
-    print(f"Бот запущен на http://127.0.0.1:8081{WEBHOOK_PATH}")
-    # Бесконечно ждём
+    logger.info("Бот успешно запущен")
     await asyncio.Event().wait()
 
+# started
 if __name__ == "__main__":
     asyncio.run(main())
