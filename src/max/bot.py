@@ -336,7 +336,6 @@ async def get_subscription_status(user):
     # noinspection PyDeprecation
     now = datetime.utcnow()
     next_date = None
-    status_text = ""
 
     if user.subscription_status in (SubsStatus.active, SubsStatus.grace_period):
         if user.subscription_ends_at and user.subscription_ends_at > now:
@@ -547,7 +546,7 @@ async def view_problem_appointment(event: MessageCreated):
         async with aiofiles.open(filename, "w", encoding='utf-8') as f:
             await f.write(md_content)
 
-        with open(filename, "rb") as f:
+        with open(filename, "rb"):
             await bot.send_message(
                 user_id=user_id,
                 text=f"📋 Новое обращение от пользователя",
@@ -664,7 +663,6 @@ async def handle_continue(callback: MessageCallback):
 @dp.message_callback(F.callback.payload == "continue")
 async def handle_continue(callback: MessageCallback):
     user_id = callback.callback.user.user_id
-    user = await MaxService.get_user(user_id)
     await MaxService.update_user_state(user_id, UserState.ONBOARDING_DISCLAIMER)
 
     reply_kb = InlineKeyboardBuilder()
@@ -727,7 +725,6 @@ async def handle_agree(callback: MessageCallback):
 @dp.message_callback(F.callback.payload == "query")
 async def handle_query(callback: MessageCallback):
     user_id = callback.callback.user.user_id
-    user = await MaxService.get_user(user_id)
     logger.info(f"Пользователь {user_id} делает выбор памяти")
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
@@ -917,7 +914,7 @@ async def handle_consult_agree(callback: MessageCallback):
         attachments=[reply_kb.as_markup()]
     )
 
-@bot.message_callback(F.callback.payload == "consult_disagree")
+@dp.message_callback(F.callback.payload == "consult_disagree")
 async def handle_consult_disagree(callback: MessageCallback):
     user_id = callback.callback.user.user_id
     logger.info(f"Пользователь {user_id} отменил запись на консультацию")
@@ -950,8 +947,6 @@ async def cancel_subscription_callback(callback: MessageCallback):
 @dp.message_callback(F.callback.payload == "bot_send_problem")
 async def bot_report(callback: MessageCallback):
     user_id = callback.callback.user.user_id
-    user = await MaxService.get_user(user_id)
-
     history = await MaxService.get_last_messages(user_id, limit=20)
 
     history_text = "\n".join([
@@ -1012,11 +1007,12 @@ async def handle_message(event: MessageCreated):
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
         history = await MaxService.get_history(user_id, limit=200)
+        # noinspection PyTypeChecker
         answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
         if answer:
             if user.memory_mode != MemoryMode.none:
-                last_exchange = f"Клиент: {text}\n\nБот: {answer}"
+                # noinspection PyTypeChecker
                 await MaxService.add_message(user_id, session_user.id, "user", text)
                 await MaxService.add_message(user_id, session_user.id, "assistant", answer)
             await bot.send_message(user_id=user_id, text=answer)
@@ -1064,7 +1060,7 @@ async def handle_voice_message(event: MessageCreated):
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
-    logger.info(f"Пользователь {user_id} отправил голосовое сообщение: {text[10:]}")
+    logger.info(f"Пользователь {user_id} отправил голосовое сообщение")
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
@@ -1089,6 +1085,7 @@ async def handle_voice_message(event: MessageCreated):
 
 
         audio_attachment = None
+        # noinspection PyTypeChecker
         for att in event.message.body.attachments:
             if att.type == "audio":
                 audio_attachment = att
@@ -1124,7 +1121,6 @@ async def handle_voice_message(event: MessageCreated):
 
             if answer:
                 if user.memory_mode != MemoryMode.none:
-                    last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
                     await MaxService.add_message(user_id, session_user.id, "user", recognized_text)
                     await MaxService.add_message(user_id, session_user.id, "assistant", answer)
                 await bot.send_message(user_id=user_id, text=answer)
