@@ -316,7 +316,6 @@ async def get_subscription_status(user):
     # noinspection PyDeprecation
     now = datetime.utcnow()
     next_date = None
-    status_text = ""
 
     if user.subscription_status in (SubsStatus.active, SubsStatus.grace_period):
         if user.subscription_ends_at and user.subscription_ends_at > now:
@@ -640,7 +639,6 @@ async def handle_agree(call: CallbackQuery):
 @bot.callback_query_handler(func=lambda call: call.data == "query")
 async def handle_query(call: CallbackQuery):
     user_id = call.from_user.id
-    user = await MaxService.get_user(user_id)
     logger.info(f"Пользователь {user_id} делает выбор памяти")
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
@@ -870,8 +868,6 @@ async def cancel_subscription_callback(call: CallbackQuery):
 @bot.callback_query_handler(func=lambda call: call.data == "bot_send_problem")
 async def bot_report(call: CallbackQuery):
     user_id = call.from_user.id
-    user = await MaxService.get_user(user_id)
-    username = call.from_user.username or "Не указан"
 
     history = await MaxService.get_last_messages(user_id, limit=20)
 
@@ -910,7 +906,6 @@ async def handle_contact(message):
     user_id = message.from_user.id
 
     phone = contact.phone_number
-    name = contact.first_name
 
     history = await MaxService.get_last_messages(user_id, limit=200)
     history_text = "\n".join([
@@ -941,7 +936,7 @@ async def handle_voice(message):
     user_reg = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
-    logger.info(f"Пользователь {user_id} отправил голосовое сообщение: {text[10:]}")
+    logger.info(f"Пользователь {user_id} отправил голосовое сообщение")
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
@@ -978,7 +973,6 @@ async def handle_voice(message):
         try:
             if answer:
                 if user_reg.memory_mode != MemoryMode.none:
-                    last_exchange = f"Клиент: {recognized_text}\n\nБот: {answer}"
                     await MaxService.add_message(user_id, session_user.id, "user", recognized_text)
                     await MaxService.add_message(user_id, session_user.id, "assistant", answer)
                 await bot.send_message(chat_id=message.chat.id, text=answer)
@@ -1030,7 +1024,6 @@ async def handle_message(message):
 
         if answer:
             if user_reg.memory_mode != MemoryMode.none:
-                last_exchange = f"Клиент: {text}\n\nБот: {answer}"
                 await MaxService.add_message(user_id, session_user.id, "user", text)
                 await MaxService.add_message(user_id, session_user.id, "assistant", answer)
             await bot.send_message(chat_id=message.chat.id, text=answer)
