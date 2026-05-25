@@ -279,7 +279,7 @@ async def help_bot_command(message):
         )
 
 async def create_payment_link(amount: float, user_id: int) -> Any | None:
-    payment_data = TochkaApiService().create_payment_link(amount, user_id, "TELEGRAM")
+    payment_data = TochkaApiService().create_payment_link(amount)
     logger.info(f"Создание ссылки на оплату для пользователя {user_id}")
     if payment_data and payment_data.get("payment_link"):
         logger.info(f"Платежная ссылка для пользователя {user_id} создана: {payment_data.get("payment_link")}")
@@ -350,8 +350,9 @@ async def cmd_sub(message):
     text += f"📌 Статус: {status_text}\n"
     text += f"💰 Тариф: Базовый (650 ₽/мес)\n"
     if next_date:
-        # noinspection PyDeprecation
+        # noinspection PyDeprecation,PyUnresolvedReferences
         days_left = (next_date - datetime.utcnow()).days
+        # noinspection PyUnresolvedReferences
         text += f"📅 Следующее списание: {next_date.strftime('%d.%m.%Y')}\n"
         text += f"⏰ Осталось дней: {days_left}\n"
 
@@ -565,6 +566,7 @@ async def handle_delete_info_agree(call: CallbackQuery):
     await MaxService.create_session(user_id)
     logger.info("Пользователь успешно удалил все свои данные")
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -576,6 +578,7 @@ async def handle_delete_info_disagree(call: CallbackQuery):
     user_id = call.from_user.id
     logger.info(f"Пользователь {user_id} отменил удаление данных")
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
@@ -593,6 +596,7 @@ async def handle_continue(call: CallbackQuery):
         InlineKeyboardButton(text="Не согласен", callback_data="disagree")
     )
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -605,6 +609,7 @@ async def handle_continue(call: CallbackQuery):
 
 @bot.callback_query_handler(func=lambda call: call.data == "disagree")
 async def handle_disagree(call: CallbackQuery):
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -626,6 +631,7 @@ async def handle_agree(call: CallbackQuery):
     InlineKeyboardButton(text="про Бота >", url="https://disk.yandex.ru/i/AHiHqufv2KT9bQ"),
     InlineKeyboardButton(text="про Эксперта >", url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"))
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -646,6 +652,7 @@ async def handle_query(call: CallbackQuery):
         InlineKeyboardButton(text="Вся память", callback_data="memory_full")
     )
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         "Скажи, что мы будем делать с твоими сообщениями?\n\n"
         "➖ Без памяти — каждая сессия с чистого листа, ничего не сохраняю. Максимум приватности, но минимум персонализации.\n\n"
@@ -659,9 +666,10 @@ async def handle_query(call: CallbackQuery):
 
 async def handle_agree_subs(call: CallbackQuery):
     user_id = call.from_user.id
-    payment_data = TochkaApiService().create_payment_link(14, user_id=user_id, platform="TELEGRAM")
+    payment_data = TochkaApiService().create_payment_link(14)
 
     if not payment_data or not payment_data.get("payment_link"):
+        # noinspection PyUnresolvedReferences
         await bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
@@ -679,6 +687,7 @@ async def handle_agree_subs(call: CallbackQuery):
     kb.add(InlineKeyboardButton(text="💳 14 рублей за 14 дней теста", url=payment_data["payment_link"]))
     kb.add(InlineKeyboardButton(text="Изучить сайт", url="https://psy.nepovinnyh.ru"))
 
+    # noinspection PyUnresolvedReferences
     await bot.send_message(
         chat_id=call.message.chat.id,
         text=(
@@ -687,6 +696,7 @@ async def handle_agree_subs(call: CallbackQuery):
         reply_markup=kb
     )
     await asyncio.sleep(2)
+    # noinspection PyUnresolvedReferences
     await bot.send_message(
         chat_id=call.message.chat.id,
         text=(
@@ -713,6 +723,7 @@ async def handle_memory_none(call: CallbackQuery):
     kb = InlineKeyboardMarkup()
     kb.add(InlineKeyboardButton(text="видео", url="https://disk.yandex.ru/i/F8LpWWDviR-Erw"))
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         "Посмотри перед консультацией",
         chat_id=call.message.chat.id,
@@ -730,6 +741,7 @@ async def handle_mem_memory_none(call: CallbackQuery):
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
     logger.info(f"Тип памяти {MemoryMode.none} изменен для пользователя {user_id}")
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -747,6 +759,7 @@ async def handle_memory_dialog(call: CallbackQuery):
     kb = InlineKeyboardMarkup()
     kb.add(InlineKeyboardButton(text="видео", url="https://disk.yandex.ru/i/F8LpWWDviR-Erw"))
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         "Посмотри перед консультацией",
         chat_id=call.message.chat.id,
@@ -763,6 +776,7 @@ async def handle_mem_memory_dialog(call: CallbackQuery):
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
     logger.info(f"Тип памяти {MemoryMode.session} изменен для пользователя {user_id}")
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -779,6 +793,7 @@ async def handle_memory_full(call: CallbackQuery):
     kb = InlineKeyboardMarkup()
     kb.add(InlineKeyboardButton(text="видео", url="https://disk.yandex.ru/i/F8LpWWDviR-Erw"))
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         "Посмотри перед консультацией",
         chat_id=call.message.chat.id,
@@ -795,6 +810,7 @@ async def handle_mem_memory_full(call: CallbackQuery):
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
     logger.info(f"Тип памяти {MemoryMode.full} измене для пользователя {user_id}")
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -805,6 +821,7 @@ async def handle_mem_memory_full(call: CallbackQuery):
 async def handle_consult_agree(call: CallbackQuery):
     user_id = call.from_user.id
 
+    # noinspection PyUnresolvedReferences
     await bot.delete_message(call.message.chat.id, call.message.message_id)
     logger.info(f"Пользователь {user_id} продолжил запись на консультацию")
 
@@ -819,6 +836,7 @@ async def handle_consult_agree(call: CallbackQuery):
     )
     keyboard.add(contact_button)
 
+    # noinspection PyUnresolvedReferences
     await bot.send_message(
         chat_id=call.message.chat.id,
         text="Пожалуйста, поделись своим номером телефона, чтобы я мог записать тебя на консультацию.",
@@ -830,6 +848,7 @@ async def handle_consult_disagree(call: CallbackQuery):
     user_id = call.from_user.id
     logger.info(f"Пользователь {user_id} отменил запись на консультацию")
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -844,6 +863,7 @@ async def cancel_subscription_callback(call: CallbackQuery):
 
     if user.subscription_status not in (SubsStatus.active, SubsStatus.grace_period):
         logger.warning(f"Пользователь {user_id} не имеет активной подписки")
+        # noinspection PyUnresolvedReferences
         await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -854,6 +874,7 @@ async def cancel_subscription_callback(call: CallbackQuery):
     await MaxService.change_subscription_status(user_id, SubsStatus.cancelled)
     logger.info(f"Пользователь {user_id} успешно отменил подписку, статус подписки: {SubsStatus.cancelled}")
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -879,6 +900,7 @@ async def bot_report(call: CallbackQuery):
     )
 
     logger.info(f"Пользователь {user_id} отправил обращение")
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
@@ -890,6 +912,7 @@ async def bot_cancel(call: CallbackQuery):
     user_id = call.from_user.id
     logger.info(f"Пользователь {user_id} остановил отправку обращения")
 
+    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,

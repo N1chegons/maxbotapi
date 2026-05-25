@@ -37,6 +37,7 @@ from src.max.repository import MaxService, AudioService
 # Command
 @dp.message_created(Command('new'))
 async def new_session(event: MessageCreated):
+    # noinspection PyUnresolvedReferences
     user_id = event.message.sender.user_id
     logger.debug(f"Обновление сессии для пользователя {user_id}")
     await MaxService.delete_session(user_id)
@@ -65,6 +66,7 @@ async def new_session(event: MessageCreated):
 
 @dp.message_created(Command('mem'))
 async def mem_memory_choice(event: MessageCreated):
+    # noinspection PyUnresolvedReferences
     user_id = event.message.sender.user_id
     session_user = await MaxService.get_session(user_id)
     logger.info(f"Смена памяти для пользователя {user_id}")
@@ -120,6 +122,7 @@ async def mem_memory_choice(event: MessageCreated):
 
 @dp.message_created(Command('del'))
 async def delete_info(event: MessageCreated):
+    # noinspection PyUnresolvedReferences
     user_id = event.message.sender.user_id
     session_user = await MaxService.get_session(user_id)
     logger.info(f"Удаление данных для пользователя {user_id}")
@@ -151,6 +154,8 @@ async def delete_info(event: MessageCreated):
             attachments=[reply_kb.as_markup()]
         )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_created(Command('end'))
 async def closed_session(event: MessageCreated):
     user_id = event.message.sender.user_id
@@ -200,6 +205,8 @@ async def closed_session(event: MessageCreated):
                 text="Данные не найдены.\nИзмените тип памяти при помощи /mem"
             )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_created(Command('help'))
 async def instruction(event: MessageCreated):
     user_id = event.message.sender.user_id
@@ -228,6 +235,8 @@ async def instruction(event: MessageCreated):
 
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_created(Command('igor'))
 async def igor_command(event: MessageCreated):
     user_id = event.message.sender.user_id
@@ -272,6 +281,8 @@ async def igor_command(event: MessageCreated):
         attachments=[reply_kb.as_markup()]
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_created(Command('bot'))
 async def help_bot_command(event: MessageCreated):
     user_id = event.message.sender.user_id
@@ -301,7 +312,7 @@ async def help_bot_command(event: MessageCreated):
         )
 
 async def create_payment_link(amount: float, user_id: int) -> Any | None:
-    payment_data = TochkaApiService().create_payment_link(amount, user_id, "MAX")
+    payment_data = TochkaApiService().create_payment_link(amount)
     logger.info(f"Создание ссылки на оплату для пользователя {user_id}")
     if payment_data and payment_data.get("payment_link"):
         logger.info(f"Платежная ссылка для пользователя {user_id} создана: {payment_data.get("payment_link")}")
@@ -356,6 +367,8 @@ async def get_subscription_status(user):
 
     return status_text, next_date
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_created(Command('sub'))
 async def cmd_sub(event: MessageCreated):
     user_id = event.from_user.user_id
@@ -386,6 +399,7 @@ async def cmd_sub(event: MessageCreated):
     await send_sub_buttons(user_id, user)
 
 # admin
+# noinspection PyUnresolvedReferences
 @dp.message_created(Command('admin'))
 async def admin_panel(event: MessageCreated):
     user_id = event.message.sender.user_id
@@ -405,6 +419,8 @@ async def admin_panel(event: MessageCreated):
 
     await bot.send_message(user_id=user_id, text=text)
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_created(Command('st'))
 async def stats_command(event: MessageCreated):
     user_id = event.message.sender.user_id
@@ -434,6 +450,8 @@ async def stats_command(event: MessageCreated):
     logger_admin.info(f"Админ {user_id} просмотрел статистику по сообщеиям за {count_message} дней")
     await bot.send_message(user_id=user_id, text=report)
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_created(Command('con'))
 async def view_appointment(event: MessageCreated):
     user_id = event.message.sender.user_id
@@ -504,6 +522,8 @@ async def view_appointment(event: MessageCreated):
         logger_admin.info(f"Админ посмотрел список консультаций")
         await bot.send_message(user_id=user_id, text=text)
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_created(Command('req'))
 async def view_problem_appointment(event: MessageCreated):
     user_id = event.message.sender.user_id
@@ -577,6 +597,8 @@ async def view_problem_appointment(event: MessageCreated):
         logger_admin.info(f"Админ {user_id} посмотрел список обращений")
         await bot.send_message(user_id=user_id, text=text)
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_created(Command('ha'))
 async def admin_help_command(event: MessageCreated):
     user_id = event.message.sender.user_id
@@ -637,6 +659,8 @@ async def bot_started(event: BotStarted):
                  "Если хочешь начать все сначала пиши - /new"
         )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "delete_agree")
 async def handle_continue(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -650,6 +674,8 @@ async def handle_continue(callback: MessageCallback):
         attachments=[]
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "delete_disagree")
 async def handle_continue(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -660,6 +686,8 @@ async def handle_continue(callback: MessageCallback):
         attachments=[]
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "continue")
 async def handle_continue(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -687,6 +715,8 @@ async def handle_continue(callback: MessageCallback):
         attachments=[reply_kb.as_markup()]
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "disagree")
 async def handle_disagree(callback: MessageCallback):
     await callback.message.edit(
@@ -695,6 +725,8 @@ async def handle_disagree(callback: MessageCallback):
         ), attachments=[]
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "agree")
 async def handle_agree(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -722,6 +754,8 @@ async def handle_agree(callback: MessageCallback):
         attachments = [reply_kb.as_markup()]
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "query")
 async def handle_query(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -755,9 +789,11 @@ async def handle_query(callback: MessageCallback):
         attachments=[reply_kb.as_markup()]
     )
 
+
+# noinspection PyUnresolvedReferences
 async def handle_agree_subs(callback: MessageCallback):
     user_id = callback.callback.user.user_id
-    payment_data = TochkaApiService().create_payment_link(14, user_id=user_id, platform="MAX")
+    payment_data = TochkaApiService().create_payment_link(14)
 
     if not payment_data or not payment_data.get("payment_link"):
         await callback.message.answer()
@@ -793,6 +829,9 @@ async def show_chat(user_id: int):
         user_id=user_id,
         text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
     )
+
+
+# noinspection PyUnresolvedReferences
 async def send_video(callback: MessageCallback):
     video = InputMedia(path="video_cache/04.mp4")
     await callback.message.edit(
@@ -800,6 +839,8 @@ async def send_video(callback: MessageCallback):
         attachments=[video]
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "memory_none")
 async def handle_memory_none(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -822,6 +863,9 @@ async def handle_memory_none(callback: MessageCallback):
         await show_chat(user.user_id)
     else:
         await handle_agree_subs(callback)
+
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "mem_memory_none")
 async def handle_mem_memory_none(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -833,6 +877,8 @@ async def handle_mem_memory_none(callback: MessageCallback):
         attachments=[]
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "memory_dialog")
 async def handle_memory_dialog(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -854,6 +900,9 @@ async def handle_memory_dialog(callback: MessageCallback):
         await show_chat(user.user_id)
     else:
         await handle_agree_subs(callback)
+
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "mem_memory_dialog")
 async def handle_mem_memory_dialog(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -865,6 +914,8 @@ async def handle_mem_memory_dialog(callback: MessageCallback):
         attachments=[]
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "memory_full")
 async def handle_memory_full(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -886,6 +937,9 @@ async def handle_memory_full(callback: MessageCallback):
         await show_chat(user.user_id)
     else:
         await handle_agree_subs(callback)
+
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "mem_memory_full")
 async def handle_mem_memory_full(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -897,6 +951,8 @@ async def handle_mem_memory_full(callback: MessageCallback):
         attachments=[]
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "consult_agree")
 async def handle_consult_agree(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -914,6 +970,8 @@ async def handle_consult_agree(callback: MessageCallback):
         attachments=[reply_kb.as_markup()]
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "consult_disagree")
 async def handle_consult_disagree(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -924,6 +982,8 @@ async def handle_consult_disagree(callback: MessageCallback):
         attachments=[]
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "cancel_subscription")
 async def cancel_subscription_callback(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -944,6 +1004,8 @@ async def cancel_subscription_callback(callback: MessageCallback):
              f"Чтобы возобновить, оплатите через /sub"
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "bot_send_problem")
 async def bot_report(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -965,6 +1027,8 @@ async def bot_report(callback: MessageCallback):
         attachments=[]
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "bot_dsend")
 async def bot_cancel(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -975,6 +1039,7 @@ async def bot_cancel(callback: MessageCallback):
     )
 
 # messages
+# noinspection PyUnresolvedReferences
 @dp.message_created(F.message.body.text)
 async def handle_message(event: MessageCreated):
     text = event.message.body.text
@@ -1024,6 +1089,8 @@ async def handle_message(event: MessageCreated):
                 text="⚠️ Не удалось получить ответ. Попробуйте позже."
             )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_created(F.message.body.attachments[0].type == 'contact')
 async def handle_contact(event: MessageCreated):
     user_id = event.message.sender.user_id
@@ -1054,6 +1121,8 @@ async def handle_contact(event: MessageCreated):
              "Вы можете продолжить вести диалог.",
     )
 
+
+# noinspection PyUnresolvedReferences
 @dp.message_created(F.message.body.attachments)
 async def handle_voice_message(event: MessageCreated):
     user_id = event.message.sender.user_id
