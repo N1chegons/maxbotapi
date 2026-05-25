@@ -1,7 +1,5 @@
 import logging
 
-logging.basicConfig(level=logging.INFO)
-
 async def send_notification_max(user_id: int, text: str):
     try:
         from src.max.bot import bot

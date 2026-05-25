@@ -1,7 +1,15 @@
+from src.logger_config import setup_logger
 from src.config import settings
-from src.yandexai.config import yandex_client, THEMES_DESCRIPTIONS
+from src.yandexai.config import THEMES_DESCRIPTIONS, yandex_client
 
+logger = setup_logger('orchestrator', 'yandex_ai', 'orchestrator_work.log')
+
+
+# noinspection PyTypeChecker
 def ask_ai_with_index(index_id: str, query: str, selected_topic: str, history: list = None):
+    logger.info(f"Запрос к AI: тема={selected_topic}, длина запроса={len(query)} символов")
+    logger.debug(f"Индекс: {index_id}, история сообщений: {len(history) if history else 0} записей")
+
     messages_yandex = []
     try:
         messages_yandex.append({
@@ -10,7 +18,7 @@ def ask_ai_with_index(index_id: str, query: str, selected_topic: str, history: l
                  СЕЙЧАС ТЫ РАБОТАЕШЬ С БАЗОЙ: {selected_topic}
                 Содержание базы: {THEMES_DESCRIPTIONS.get(selected_topic, 'материалы эксперта')}
                 Сначала проверяй материалы эксперта, потом проверяй их ещё раз и только затем бери информацию из общей базы.
-                
+
                 КОМАНДЫ БОТА (пользователь может их использовать в любой момент):
                 /new — перезапуск системы
                 /mem — настройки памяти
@@ -20,7 +28,7 @@ def ask_ai_with_index(index_id: str, query: str, selected_topic: str, history: l
                 /end — подвести итоги на основе всей информации в памяти
                 /sub — оплата, статус, продление
                 /bot - Если пользователь говорит, что что-то не работает, сломалось, просит техподдержку — ответь: "Используй команду /bot"
-                
+
                 ОТВЕТ НА ВОПРОСЫ О КОМАНДАХ:
                 - Если пользователь спрашивает "как вернуться? как обновить? как начать сначала?", ответь: "Используй команду /new"
                 - Если пользователь спрашивает "как записаться? как обратиться?", ответь: "Используй команду /igor"
@@ -29,7 +37,7 @@ def ask_ai_with_index(index_id: str, query: str, selected_topic: str, history: l
                 - Если пользователь спрашивает "как удалить? как стереть?", ответь: "Используй команду /del"
                 - Если пользователь просит сделать вывод, подвести итог или напомнить, о чём говорили, ответь: "Используй команду /end"
                 - Если пользователь спрашивает "как оплатить? что с подпиской? когда истекает?", ответь: "Чтобы узнать всё о подписке, используй команду /sub"
-                
+
                 ОБЩИЕ ПРАВИЛА ДЛЯ ВСЕХ ТЕМ!
                 ЗАПРЕЩЕНО:
                 - Отказываться отвечать на вопрос
@@ -41,7 +49,7 @@ def ask_ai_with_index(index_id: str, query: str, selected_topic: str, history: l
                 - Всегда поддерживать мнение эксперта, быть уверенным
                 - Отвечать на все, даже самые острые, вопросы
                 - Вместо повтора переформулировать свою фразу
-                
+
                 ПРОМТ темы Консультация.
                 СТИЛЬ ОБЩЕНИЯ:
                 - Твоя задача — вести себя уверенно, к пользователю обращаться на "ты"
@@ -69,7 +77,7 @@ def ask_ai_with_index(index_id: str, query: str, selected_topic: str, history: l
                 - После гипотезы обязательно спрашивай: «Я правильно тебя понял или было не так?»
                 - Пользователь принимает гипотезу, когда готов действовать по-новому.
                 - Поддержи решимость пользователя и предложи обсудить результат новых действий через некоторое время.
-                
+
                 ПРОМТ темы Мировоззрение.
                 СТИЛЬ ОБЩЕНИЯ:
                 - Твоя задача — вести эмоциональный диалог на сложные темы.
@@ -93,7 +101,7 @@ def ask_ai_with_index(index_id: str, query: str, selected_topic: str, history: l
                 - Разрешай пользователю спорить, но настаивай на своём.
                 - Заканчивай диалог, когда пользователь согласен, что ситуация закономерна
                 - После завершения диалога предлагай новую тему на свой выбор. При отказе: "Да, дела зовут. Встретимся позже".
-                
+
                 ПРОМТ темы Теория.
                 Стиль общения:
                 - Твоя задача — быть любознательным, всегда предлагать новые темы для обсуждения.
@@ -123,16 +131,19 @@ def ask_ai_with_index(index_id: str, query: str, selected_topic: str, history: l
 
         if history:
             messages_yandex.extend(history)
+            logger.debug(f"Добавлено {len(history)} сообщений из истории")
 
         messages_yandex.append({
             "role": "user",
             "content": query
-            })
+        })
 
         if selected_topic == "Мировоззрение":
             model = f"gpt://{settings.YC_FOLDER_ID}/deepseek-v32/latest"
+            logger.debug(f"Выбрана модель deepseek-v32 для темы Мировоззрение")
         else:
             model = f"gpt://{settings.YC_FOLDER_ID}/yandexgpt"
+            logger.debug(f"Выбрана модель yandexgpt для темы {selected_topic}")
 
         response = yandex_client.responses.create(
             model=model,
@@ -144,7 +155,11 @@ def ask_ai_with_index(index_id: str, query: str, selected_topic: str, history: l
             temperature=0.7,
         )
 
+        logger.info(f"Ответ от AI получен, длина ответа: {len(response.output_text)} символов")
+        logger.debug(f"Ответ AI: {response.output_text[:100]}...")
+
         return response.output_text
     except Exception as e:
+        logger.error(f"Ошибка AI Studio: {e}")
         print(f"AI Studio ошибка: {e}")
         return None

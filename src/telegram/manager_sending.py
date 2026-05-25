@@ -1,7 +1,5 @@
 import logging
 
-logging.basicConfig(level=logging.INFO)
-
 async def send_notification_telegram(user_id: int, text: str):
     """Отправляет уведомление пользователю в MAX"""
     try:
