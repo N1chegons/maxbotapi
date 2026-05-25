@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import os
 from typing import Any
 
@@ -24,8 +23,6 @@ from src.config import settings
 
 logger = setup_logger('telegram_bot', 'telegram', 'TELEGRAM_bot.log')
 logger_admin = setup_logger('admin', 'admin', 'telegram_admin.log')
-
-logging.basicConfig(level=logging.INFO)
 
 BOT_TOKEN = settings.TELEGRAM_BOT_TOKEN
 WEBHOOK_PATH = "/tg_webhook"
@@ -122,7 +119,7 @@ async def mem_memory_choice(message):
 async def delete_info(message):
     user_id = message.from_user.id
     session_user = await MaxService.get_session(user_id)
-    logger.warning(f"Удаление данных для пользователя {user_id}")
+    logger.info(f"Удаление данных для пользователя {user_id}")
 
     if not session_user:
         logger.warning(f"У пользователя {user_id} не найдена сессия")
@@ -172,7 +169,7 @@ async def closed_session(message):
         answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
         if user.memory_mode == MemoryMode.session:
-            logger.info(f"Пользоватлеь {user_id} заканчивает диалог с памятью {MemoryMode.none}")
+            logger.info(f"Пользоватлеь {user_id} заканчивает диалог с памятью {MemoryMode.session}")
             await MaxService.delete_messages(user_id)
             await bot.send_message(
                 chat_id=message.chat.id,
