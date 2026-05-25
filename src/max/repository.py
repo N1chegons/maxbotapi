@@ -1,45 +1,58 @@
-import os
 from datetime import datetime, timedelta
 
-from maxapi.types import InputMedia
 from sqlalchemy import select, update, insert, delete, or_
 
 from src.config import settings
 from src.db import async_session
+from src.logger_config import setup_logger
 from src.max.models import Session, Message, Request, User, UserState, SubsStatus, SubsTier, MemoryMode
+
+logger = setup_logger('repository', 'max', 'repository_work.log')
 
 FOLDER_ID = settings.YC_FOLDER_ID
 API_KEY = settings.YC_API_SPEECHKIT
 
+
+# noinspection PyDeprecation
 class MaxService:
     # user section
     @classmethod
     async def get_user(cls, user_id: int):
+        logger.debug(f"Получение пользователя {user_id}")
         async with async_session() as session:
             query = select(User).filter_by(user_id=user_id)
             result = await session.execute(query)
             res = result.scalar_one_or_none()
+            if res:
+                logger.debug(f"Пользователь {user_id} найден")
+            else:
+                logger.debug(f"Пользователь {user_id} не найден")
             return res
 
     @classmethod
     async def create_user(cls, user_id: int, platform: str):
+        logger.info(f"Создание пользователя {user_id} на платформе {platform}")
         async with async_session() as session:
             stmt = insert(User).values(user_id=user_id, platform=platform)
-            add_new_session = await session.execute(stmt)
+            await session.execute(stmt)
             await session.commit()
+            logger.info(f"Пользователь {user_id} успешно создан")
 
     # user state
     @classmethod
     async def update_user_state(cls, user_id: int, new_state: UserState):
+        logger.debug(f"Обновление состояния пользователя {user_id} на {new_state}")
         async with async_session() as session:
             await session.execute(
                 update(User).filter_by(user_id=user_id).values(state=new_state)
             )
             await session.commit()
+            logger.debug(f"Состояние пользователя {user_id} обновлено на {new_state}")
 
     # memory modes
     @classmethod
     async def update_memory_mode(cls, user_id: int, new_mode: MemoryMode):
+        logger.info(f"Пользователь {user_id} изменил режим памяти на {new_mode}")
         async with async_session() as session:
             await session.execute(
                 update(User).filter_by(user_id=user_id).values(memory_mode=new_mode)
@@ -48,6 +61,7 @@ class MaxService:
 
     @classmethod
     async def update_is_memory_setup_completed(cls, user_id: int):
+        logger.debug(f"Отметка о завершении настройки памяти для пользователя {user_id}")
         async with async_session() as session:
             await session.execute(
                 update(User).filter_by(user_id=user_id).values(is_memory_setup_completed=True)
@@ -57,31 +71,39 @@ class MaxService:
     # session section
     @classmethod
     async def get_session(cls, user_id: int):
+        logger.debug(f"Получение активной сессии для пользователя {user_id}")
         async with async_session() as session:
             query = select(Session).filter_by(user_id=user_id).order_by(Session.started_at.desc()).limit(1)
             result = await session.execute(query)
             res = result.scalar_one_or_none()
+            if res:
+                logger.debug(f"Найдена сессия {res.id} для пользователя {user_id}")
             return res
 
     @classmethod
     async def create_session(cls, user_id: int):
+        logger.info(f"Создание новой сессии для пользователя {user_id}")
         async with async_session() as session:
             stmt = insert(Session).values(user_id=user_id)
-            add_new_session = await session.execute(stmt)
+            await session.execute(stmt)
             await session.commit()
+            logger.info(f"Сессия для пользователя {user_id} создана")
 
     @classmethod
     async def delete_session(cls, user_id: int):
+        logger.warning(f"Удаление сессии и всех сообщений пользователя {user_id}")
         async with async_session() as session:
             await cls.delete_messages(user_id)
 
             stmt = delete(Session).filter_by(user_id=user_id)
-            add_new_session = await session.execute(stmt)
+            await session.execute(stmt)
             await session.commit()
+            logger.info(f"Сессия пользователя {user_id} удалена")
 
     # history message section
     @classmethod
     async def add_message(cls, user_id: int, session_id: int, role: str, content: str):
+        logger.debug(f"Добавление сообщения от {role} для пользователя {user_id} в сессию {session_id}")
         async with async_session() as session:
             stmt = insert(Message).values(
                 user_id=user_id,
@@ -91,9 +113,11 @@ class MaxService:
             )
             await session.execute(stmt)
             await session.commit()
+            logger.debug(f"Сообщение для пользователя {user_id} добавлено")
 
     @classmethod
     async def get_history(cls, user_id: int, limit: int = 200):
+        logger.debug(f"Получение последних {limit} сообщений для пользователя {user_id}")
         async with async_session() as session:
             stmt = (
                 select(Message)
@@ -103,6 +127,7 @@ class MaxService:
             )
             result = await session.execute(stmt)
             messages = result.scalars().all()
+            logger.debug(f"Получено {len(messages)} сообщений для пользователя {user_id}")
             return [
                 {"role": m.role, "content": m.content}
                 for m in reversed(messages)
@@ -110,35 +135,18 @@ class MaxService:
 
     @classmethod
     async def delete_messages(cls, user_id: int):
+        logger.info(f"Удаление всех сообщений пользователя {user_id}")
         async with async_session() as session:
-            result = await session.execute(
+            await session.execute(
                 delete(Message).filter_by(user_id=user_id)
             )
             await session.commit()
-
-    @classmethod
-    async def delete_non_today_messages(cls):
-        from datetime import datetime
-
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-
-        async with async_session() as session:
-            result = await session.execute(
-                delete(Message).where(Message.created_at < today_start)
-            )
-            await session.commit()
-            print(f"[CLEANUP] Удалено {result.rowcount} сообщений")
+            logger.info(f"Сообщения пользователя {user_id} удалены")
 
     #consult request
     @classmethod
-    async def get_request_list(cls):
-        async with async_session() as session:
-            query = select(Request).order_by(Request.created_at.desc())
-            result = await session.execute(query)
-            return result.scalars().all()
-
-    @classmethod
     async def get_unviewed_request(cls, limit: int = 15):
+        logger.debug(f"Получение непросмотренных заявок (лимит {limit})")
         async with async_session() as session:
             result = await session.execute(
                 select(Request)
@@ -148,10 +156,13 @@ class MaxService:
                 )
                 .limit(limit)
             )
-            return result.scalars().all()
+            requests = result.scalars().all()
+            logger.debug(f"Найдено {len(requests)} непросмотренных заявок")
+            return requests
 
     @classmethod
     async def get_request(cls, client_id: int):
+        logger.debug(f"Получение заявки для клиента {client_id}")
         async with async_session() as session:
             query = select(Request).filter_by(client_id=client_id)
             result = await session.execute(query)
@@ -160,6 +171,7 @@ class MaxService:
 
     @classmethod
     async def get_request_by_id(cls, appointment_id: int):
+        logger.debug(f"Получение заявки по ID {appointment_id}")
         async with async_session() as session:
             result = await session.execute(
                 select(Request).filter_by(id=appointment_id)
@@ -168,6 +180,7 @@ class MaxService:
 
     @classmethod
     async def add_request(cls, client_id: int, contact: str, messages: str, appointment_date: datetime):
+        logger.info(f"Добавление заявки на консультацию для пользователя {client_id} на {appointment_date}")
         async with async_session() as session:
             stmt = insert(Request).values(
                 client_id=client_id,
@@ -177,9 +190,11 @@ class MaxService:
             )
             await session.execute(stmt)
             await session.commit()
+            logger.info(f"Заявка для пользователя {client_id} добавлена")
 
     @classmethod
     async def mark_request_viewed(cls, appointment_id: int):
+        logger.debug(f"Отметка заявки {appointment_id} как просмотренной")
         async with async_session() as session:
             await session.execute(
                 update(Request)
@@ -190,6 +205,7 @@ class MaxService:
 
     @classmethod
     async def get_last_messages(cls, client_id: int, limit: int = 20) -> list:
+        logger.debug(f"Получение последних {limit} сообщений для клиента {client_id}")
         async with async_session() as session:
             stmt = (
                 select(Message)
@@ -226,26 +242,8 @@ class MaxService:
                 date_utc = date_msk.astimezone(pytz.UTC).replace(tzinfo=None)
 
     @classmethod
-    async def check_and_update_trial_status(cls, user_id: int) -> str:
-        async with async_session() as session:
-            user = await cls.get_user(user_id)
-
-            if user.state != UserState.TRIAL_ACTIVE:
-                return user.state
-
-            if user.trial_ends_at and user.trial_ends_at > datetime.utcnow():
-                return UserState.TRIAL_ACTIVE
-
-            stmt = update(User).filter_by(user_id=user_id).values(
-                state=UserState.TRIAL_ENDED_NOT_PAID
-            )
-            await session.execute(stmt)
-            await session.commit()
-
-            return UserState.TRIAL_ENDED_NOT_PAID
-
-    @classmethod
     async def start_trial(cls, user_id: int):
+        logger.info(f"Запуск пробного периода для пользователя {user_id}")
         async with async_session() as session:
             now = datetime.utcnow()
             await session.execute(
@@ -258,13 +256,7 @@ class MaxService:
                 )
             )
             await session.commit()
-
-    @classmethod
-    async def is_trial_active(cls, user_id: int) -> bool:
-        user = await cls.get_user(user_id)
-        if not user or not user.trial_ends_at:
-            return False
-        return user.trial_ends_at > datetime.utcnow() and user.state == UserState.TRIAL_ACTIVE
+            logger.info(f"Пробный период для пользователя {user_id} активирован до {now + timedelta(days=14)}")
 
     @classmethod
     async def expire_trial_if_needed(cls, user_id: int):
@@ -274,6 +266,7 @@ class MaxService:
             return
 
         if user.trial_ends_at and user.trial_ends_at <= datetime.utcnow():
+            logger.info(f"Истечение пробного периода для пользователя {user_id}")
             async with async_session() as session:
                 await session.execute(
                     update(User)
@@ -284,25 +277,11 @@ class MaxService:
                     )
                 )
                 await session.commit()
-
-    @classmethod
-    async def expire_active_if_needed(cls, user_id: int):
-        user = await cls.get_user(user_id)
-
-        if user.state != UserState.PAID:
-            return
-
-        if user.subscription_ends_at and user.subscription_ends_at <= datetime.utcnow():
-            async with async_session() as session:
-                await session.execute(
-                    update(User)
-                    .where(User.user_id == user_id)
-                    .values(state=UserState.CHURNED)
-                )
-                await session.commit()
+                logger.info(f"Пробный период пользователя {user_id} истёк, статус обновлён")
 
     @classmethod
     async def activate_subscription(cls, user_id: int, tier: SubsTier, state: UserState):
+        logger.info(f"Активация подписки {tier} для пользователя {user_id}")
         async with async_session() as session:
             await session.execute(
                 update(User)
@@ -314,9 +293,11 @@ class MaxService:
                 )
             )
             await session.commit()
+            logger.info(f"Подписка для пользователя {user_id} активирована до {datetime.utcnow() + timedelta(days=30)}")
 
     @classmethod
     async def change_subscription_status(cls, user_id: int, status: SubsStatus):
+        logger.warning(f"Изменение статуса подписки пользователя {user_id} на {status}")
         async with async_session() as session:
             await session.execute(
                 update(User)
@@ -326,9 +307,11 @@ class MaxService:
                 )
             )
             await session.commit()
+            logger.info(f"Статус подписки пользователя {user_id} изменён на {status}")
 
     @classmethod
     async def save_payment_method(cls, user_id: int, payment_method_id: str):
+        logger.info(f"Сохранение метода оплаты для пользователя {user_id}")
         async with async_session() as session:
             await session.execute(
                 update(User)
@@ -336,9 +319,11 @@ class MaxService:
                 .values(payment_method_id=payment_method_id)
             )
             await session.commit()
+            logger.info(f"Метод оплаты для пользователя {user_id} сохранён")
 
     @classmethod
     async def update_subscription_end_date(cls, user_id: int, new_end_date: datetime):
+        logger.info(f"Обновление даты окончания подписки пользователя {user_id} на {new_end_date}")
         async with async_session() as session:
             await session.execute(
                 update(User)
@@ -349,6 +334,7 @@ class MaxService:
 
     @classmethod
     async def mark_started_subscription(cls, user_id: int):
+        logger.info(f"Отметка о начале платной подписки для пользователя {user_id}")
         async with async_session() as session:
             await session.execute(
                 update(User)
@@ -359,41 +345,43 @@ class MaxService:
 
     @classmethod
     async def can_send_message(cls, user_id: int) -> bool:
-        # Сначала обновляем статус триала
+        logger.debug(f"Проверка возможности отправки сообщения для пользователя {user_id}")
         await cls.expire_trial_if_needed(user_id)
 
         user = await cls.get_user(user_id)
         if not user:
+            logger.debug(f"Пользователь {user_id} не найден")
             return False
 
         now = datetime.utcnow()
 
         if user.subscription_status == SubsStatus.active:
-            return user.subscription_ends_at and user.subscription_ends_at > now
+            result = user.subscription_ends_at and user.subscription_ends_at > now
+            logger.debug(f"Пользователь {user_id} (активная подписка): {result}")
+            return result
 
         if user.subscription_status == SubsStatus.grace_period:
-            return user.subscription_ends_at and user.subscription_ends_at > now
+            result = user.subscription_ends_at and user.subscription_ends_at > now
+            logger.debug(f"Пользователь {user_id} (льготный период): {result}")
+            return result
 
         if user.subscription_status == SubsStatus.cancelled:
-            return user.subscription_ends_at and user.subscription_ends_at > now
+            result = user.subscription_ends_at and user.subscription_ends_at > now
+            logger.debug(f"Пользователь {user_id} (отменённая подписка): {result}")
+            return result
 
         if user.subscription_status == SubsStatus.trial:
-            return user.trial_ends_at and user.trial_ends_at > now
+            result = user.trial_ends_at and user.trial_ends_at > now
+            logger.debug(f"Пользователь {user_id} (пробный период): {result}")
+            return result
 
+        logger.debug(f"Пользователь {user_id} не может отправлять сообщения")
         return False
 
-    @classmethod
-    async def update_cancelled_at(cls, user_id: int, cancelled_at: datetime):
-        async with async_session() as session:
-            await session.execute(
-                update(User)
-                .where(User.user_id == user_id)
-                .values(cancelled_at=cancelled_at)
-            )
-            await session.commit()
     # -------------------------------------- CRON ---------------------------------------
     @classmethod
     async def get_users_for_auto_charge(cls):
+        logger.debug("Получение пользователей для автоматического списания")
         async with async_session() as session:
             now = datetime.utcnow()
             three_days_ago = now - timedelta(days=3)
@@ -410,12 +398,15 @@ class MaxService:
                     )
                 )
             )
-            return result.scalars().all()
+            users = result.scalars().all()
+            logger.debug(f"Найдено {len(users)} пользователей для автоматического списания")
+            return users
 
     @classmethod
     async def get_users_with_expired_trial(cls):
+        logger.debug("Получение пользователей с истёкшим пробным периодом")
         async with async_session() as session:
-            now = datetime.utcnow()  # ← naive
+            now = datetime.utcnow()
             result = await session.execute(
                 select(User)
                 .where(
@@ -423,10 +414,13 @@ class MaxService:
                     User.trial_ends_at <= now
                 )
             )
-            return result.scalars().all()
+            users = result.scalars().all()
+            logger.debug(f"Найдено {len(users)} пользователей с истёкшим пробным периодом")
+            return users
 
     @classmethod
     async def update_grace_period_attempts(cls, user_id: int, attempts: int):
+        logger.debug(f"Обновление количества попыток льготного периода для пользователя {user_id}: {attempts}")
         async with async_session() as session:
             await session.execute(
                 update(User)
@@ -437,8 +431,9 @@ class MaxService:
 
     @classmethod
     async def activate_subscription_after_trial(cls, user_id: int):
+        logger.info(f"Активация платной подписки после пробного периода для пользователя {user_id}")
         async with async_session() as session:
-            new_end = datetime.utcnow() + timedelta(days=31)  # ← naive
+            new_end = datetime.utcnow() + timedelta(days=31)
             await session.execute(
                 update(User)
                 .where(User.user_id == user_id)
@@ -452,11 +447,14 @@ class MaxService:
                 )
             )
             await session.commit()
+            logger.info(f"Подписка для пользователя {user_id} активирована до {new_end}")
+
 
 class AudioService:
     @classmethod
     def recognize_from_s3(cls, filelink: str, api_key: str) -> str:
         import requests, time
+        logger.info(f"Начало распознавания речи из файла: {filelink}")
         # noinspection PyPep8Naming
         POST = 'https://transcribe.api.cloud.yandex.net/speech/stt/v2/longRunningRecognize'
         body = {
@@ -473,10 +471,12 @@ class AudioService:
         resp = requests.post(POST, headers=headers, json=body)
 
         if resp.status_code != 200:
+            logger.error(f"Ошибка запуска распознавания: {resp.status_code} - {resp.text}")
             raise Exception(f"Ошибка старта: {resp.status_code} - {resp.text}")
 
         data = resp.json()
         operation_id = data['id']
+        logger.debug(f"ID операции распознавания: {operation_id}")
 
         while True:
             time.sleep(5)
@@ -486,21 +486,7 @@ class AudioService:
                 break
 
         texts = [chunk['alternatives'][0]['text'] for chunk in data['response']['chunks']]
-        return ' '.join(texts)
-
-class VideoService:
-    def __init__(self):
-        self.cache_dir = "video_cache"
-        self.video_files = {
-            "consultation": "04.mp4",
-            "about_bot": "02.mp4",
-            "about_expert": "01.mp4"
-        }
-        self.video_media_cache = {}
-
-    async def preload_videos(self):
-        for key, file_name in self.video_files.items():
-            file_path = os.path.join(self.cache_dir, file_name)
-            if os.path.exists(file_path):
-                self.video_media_cache[key] = InputMedia(path=file_path)
-
+        result = ' '.join(texts)
+        logger.info(f"Распознавание завершено, длина текста: {len(result)} символов")
+        logger.debug(f"Распознанный текст: {result[:100]}...")
+        return result

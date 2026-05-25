@@ -122,7 +122,7 @@ async def mem_memory_choice(event: MessageCreated):
 async def delete_info(event: MessageCreated):
     user_id = event.message.sender.user_id
     session_user = await MaxService.get_session(user_id)
-    logger.warning(f"Удаление данных для пользователя {user_id}")
+    logger.info(f"Удаление данных для пользователя {user_id}")
 
     if not session_user:
         logger.warning(f"У пользователя {user_id} не найдена сессия")
@@ -181,20 +181,20 @@ async def closed_session(event: MessageCreated):
         answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
         if user.memory_mode == MemoryMode.session:
-            logger.info(f"Пользоватлеь {user_id} заканчивает диалог с памятью {MemoryMode.session}")
+            logger.info(f"Пользователь {user_id} заканчивает диалог с памятью {MemoryMode.session}")
             await MaxService.delete_messages(user.user_id)
             await bot.send_message(
                 user_id=user_id,
                 text=answer
             )
         elif user.memory_mode == MemoryMode.full:
-            logger.ingo(f"Пользоватлеь {user_id} заканчивает диалог с памятью {MemoryMode.full}")
+            logger.info(f"Пользователь {user_id} заканчивает диалог с памятью {MemoryMode.full}")
             await bot.send_message(
             user_id=user_id,
                 text=answer
             )
         else:
-            logger.info(f"Пользоватлеь {user_id} заканчивает диалог с памятью {MemoryMode.none}")
+            logger.info(f"Пользователь {user_id} заканчивает диалог с памятью {MemoryMode.none}")
             await bot.send_message(
             user_id=user_id,
                 text="Данные не найдены.\nИзмените тип памяти при помощи /mem"
