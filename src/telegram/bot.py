@@ -441,7 +441,7 @@ async def view_appointment(message):
 @bot.message_handler(commands=['req'])
 async def view_problem_appointment(message):
     user_id = message.from_user.id
-    username = message.from_user.usernmae
+    username = message.from_user.username
     user = await MaxService.get_user(user_id)
 
     if not AdminService.is_admin(user_id):
