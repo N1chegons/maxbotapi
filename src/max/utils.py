@@ -5,7 +5,6 @@ from botocore.config import Config
 from src.config import settings
 from src.logger_config import setup_logger
 
-# Создаём логгер для утилит
 logger = setup_logger("utils", "max", "utils.log")
 
 s3_config = Config(
