@@ -1,6 +1,7 @@
 from typing import Optional, Dict, List, Tuple, Any
 import random
 import subprocess
+from urllib.parse import quote
 
 import aiohttp
 import requests
@@ -317,7 +318,8 @@ class VkIntegration:
 
             # Выбираем случайный PDF
             pdf_key = random.choice(pdf_files)
-            pdf_url = f"https://storage.yandexcloud.net/{bucket}/{pdf_key}"
+            encoded_key = quote(pdf_key, safe='')
+            pdf_url = f"https://storage.yandexcloud.net/{bucket}/{encoded_key}"
 
             # Пытаемся получить описание (только для mod и soc)
             description = None
