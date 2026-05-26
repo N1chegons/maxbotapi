@@ -32,7 +32,7 @@ class MaxService:
     @classmethod
     async def get_users(cls):
         async with async_session() as session:
-            query = select(User).filter_by(platform="TELEGRAM")
+            query = select(User).filter_by(platform="MAX")
             result = await session.execute(query)
             res = result.scalars().all()
             return res
