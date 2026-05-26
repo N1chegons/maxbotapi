@@ -71,8 +71,9 @@ async def broadcast_to_all(message_text: str):
 
     for user in users:
         try:
+            user_id = user.user_id
             await bot.send_message(
-                user_id=user.user_id,
+                user_id=user_id,
                 text=message_text,
             )
             success += 1
