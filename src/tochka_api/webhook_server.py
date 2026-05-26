@@ -6,7 +6,6 @@ from aiohttp import web
 import jwt
 from jwt import exceptions
 
-
 project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
