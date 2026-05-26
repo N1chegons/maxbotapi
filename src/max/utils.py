@@ -7,6 +7,7 @@ from botocore.config import Config
 from src.config import settings
 from src.logger_config import setup_logger
 from src.max.repository import MaxService
+from src.max.bot import bot as bot_S
 
 # Создаём логгер для утилит
 logger = setup_logger("utils", "max", "utils.log")
@@ -72,7 +73,7 @@ async def broadcast_to_all(message_text: str):
     for user in users:
         try:
             user_id = user.user_id
-            await bot.send_message(
+            await bot_S.send_message(
                 user_id=user_id,
                 text=message_text,
             )
@@ -86,4 +87,3 @@ async def broadcast_to_all(message_text: str):
     print(f"\nГотово! Успешно: {success}, Ошибок: {fail}")
 
 asyncio.run(broadcast_to_all("Ребята, спасибо за тест: нашли баг в связи с Точкой. Заходите завтра в бот, получите доступ. С четверга придётся снова 14 рублей платить"))
-from src.max.bot import bot
