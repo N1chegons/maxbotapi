@@ -735,6 +735,7 @@ async def handle_memory_none(call: CallbackQuery):
         await show_chat_tg(user_id)
     else:
         await handle_agree_subs(call)
+
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_none")
 async def handle_mem_memory_none(call: CallbackQuery):
     user_id = call.from_user.id
