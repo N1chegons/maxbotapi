@@ -34,7 +34,7 @@ class MaxService:
         async with async_session() as session:
             query = select(User).filter_by(platform="TELEGRAM")
             result = await session.execute(query)
-            res = result.scalar_one_or_none()
+            res = result.all()
             return res
 
     @classmethod
