@@ -1079,11 +1079,6 @@ async def main():
     await site.start()
     logger.info("Бот успешно запущен")
     await asyncio.Event().wait()
-
-# started
-if __name__ == "__main__":
-    asyncio.run(main())
-
 async def broadcast_to_all(message_text: str):
     """
     Отправляет сообщение всем пользователям из базы данных.
@@ -1117,4 +1112,10 @@ async def broadcast_to_all(message_text: str):
 
     print(f"\nГотово! Успешно: {success}, Ошибок: {fail}")
 
-asyncio.run(broadcast_to_all("Ребята, спасибо за тест: нашли баг в связи с Точкой. Заходите завтра в бот, получите доступ. С четверга придётся снова 14 рублей платить"))
+
+# started
+if __name__ == "__main__":
+    asyncio.run(broadcast_to_all(
+        "Ребята, спасибо за тест: нашли баг в связи с Точкой. Заходите завтра в бот, получите доступ. С четверга придётся снова 14 рублей платить"))
+    asyncio.run(main())
+
