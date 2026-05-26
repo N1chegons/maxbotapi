@@ -427,6 +427,41 @@ class VkIntegration:
         with open(self.index_file, "w") as f:
             f.write(str(index))
 
+    def get_video_description(self, video_url: str) -> str:
+        """Получить описание видео через yt-dlp"""
+        try:
+            logger.info(f"Получение описания для видео: {video_url}")
+
+            result = subprocess.run(
+                [
+                    "yt-dlp",
+                    "--get-description",
+                    video_url
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            if result.returncode != 0:
+                logger.warning(f"Не удалось получить описание: {result.stderr}")
+                return ""
+
+            description = result.stdout.strip()
+
+            # Обрезаем слишком длинное описание
+            if len(description) > 800:
+                description = description[:797] + "..."
+
+            return description
+
+        except subprocess.TimeoutExpired:
+            logger.error(f"Таймаут при получении описания {video_url}")
+            return ""
+        except Exception as e:
+            logger.error(f"Ошибка получения описания: {e}")
+            return ""
+
     def publish_next(self):
         """Опубликовать следующий контент по расписанию"""
         index = self.get_current_index()
@@ -438,7 +473,6 @@ class VkIntegration:
 
         try:
             if item_type == "playlist":
-                # Берём случайное видео из плейлиста через yt-dlp
                 playlist_url = self.video_playlists.get(item_name)
                 if not playlist_url:
                     logger.error(f"Нет плейлиста для {item_name}")
@@ -449,8 +483,15 @@ class VkIntegration:
                     logger.error(f"Не удалось получить видео из плейлиста {item_name}")
                     return
 
+                # ПОЛУЧАЕМ ОПИСАНИЕ ВИДЕО
+                description = self.get_video_description(video_url)
+
                 prefix = self.video_prefixes.get(item_name, "")
-                message = f"{prefix}\n\n🎬 Смотреть: {video_url}"
+
+                if description:
+                    message = f"{prefix}\n\n{description}\n\n🎬 Смотреть: {video_url}"
+                else:
+                    message = f"{prefix}\n\n🎬 Смотреть: {video_url}"
 
             elif item_type == "pdf":
                 # PDF из S3
