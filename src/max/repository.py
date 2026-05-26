@@ -30,14 +30,6 @@ class MaxService:
             return res
 
     @classmethod
-    async def get_users(cls):
-        async with async_session() as session:
-            query = select(User).filter_by(platform="MAX")
-            result = await session.execute(query)
-            res = result.scalars().all()
-            return res
-
-    @classmethod
     async def create_user(cls, user_id: int, platform: str):
         logger.info(f"Создание пользователя {user_id} на платформе {platform}")
         async with async_session() as session:
