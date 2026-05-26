@@ -1083,3 +1083,38 @@ async def main():
 # started
 if __name__ == "__main__":
     asyncio.run(main())
+
+async def broadcast_to_all(message_text: str):
+    """
+    Отправляет сообщение всем пользователям из базы данных.
+    Запуск в консоли PyCharm: from tg_bot import broadcast_to_all; asyncio.run(broadcast_to_all("Твой текст"))
+    """
+    # Получаем всех пользователей из БД
+    users = await MaxService.get_users()  # Нужно добавить этот метод
+
+    if not users:
+        print("Нет пользователей для рассылки")
+        return
+
+    print(f"Начинаю рассылку для {len(users)} пользователей...")
+
+    success = 0
+    fail = 0
+
+    for user in users:
+        try:
+            user_id = user.user_id
+            await bot.send_message(
+                chat_id=user_id,
+                text=message_text,
+            )
+            success += 1
+            await asyncio.sleep(0.05)  # Пауза чтобы не заблокировали
+            print(f"✅ Отправлено {success}/{len(users)}")
+        except Exception as e:
+            fail += 1
+            print(f"❌ Ошибка {user.user_id}: {e}")
+
+    print(f"\nГотово! Успешно: {success}, Ошибок: {fail}")
+
+asyncio.run(broadcast_to_all("Ребята, спасибо за тест: нашли баг в связи с Точкой. Заходите завтра в бот, получите доступ. С четверга придётся снова 14 рублей платить"))
