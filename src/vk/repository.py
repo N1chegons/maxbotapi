@@ -384,6 +384,55 @@ class VkIntegration:
 
         return ""
 
+    async def get_random_video_from_playlist(self, playlist_url: str) -> Dict[str, str]:
+        """Получить случайное видео из плейлиста, сохраняя привязку к плейлисту"""
+        # Извлекаем owner_id и playlist_id из URL
+        # Пример: https://vkvideo.ru/video-216257056_456239291?pl=-216257056_1
+        match = re.search(r'video(-?\d+)_(\d+)\?pl=(-?\d+_\d+)', playlist_url)
+        if not match:
+            logger.error(f"Не удалось распарсить плейлист: {playlist_url}")
+            return {"video_url": playlist_url, "playlist_url": playlist_url}
+
+        owner_id = match.group(1)
+        video_id = match.group(2)
+        playlist_id = match.group(3)
+
+        # Получаем список видео в плейлисте через VK API
+        url = "https://api.vk.com/method/video.get"
+        params = {
+            "access_token": self.token,
+            "owner_id": owner_id,
+            "playlist_id": playlist_id,
+            "v": "5.199"
+        }
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params) as resp:
+                    data = await resp.json()
+
+                    if "error" in data:
+                        logger.error(f"VK API ошибка: {data['error']['error_msg']}")
+                        return {"video_url": playlist_url, "playlist_url": playlist_url}
+
+                    items = data.get("response", {}).get("items", [])
+                    if not items:
+                        return {"video_url": playlist_url, "playlist_url": playlist_url}
+
+                    # Выбираем случайное видео из плейлиста
+                    random_video = random.choice(items)
+                    video_url = f"https://vk.com/video{random_video['owner_id']}_{random_video['id']}?pl={playlist_id}"
+
+                    return {
+                        "video_url": video_url,
+                        "playlist_url": playlist_url,  # сохраняем ссылку на весь плейлист для контекста
+                        "description": random_video.get("description", "")
+                    }
+
+        except Exception as e:
+            logger.error(f"Ошибка получения плейлиста: {e}")
+            return {"video_url": playlist_url, "playlist_url": playlist_url}
+
     async def get_random_article(self) -> Optional[Dict]:
         """Получить случайную статью из VK"""
         url = "https://api.vk.com/method/wall.get"
@@ -482,19 +531,22 @@ class VkIntegration:
 
         try:
             if item_type == "playlist":
-                # Видео с плейлистом
-                video_url = self.video_playlists.get(item_name)
-                if not video_url:
-                    logger.error(f"Нет видео для {item_name}")
+                playlist_url = self.video_playlists.get(item_name)
+                if not playlist_url:
+                    logger.error(f"Нет плейлиста для {item_name}")
                     return
 
+                video_data = await self.get_random_video_from_playlist(playlist_url)
+                video_url = video_data["video_url"]
+                playlist_url = video_data["playlist_url"]
+                description = video_data.get("description") or await self.get_video_description(video_url)
+
                 prefix = self.video_prefixes.get(item_name, "")
-                description = await self.get_video_description(video_url)
 
                 if description:
-                    message = f"{prefix}\n\n{description}\n\n🎬 Смотреть: {video_url}"
+                    message = f"{prefix}\n\n{description}\n\n🎬 Смотреть: {video_url}\n\n📺 Весь плейлист: {playlist_url}"
                 else:
-                    message = f"{prefix}\n\n🎬 Смотреть: {video_url}"
+                    message = f"{prefix}\n\n🎬 Смотреть: {video_url}\n\n📺 Весь плейлист: {playlist_url}"
 
             elif item_type == "pdf":
                 # PDF из S3
