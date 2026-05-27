@@ -483,6 +483,7 @@ schedule_map = {
     20: lambda: publisher.publish_video(publisher.get_next_playlist_type2()),
 }
 
+
 def run_by_hour(hour: int):
     """Запустить публикацию по часу"""
     if hour in schedule_map:
