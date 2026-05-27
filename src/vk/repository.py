@@ -1,5 +1,5 @@
 import json
-from typing import Optional, Dict, List, Tuple, Any
+from typing import Optional, Dict, Any
 import random
 import subprocess
 from urllib.parse import quote
@@ -193,14 +193,12 @@ class VkIntegrationNew:
         self.send_to_channel(message)
         print(f"✅ Отправлено видео из плейлиста {playlist_name}")
 
-
-# noinspection PyTypeChecker
 class VkIntegration:
     def __init__(self):
         self.channel_id = settings.MAX_CHANNEL_ID
         self.bot_token = settings.MAX_BOT_TOKEN
 
-        # S3 клиент для PDF
+        # S3 клиент
         self.s3 = get_s3_client()
 
         # Бакеты для PDF
@@ -212,19 +210,7 @@ class VkIntegration:
             "pt": "pt.nepovinnyh.ru",
         }
 
-        # Префиксы для видео (заголовки)
-        self.video_prefixes = {
-            "Здоровье": "🏥 Немного о здоровье",
-            "Логистика": "🚂 Прокатимся по России",
-            "Сила": "💪 А ты знал?",
-            "Специалисты": "🎯 Специализация важна",
-            "Машиностроение": "⚙️ Машиностроение России",
-            "Педагогика": "📚 А ты знал?",
-            "Питание": "🍎 А ты знал?",
-            "Строительство": "🏗️ Строительство России",
-        }
-
-        # Префиксы для PDF
+        # Префиксы для PDF (заголовки)
         self.pdf_prefixes = {
             "mod": "📘 Четвёртая модернизация России",
             "fa": "🇮🇷 Передай привет иранскому другу",
@@ -233,48 +219,57 @@ class VkIntegration:
             "pt": "🇧🇷 Есть друг из Анголы или Бразилии?",
         }
 
-        # Плейлисты для видео (тема → ссылка на плейлист VK Video)
-        self.video_playlists = {
+        # Префиксы для видео (заголовки)
+        self.video_prefixes = {
+            "Здоровье": "🏥 Немного о здоровье",
+            "Машиностроение": "⚙️ Машиностроение России",
+            "Педагогика": "📚 А ты знал?",
+            "Питание": "🍎 А ты знал?",
+            "Строительство": "🏗️ Строительство России",
+            "Логистика": "🚂 Прокатимся по России",
+            "Сила": "💪 А ты знал?",
+            "Специалисты": "🎯 Специализация важна",
+        }
+
+        # Первый лист (тематические плейлисты)
+        self.playlist_type1 = [
+            "Здоровье",
+            "Машиностроение",
+            "Педагогика",
+            "Питание",
+            "Строительство",
+            "Логистика"
+        ]
+
+        # Второй лист (общие плейлисты)
+        self.playlist_type2 = [
+            "Сила",
+            "Специалисты"
+        ]
+
+        # Ссылки на плейлисты VK
+        self.playlist_urls = {
+            "Здоровье": "https://vkvideo.ru/playlist/-216257056_8",
             "Машиностроение": "https://vkvideo.ru/playlist/-216257056_1",
             "Педагогика": "https://vkvideo.ru/playlist/-216257056_2",
             "Питание": "https://vkvideo.ru/playlist/-216257056_3",
             "Строительство": "https://vkvideo.ru/playlist/-216257056_4",
             "Логистика": "https://vkvideo.ru/playlist/-216257056_5",
-            "Специалисты": "https://vkvideo.ru/playlist/-216257056_6",
             "Сила": "https://vkvideo.ru/playlist/-216257056_7",
-            "Здоровье": "https://vkvideo.ru/playlist/-216257056_8",
+            "Специалисты": "https://vkvideo.ru/playlist/-216257056_6",
         }
 
-        # Очерёдность публикаций
-        self.order: List[Tuple[str, str]] = [
-            ("playlist", "Здоровье"),
-            ("playlist", "Педагогика"),
-            ("pdf", "mod"),
-            ("playlist", "Машиностроение"),
-            ("playlist", "Строительство"),
-            ("pdf", "fa"),
-            ("playlist", "Сила"),
-            ("playlist", "Специалисты"),
-            ("playlist", "Логистика"),  # Статьи убрал, так как нет токена
-            ("playlist", "Питание"),
-            ("pdf", "zh"),
-            ("playlist", "Сила"),
-            ("playlist", "Специалисты"),
-            ("pdf", "soc"),
-            ("playlist", "Здоровье"),
-            ("playlist", "Педагогика"),
-            ("pdf", "pt"),
-        ]
+        # Файлы для хранения состояния (чтобы помнить, что публиковать по кругу)
+        self.state_files = {
+            "type1_index": "/home/psylogic/type1_index.txt",
+            "type2_index": "/home/psylogic/type2_index.txt",
+        }
 
-        # Файл для сохранения текущего индекса
-        self.index_file = "/home/psylogic/current_index.txt"
-
-        # Кэш для ссылок видео (чтобы не парсить каждый раз)
+        # Кэш для ссылок видео
         self.video_cache_file = "/home/psylogic/video_cache.json"
         self.video_cache = self._load_video_cache()
 
     def _load_video_cache(self) -> Dict:
-        """Загружает кэш ссылок видео из JSON файла"""
         try:
             with open(self.video_cache_file, "r") as f:
                 return json.load(f)
@@ -282,93 +277,103 @@ class VkIntegration:
             return {}
 
     def _save_video_cache(self):
-        """Сохраняет кэш ссылок видео в JSON файл"""
         with open(self.video_cache_file, "w") as f:
             json.dump(self.video_cache, f, indent=2)
 
-    def get_video_links_from_playlist(self, playlist_url: str) -> list:
-        """Получает все ссылки на видео из плейлиста через yt-dlp"""
+    def _get_next_index(self, file_path: str, max_index: int) -> int:
+        """Получить следующий индекс по кругу"""
         try:
-            # Пробуем взять из кэша
-            if playlist_url in self.video_cache:
-                logger.info(f"Загружено из кэша: {playlist_url} -> {len(self.video_cache[playlist_url])} видео")
-                return self.video_cache[playlist_url]
+            with open(file_path, "r") as f:
+                index = int(f.read().strip())
+        except:
+            index = 0
 
-            logger.info(f"Парсинг плейлиста через yt-dlp: {playlist_url}")
+        next_index = (index + 1) % max_index
 
+        with open(file_path, "w") as f:
+            f.write(str(next_index))
+
+        return index  # возвращаем текущий индекс (то, что надо публиковать)
+
+    def get_next_playlist_type1(self) -> str:
+        """Получить следующую тему из первого листа"""
+        index = self._get_next_index(self.state_files["type1_index"], len(self.playlist_type1))
+        return self.playlist_type1[index]
+
+    def get_next_playlist_type2(self) -> str:
+        """Получить следующую тему из второго листа"""
+        index = self._get_next_index(self.state_files["type2_index"], len(self.playlist_type2))
+        return self.playlist_type2[index]
+
+    def get_video_links_from_playlist(self, playlist_url: str) -> list:
+        """Получить все ссылки на видео из плейлиста через yt-dlp"""
+        if playlist_url in self.video_cache:
+            logger.info(f"Из кэша: {len(self.video_cache[playlist_url])} видео")
+            return self.video_cache[playlist_url]
+
+        try:
             result = subprocess.run(
-                [
-                    "yt-dlp",
-                    "--flat-playlist",
-                    "--print", "webpage_url",
-                    playlist_url
-                ],
-                capture_output=True,
-                text=True,
-                timeout=120
+                ["yt-dlp", "--flat-playlist", "--print", "webpage_url", playlist_url],
+                capture_output=True, text=True, timeout=120
             )
-
             if result.returncode != 0:
                 logger.error(f"Ошибка yt-dlp: {result.stderr}")
                 return []
 
-            links = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-
-            # Заменяем vk.com на vkvideo.ru для единообразия
-            links = [link.replace('vk.com', 'vkvideo.ru') for link in links]
-
-            logger.info(f"Найдено {len(links)} видео в плейлисте")
-
-            # Сохраняем в кэш
+            links = [line.strip().replace('vk.com', 'vkvideo.ru') for line in result.stdout.splitlines() if
+                     line.strip()]
             self.video_cache[playlist_url] = links
             self._save_video_cache()
-
+            logger.info(f"Найдено {len(links)} видео в плейлисте")
             return links
-
-        except subprocess.TimeoutExpired:
-            logger.error(f"Таймаут при парсинге {playlist_url}")
-            return []
         except Exception as e:
             logger.error(f"Ошибка: {e}")
             return []
 
-    def get_random_video_from_playlist(self, playlist_url: str) -> Optional[str]:
+    def get_random_video_from_playlist(self, playlist_name: str) -> Optional[str]:
         """Возвращает случайную ссылку на видео из плейлиста"""
+        playlist_url = self.playlist_urls.get(playlist_name)
+        if not playlist_url:
+            return None
         links = self.get_video_links_from_playlist(playlist_url)
         if not links:
             return None
         return random.choice(links)
 
-    # ========== РАБОТА С PDF ==========
-    async def get_pdf_from_s3(self, prefix: str) -> Optional[Dict]:
-        """Получить случайный PDF из соответствующего бакета"""
+    def get_video_description(self, video_url: str) -> str:
+        """Получить описание видео через yt-dlp"""
+        try:
+            result = subprocess.run(
+                ["yt-dlp", "--get-description", video_url],
+                capture_output=True, text=True, timeout=30
+            )
+            if result.returncode != 0:
+                return ""
+            desc = result.stdout.strip()
+            if len(desc) > 800:
+                desc = desc[:797] + "..."
+            return desc
+        except:
+            return ""
+
+    def get_pdf_from_s3(self, prefix: str) -> Optional[Dict]:
+        """Получить случайный PDF из бакета"""
         try:
             bucket = self.pdf_buckets.get(prefix)
             if not bucket:
-                logger.error(f"Неизвестный префикс: {prefix}")
                 return None
 
             has_description = prefix in ["mod", "soc"]
-
             response = self.s3.list_objects_v2(Bucket=bucket, Prefix="")
 
             if 'Contents' not in response:
-                logger.warning(f"Нет файлов в бакете {bucket}")
                 return None
 
-            pdf_files = []
-            for obj in response['Contents']:
-                key = obj['Key']
-                if key.lower().endswith('.pdf'):
-                    pdf_files.append(key)
-
+            pdf_files = [obj['Key'] for obj in response['Contents'] if obj['Key'].lower().endswith('.pdf')]
             if not pdf_files:
-                logger.warning(f"Нет PDF в бакете {bucket}")
                 return None
 
             pdf_key = random.choice(pdf_files)
-
-            # Кодируем русские буквы и пробелы в URL
             encoded_key = quote(pdf_key, safe='')
             pdf_url = f"https://storage.yandexcloud.net/{bucket}/{encoded_key}"
 
@@ -377,157 +382,123 @@ class VkIntegration:
                 txt_key = pdf_key.replace('.pdf', '.txt')
                 try:
                     txt_obj = self.s3.get_object(Bucket=bucket, Key=txt_key)
-                    txt_content = txt_obj['Body'].read().decode('utf-8')
-                    description = txt_content.strip()
-                    logger.info(f"Описание загружено для {pdf_key}")
-                except Exception as e:
-                    logger.debug(f"Нет TXT для {pdf_key}: {e}")
+                    description = txt_obj['Body'].read().decode('utf-8').strip()
+                except:
+                    pass
 
             filename = Path(pdf_key).stem.replace('_', ' ').replace('-', ' ')
-
-            return {
-                'url': pdf_url,
-                'description': description,
-                'filename': filename,
-                'key': pdf_key
-            }
-
+            return {'url': pdf_url, 'description': description, 'filename': filename}
         except Exception as e:
-            logger.error(f"Ошибка получения PDF из S3: {e}")
+            logger.error(f"Ошибка PDF: {e}")
             return None
 
-    # ========== ОТПРАВКА В КАНАЛ ==========
-    def send_to_channel(self, text: str):
-        """Отправить сообщение в канал MAX"""
-        url = f"https://platform-api.max.ru/messages?chat_id={self.channel_id}"
-        headers = {
-            "Authorization": f"{self.bot_token}",
-            "Content-Type": "application/json"
-        }
-        payload = {"text": text}
-
+    def get_random_article(self) -> Optional[Dict]:
+        """Получить случайную статью из VK (через yt-dlp парсинг)"""
+        # Альтернатива: парсим статьи через requests + BeautifulSoup
+        # Пока вернём заглушку, но можно сделать полноценный парсинг
         try:
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            logger.error(f"Ошибка отправки в канал: {e}")
-            raise
-
-    def get_current_index(self) -> int:
-        """Получить текущий индекс публикации"""
-        try:
-            with open(self.index_file, "r") as f:
-                return int(f.read().strip())
+            # Пример ссылки на книгу
+            article_url = "https://vk.ru/@-186451829-duet-02"
+            return {
+                'url': article_url,
+                'description': "Дуэт — это книга о взаимодействии и сотрудничестве."
+            }
         except:
-            return 0
+            return None
 
-    def save_current_index(self, index: int):
-        """Сохранить текущий индекс"""
-        with open(self.index_file, "w") as f:
-            f.write(str(index))
+    def send_to_channel(self, text: str):
+        """Отправить в канал MAX"""
+        if len(text) > 4096:
+            text = text[:4093] + "..."
 
-    def get_video_description(self, video_url: str) -> str:
-        """Получить описание видео через yt-dlp"""
-        try:
-            logger.info(f"Получение описания для видео: {video_url}")
+        url = f"https://platform-api.max.ru/messages?chat_id={self.channel_id}"
+        headers = {"Authorization": f"{self.bot_token}", "Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, json={"text": text}, timeout=30)
+        response.raise_for_status()
+        return response.json()
 
-            result = subprocess.run(
-                [
-                    "yt-dlp",
-                    "--get-description",
-                    video_url
-                ],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
+    def publish_video(self, playlist_name: str):
+        """Опубликовать случайное видео из плейлиста"""
+        video_url = self.get_random_video_from_playlist(playlist_name)
+        if not video_url:
+            logger.error(f"Нет видео для {playlist_name}")
+            return
 
-            if result.returncode != 0:
-                logger.warning(f"Не удалось получить описание: {result.stderr}")
-                return ""
+        description = self.get_video_description(video_url)
+        prefix = self.video_prefixes.get(playlist_name, "")
 
-            description = result.stdout.strip()
+        if description:
+            message = f"{prefix}\n\n{description}\n\n🎬 Смотреть: {video_url}"
+        else:
+            message = f"{prefix}\n\n🎬 Смотреть: {video_url}"
 
-            # Обрезаем слишком длинное описание
-            if len(description) > 800:
-                description = description[:797] + "..."
+        self.send_to_channel(message)
+        logger.info(f"Опубликовано видео: {playlist_name}")
 
-            return description
+    def publish_pdf(self, pdf_prefix: str):
+        """Опубликовать PDF"""
+        pdf_data = self.get_pdf_from_s3(pdf_prefix)
+        if not pdf_data:
+            logger.error(f"Нет PDF для {pdf_prefix}")
+            return
 
-        except subprocess.TimeoutExpired:
-            logger.error(f"Таймаут при получении описания {video_url}")
-            return ""
-        except Exception as e:
-            logger.error(f"Ошибка получения описания: {e}")
-            return ""
+        prefix = self.pdf_prefixes.get(pdf_prefix, "📄 Материал")
+        if pdf_data['description']:
+            message = f"{prefix}\n\n{pdf_data['description']}\n\n📄 Читать: {pdf_data['url']}"
+        else:
+            message = f"{prefix}\n\n{pdf_data['filename']}\n\n📄 Читать: {pdf_data['url']}"
 
-    def publish_next(self):
-        """Опубликовать следующий контент по расписанию"""
-        index = self.get_current_index()
-        item_type, item_name = self.order[index % len(self.order)]
+        self.send_to_channel(message)
+        logger.info(f"Опубликован PDF: {pdf_prefix}")
 
-        logger.info(f"📢 [{index}] Публикация: {item_type} - {item_name}")
+    def publish_article(self):
+        """Опубликовать книгу/статью"""
+        article = self.get_random_article()
+        if not article:
+            logger.error("Нет статьи")
+            return
 
-        message = None
-
-        try:
-            if item_type == "playlist":
-                playlist_url = self.video_playlists.get(item_name)
-                if not playlist_url:
-                    logger.error(f"Нет плейлиста для {item_name}")
-                    return
-
-                video_url = self.get_random_video_from_playlist(playlist_url)
-                if not video_url:
-                    logger.error(f"Не удалось получить видео из плейлиста {item_name}")
-                    return
-
-                # ПОЛУЧАЕМ ОПИСАНИЕ ВИДЕО
-                description = self.get_video_description(video_url)
-
-                prefix = self.video_prefixes.get(item_name, "")
-
-                if description:
-                    message = f"{prefix}\n\n{description}\n\n🎬 Смотреть: {video_url}"
-                else:
-                    message = f"{prefix}\n\n🎬 Смотреть: {video_url}"
-
-            elif item_type == "pdf":
-                # PDF из S3
-                pdf_data = asyncio.run(self.get_pdf_from_s3(item_name))
-                if not pdf_data:
-                    logger.error(f"Нет PDF для {item_name}")
-                    return
-
-                prefix = self.pdf_prefixes.get(item_name, "📄 Материал")
-                description = pdf_data.get('description')
-
-                if description:
-                    message = f"{prefix}\n\n{description}\n\n📄 Читать: {pdf_data['url']}"
-                else:
-                    message = f"{prefix}\n\n{pdf_data['filename']}\n\n📄 Читать: {pdf_data['url']}"
-
-            if message:
-                if len(message) > 4096:
-                    message = message[:4093] + "..."
-
-                self.send_to_channel(message)
-                logger.info(f"✅ Опубликовано: {item_type} - {item_name}")
-
-                # Сохраняем следующий индекс
-                new_index = (index + 1) % len(self.order)
-                self.save_current_index(new_index)
-                logger.info(f"📌 Следующий индекс: {new_index}")
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка публикации: {e}")
+        message = f"📚 Книга\n\n{article['description']}\n\n📖 Читать: {article['url']}"
+        self.send_to_channel(message)
+        logger.info("Опубликована статья")
 
 
-def publish_once():
-    """Опубликовать один раз (для теста)"""
-    publisher = VkIntegration()
-    publisher.publish_next()
+# ========== ЗАПУСК ПО РАСПИСАНИЮ ==========
+
+publisher = VkIntegration()
+
+# Маппинг часа на функцию
+schedule_map = {
+    9: lambda: publisher.publish_video(publisher.get_next_playlist_type1()),
+    10: lambda: publisher.publish_pdf("mod"),
+    11: lambda: publisher.publish_video(publisher.get_next_playlist_type1()),
+    12: lambda: publisher.publish_video(publisher.get_next_playlist_type1()),
+    13: lambda: publisher.publish_pdf("fa"),
+    14: lambda: publisher.publish_pdf("zh"),
+    15: lambda: publisher.publish_article(),
+    16: lambda: publisher.publish_video(publisher.get_next_playlist_type2()),
+    17: lambda: publisher.publish_pdf("soc"),
+    18: lambda: publisher.publish_video(publisher.get_next_playlist_type2()),
+    19: lambda: publisher.publish_pdf("pt"),
+    20: lambda: publisher.publish_video(publisher.get_next_playlist_type2()),
+}
+
+def run_by_hour(hour: int):
+    """Запустить публикацию по часу"""
+    if hour in schedule_map:
+        logger.info(f"🕐 {hour}:00 - Запуск публикации")
+        schedule_map[hour]()
+    else:
+        logger.debug(f"🕐 {hour}:00 - Нет публикации")
 
 
-publish_once()
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) > 1:
+        # Запуск с аргументом: python vk_publisher.py 10
+        hour = int(sys.argv[1])
+        run_by_hour(hour)
+    else:
+        # Тестовый запуск
+        run_by_hour(9)
