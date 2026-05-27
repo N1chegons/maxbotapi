@@ -494,11 +494,6 @@ def run_by_hour(hour: int):
 
 if __name__ == "__main__":
     import sys
-
     if len(sys.argv) > 1:
-        # Запуск с аргументом: python vk_publisher.py 10
         hour = int(sys.argv[1])
         run_by_hour(hour)
-    else:
-        # Тестовый запуск
-        run_by_hour(9)
