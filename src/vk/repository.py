@@ -357,39 +357,65 @@ class VkIntegration:
             return ""
 
     def get_pdf_from_s3(self, prefix: str) -> Optional[Dict]:
-        """Получить случайный PDF из бакета"""
         try:
             bucket = self.pdf_buckets.get(prefix)
             if not bucket:
+                logger.error(f"Неизвестный префикс: {prefix}")
                 return None
 
             has_description = prefix in ["mod", "soc"]
             response = self.s3.list_objects_v2(Bucket=bucket, Prefix="")
 
             if 'Contents' not in response:
+                logger.warning(f"Нет файлов в бакете {bucket}")
                 return None
 
-            pdf_files = [obj['Key'] for obj in response['Contents'] if obj['Key'].lower().endswith('.pdf')]
+            pdf_files = []
+            for obj in response['Contents']:
+                key = obj['Key']
+                if key.lower().endswith('.pdf'):
+                    pdf_files.append(key)
+
             if not pdf_files:
+                logger.warning(f"Нет PDF в бакете {bucket}")
                 return None
 
             pdf_key = random.choice(pdf_files)
+            logger.info(f"Выбран PDF: {pdf_key}")
+
+            # Кодируем URL
             encoded_key = quote(pdf_key, safe='')
             pdf_url = f"https://storage.yandexcloud.net/{bucket}/{encoded_key}"
 
+            # Ищем описание
             description = None
             if has_description:
                 txt_key = pdf_key.replace('.pdf', '.txt')
+                logger.debug(f"Ищем описание: {txt_key}")
+
                 try:
                     txt_obj = self.s3.get_object(Bucket=bucket, Key=txt_key)
-                    description = txt_obj['Body'].read().decode('utf-8').strip()
-                except:
-                    pass
+                    txt_content = txt_obj['Body'].read().decode('utf-8')
+                    description = txt_content.strip()
+                    logger.info(f"Описание загружено для {pdf_key}, длина {len(description)} символов")
+                except Exception as e:
+                    logger.warning(f"Не удалось загрузить txt для {pdf_key}: {e}")
 
             filename = Path(pdf_key).stem.replace('_', ' ').replace('-', ' ')
-            return {'url': pdf_url, 'description': description, 'filename': filename}
+
+            # Если описания нет — используем имя файла
+            if not description:
+                description = filename
+                logger.info(f"Использую имя файла как описание: {filename}")
+
+            return {
+                'url': pdf_url,
+                'description': description,
+                'filename': filename
+            }
+
         except Exception as e:
-            logger.error(f"Ошибка PDF: {e}")
+            logger.error(f"Ошибка получения PDF из S3: {e}")
             return None
 
     def get_random_article(self) -> Optional[Dict]:
