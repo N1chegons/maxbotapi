@@ -506,13 +506,14 @@ class VkIntegration:
         logger.info(f"✅ Опубликован PDF: {pdf_prefix}")
 
     def publish_article(self):
-        """Опубликовать книгу/статью"""
         article = self.get_random_article()
         if not article:
             logger.error("Нет статьи")
             return
 
-        message = f"📚 Книга\n\n{article['description']}\n\n📖 Читать: {article['url']}"
+        # Только заголовок и ссылка, без описания
+        message = f"📚 Книга\n\n📖 Читать: {article['url']}"
+
         self.send_to_channel(message)
         logger.info("Опубликована статья")
 
