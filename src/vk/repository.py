@@ -488,21 +488,22 @@ class VkIntegration:
         self.send_to_channel(message)
         logger.info(f"Опубликовано видео: {playlist_name}")
 
-    def publish_pdf(self, pdf_prefix: str):
-        """Опубликовать PDF"""
-        pdf_data = self.get_pdf_from_s3(pdf_prefix)
+    async def publish_pdf(self, pdf_prefix: str):
+        """Опубликовать PDF (асинхронно)"""
+        pdf_data = await self.get_pdf_from_s3(pdf_prefix)
         if not pdf_data:
-            logger.error(f"Нет PDF для {pdf_prefix}")
+            logger.error(f"❌ Нет PDF для {pdf_prefix}, пропускаем")
             return
 
         prefix = self.pdf_prefixes.get(pdf_prefix, "📄 Материал")
-        if pdf_data['description']:
+
+        if pdf_data.get('description'):
             message = f"{prefix}\n\n{pdf_data['description']}\n\n📄 Читать: {pdf_data['url']}"
         else:
             message = f"{prefix}\n\n{pdf_data['filename']}\n\n📄 Читать: {pdf_data['url']}"
 
         self.send_to_channel(message)
-        logger.info(f"Опубликован PDF: {pdf_prefix}")
+        logger.info(f"✅ Опубликован PDF: {pdf_prefix}")
 
     def publish_article(self):
         """Опубликовать книгу/статью"""
@@ -520,28 +521,36 @@ class VkIntegration:
 
 publisher = VkIntegration()
 
-# Маппинг часа на функцию
-schedule_map = {
-    9: lambda: publisher.publish_video(publisher.get_next_playlist_type1()),
-    10: lambda: publisher.publish_pdf("mod"),
-    11: lambda: publisher.publish_video(publisher.get_next_playlist_type1()),
-    12: lambda: publisher.publish_video(publisher.get_next_playlist_type1()),
-    13: lambda: publisher.publish_pdf("fa"),
-    14: lambda: publisher.publish_pdf("zh"),
-    15: lambda: publisher.publish_article(),
-    16: lambda: publisher.publish_video(publisher.get_next_playlist_type2()),
-    17: lambda: publisher.publish_pdf("soc"),
-    18: lambda: publisher.publish_video(publisher.get_next_playlist_type2()),
-    19: lambda: publisher.publish_pdf("pt"),
-    20: lambda: publisher.publish_video(publisher.get_next_playlist_type2()),
-}
+async def publish_video_async(playlist_name: str):
+    # noinspection PyNoneFunctionAssignment
+    return publisher.publish_video(playlist_name)  # если publish_video синхронная
 
+async def publish_pdf_async(pdf_prefix: str):
+    return await publisher.publish_pdf(pdf_prefix)  # publish_pdf теперь async
+
+async def publish_article_async():
+    # noinspection PyNoneFunctionAssignment
+    return publisher.publish_article()
+
+# schedule_map с async функциями
+schedule_map = {
+    9: lambda: publish_video_async(publisher.get_next_playlist_type1()),
+    10: lambda: publish_pdf_async("mod"),
+    11: lambda: publish_video_async(publisher.get_next_playlist_type1()),
+    12: lambda: publish_video_async(publisher.get_next_playlist_type1()),
+    13: lambda: publish_pdf_async("fa"),
+    14: lambda: publish_pdf_async("zh"),
+    15: lambda: publish_article_async(),
+    16: lambda: publish_video_async(publisher.get_next_playlist_type2()),
+    17: lambda: publish_pdf_async("soc"),
+    18: lambda: publish_video_async(publisher.get_next_playlist_type2()),
+    19: lambda: publish_pdf_async("pt"),
+    20: lambda: publish_video_async(publisher.get_next_playlist_type2()),}
 
 def run_by_hour(hour: int):
-    """Запустить публикацию по часу"""
     if hour in schedule_map:
         logger.info(f"🕐 {hour}:00 - Запуск публикации")
-        schedule_map[hour]()
+        asyncio.run(schedule_map[hour]())
     else:
         logger.debug(f"🕐 {hour}:00 - Нет публикации")
 
