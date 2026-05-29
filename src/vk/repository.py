@@ -357,7 +357,7 @@ class VkIntegration:
             return ""
 
     async def get_pdf_from_s3(self, prefix: str) -> Optional[Dict]:
-        """Получить случайный PDF из бакета, описание берём из TXT или парсим PDF"""
+        """Получить случайный PDF из бакета, описание - только первый абзац"""
         try:
             from pypdf import PdfReader
             import io
@@ -427,11 +427,25 @@ class VkIntegration:
             except Exception as e:
                 logger.error(f"Ошибка при парсинге PDF {pdf_key}: {e}")
 
-        # 3. Обрезаем описание до 3500 символов (чтобы не было ошибки 400 от MAX API)
+        # 3. Берём только ПЕРВЫЙ АБЗАЦ (до первого переноса строки или до 500 символов)
         if description:
-            if len(description) > 3500:
-                description = description[:3497] + "..."
-                logger.debug(f"Описание PDF обрезано с {len(description)} до 3500 символов")
+            # Разбиваем по двойному переносу строки (пустая строка)
+            import re
+            # Ищем первый абзац: текст до первого \n\n или до точки с пробелом и заглавной буквой
+            paragraphs = re.split(r'\n\s*\n|\.\s+(?=[A-ZА-Я])', description, maxsplit=1)
+            first_paragraph = paragraphs[0].strip()
+
+            # Если первый абзац слишком короткий (меньше 100 символов) — берем первые 500 символов текста
+            if len(first_paragraph) < 100 and len(description) > 200:
+                first_paragraph = description[:500].strip()
+
+            description = first_paragraph
+
+            # Обрезаем если всё ещё длинный
+            if len(description) > 800:
+                description = description[:797] + "..."
+
+            logger.info(f"✅ Взят первый абзац, длина {len(description)} символов")
 
         filename = Path(pdf_key).stem.replace('_', ' ').replace('-', ' ')
 
