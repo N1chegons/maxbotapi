@@ -357,93 +357,93 @@ class VkIntegration:
             return ""
 
     async def get_pdf_from_s3(self, prefix: str) -> Optional[Dict]:
+        """Получить случайный PDF из бакета, описание берём из TXT или парсим PDF"""
         try:
-            bucket = self.pdf_buckets.get(prefix)
-            if not bucket:
-                logger.error(f"Неизвестный префикс: {prefix}")
-                return None
-
-            has_description = prefix in ["mod", "soc"]
-            response = self.s3.list_objects_v2(Bucket=bucket, Prefix="")
-
-            if 'Contents' not in response:
-                logger.warning(f"Нет файлов в бакете {bucket}")
-                return None
-
-            # Собираем PDF файлы и соответствующие TXT
-            pdf_files = []
-            txt_map = {}  # словарь: имя pdf -> имя txt
-
-            for obj in response['Contents']:
-                key = obj['Key']
-                if key.lower().endswith('.pdf'):
-                    pdf_files.append(key)
-                    # Ищем соответствующий txt
-                    txt_key = key[:-4] + '.txt'
-                    txt_map[key] = txt_key
-                elif key.lower().endswith('.txt'):
-                    # Тоже запоминаем, но не используем напрямую
-                    pass
-
-            if not pdf_files:
-                logger.warning(f"Нет PDF в бакете {bucket}")
-                return None
-
-            # Выбираем случайный PDF
-            pdf_key = random.choice(pdf_files)
-            txt_key = pdf_key[:-4] + '.txt'
-
-            logger.info(f"Выбран PDF: {pdf_key}")
-            logger.debug(f"Ожидаемый TXT: {txt_key}")
-
-            # Кодируем URL для PDF
-            encoded_key = quote(pdf_key, safe='')
-            pdf_url = f"https://storage.yandexcloud.net/{bucket}/{encoded_key}"
-
-            # Получаем описание
-            description = None
-            if has_description:
-                try:
-                    # Пробуем получить txt файл
-                    txt_obj = self.s3.get_object(Bucket=bucket, Key=txt_key)
-                    txt_content = txt_obj['Body'].read().decode('utf-8')
-                    description = txt_content.strip()
-                    logger.info(f"✅ Описание загружено для {pdf_key}, длина {len(description)} символов")
-                except Exception as e:
-                    logger.warning(f"❌ Не удалось загрузить txt для {pdf_key}: {e}")
-                    # Пробуем найти txt без расширения в словаре
-                    try:
-                        # Может быть txt_key в другой кодировке?
-                        # Попробуем найти любой txt файл с таким же именем (без учета регистра)
-                        response_txt = self.s3.list_objects_v2(Bucket=bucket, Prefix=pdf_key[:-4])
-                        if 'Contents' in response_txt:
-                            for obj in response_txt['Contents']:
-                                if obj['Key'].lower().endswith('.txt'):
-                                    txt_obj = self.s3.get_object(Bucket=bucket, Key=obj['Key'])
-                                    txt_content = txt_obj['Body'].read().decode('utf-8')
-                                    description = txt_content.strip()
-                                    logger.info(f"✅ Описание найдено по префиксу: {obj['Key']}")
-                                    break
-                    except Exception as e2:
-                        logger.warning(f"❌ Не удалось найти txt по префиксу: {e2}")
-
-            # Имя файла без расширения (для красивого заголовка)
-            filename = Path(pdf_key).stem.replace('_', ' ').replace('-', ' ')
-
-            # Если описания нет — используем имя файла
-            if not description:
-                description = filename
-                logger.info(f"ℹ️ Использую имя файла как описание: {filename}")
-
-            return {
-                'url': pdf_url,
-                'description': description,
-                'filename': filename
-            }
-
-        except Exception as e:
-            logger.error(f"Ошибка получения PDF из S3: {e}")
+            from pypdf import PdfReader
+            import io
+        except ImportError:
+            logger.error("pypdf не установлен. Установи: pip install pypdf")
             return None
+
+        bucket = self.pdf_buckets.get(prefix)
+        if not bucket:
+            logger.error(f"Неизвестный префикс: {prefix}")
+            return None
+
+        response = self.s3.list_objects_v2(Bucket=bucket, Prefix="")
+
+        if 'Contents' not in response:
+            logger.warning(f"Нет файлов в бакете {bucket}")
+            return None
+
+        # Собираем PDF файлы
+        pdf_files = []
+        for obj in response['Contents']:
+            key = obj['Key']
+            if key.lower().endswith('.pdf'):
+                pdf_files.append(key)
+
+        if not pdf_files:
+            logger.warning(f"Нет PDF в бакете {bucket}")
+            return None
+
+        pdf_key = random.choice(pdf_files)
+        logger.info(f"Выбран PDF: {pdf_key}")
+
+        # Кодируем URL
+        encoded_key = quote(pdf_key, safe='')
+        pdf_url = f"https://storage.yandexcloud.net/{bucket}/{encoded_key}"
+
+        # Пытаемся получить описание
+        description = None
+
+        # 1. Сначала пробуем TXT файл
+        txt_key = pdf_key.replace('.pdf', '.txt')
+        try:
+            txt_obj = self.s3.get_object(Bucket=bucket, Key=txt_key)
+            description = txt_obj['Body'].read().decode('utf-8').strip()
+            logger.info(f"✅ Описание взято из TXT для {pdf_key}")
+        except Exception as e:
+            logger.debug(f"Нет TXT для {pdf_key}: {e}")
+
+        # 2. Если TXT нет — парсим сам PDF
+        if not description:
+            try:
+                # Скачиваем PDF из S3
+                pdf_obj = self.s3.get_object(Bucket=bucket, Key=pdf_key)
+                pdf_bytes = pdf_obj['Body'].read()
+
+                # Парсим текст из PDF
+                reader = PdfReader(io.BytesIO(pdf_bytes))
+                text_parts = []
+                for page in reader.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text_parts.append(page_text)
+
+                if text_parts:
+                    description = '\n'.join(text_parts).strip()
+                    # Обрезаем до 4000 символов
+                    if len(description) > 4000:
+                        description = description[:3997] + "..."
+                    logger.info(f"✅ Описание извлечено из PDF для {pdf_key} (длина {len(description)})")
+                else:
+                    logger.warning(f"Не удалось извлечь текст из PDF {pdf_key}")
+            except Exception as e:
+                logger.error(f"Ошибка при парсинге PDF {pdf_key}: {e}")
+
+        filename = Path(pdf_key).stem.replace('_', ' ').replace('-', ' ')
+
+        # Если описания нет вообще — используем имя файла
+        if not description:
+            description = filename
+            logger.info(f"ℹ️ Использую имя файла как описание: {filename}")
+
+        return {
+            'url': pdf_url,
+            'description': description,
+            'filename': filename
+        }
 
     def get_random_article(self) -> Optional[Dict]:
         """Получить случайную статью из VK (через yt-dlp парсинг)"""
