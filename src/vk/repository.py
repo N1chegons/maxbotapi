@@ -409,11 +409,9 @@ class VkIntegration:
         # 2. Если TXT нет — парсим сам PDF
         if not description:
             try:
-                # Скачиваем PDF из S3
                 pdf_obj = self.s3.get_object(Bucket=bucket, Key=pdf_key)
                 pdf_bytes = pdf_obj['Body'].read()
 
-                # Парсим текст из PDF
                 reader = PdfReader(io.BytesIO(pdf_bytes))
                 text_parts = []
                 for page in reader.pages:
@@ -423,14 +421,17 @@ class VkIntegration:
 
                 if text_parts:
                     description = '\n'.join(text_parts).strip()
-                    # Обрезаем до 4000 символов
-                    if len(description) > 4000:
-                        description = description[:3997] + "..."
                     logger.info(f"✅ Описание извлечено из PDF для {pdf_key} (длина {len(description)})")
                 else:
                     logger.warning(f"Не удалось извлечь текст из PDF {pdf_key}")
             except Exception as e:
                 logger.error(f"Ошибка при парсинге PDF {pdf_key}: {e}")
+
+        # 3. Обрезаем описание до 3500 символов (чтобы не было ошибки 400 от MAX API)
+        if description:
+            if len(description) > 3500:
+                description = description[:3497] + "..."
+                logger.debug(f"Описание PDF обрезано с {len(description)} до 3500 символов")
 
         filename = Path(pdf_key).stem.replace('_', ' ').replace('-', ' ')
 
@@ -460,15 +461,25 @@ class VkIntegration:
             return None
 
     def send_to_channel(self, text: str):
-        """Отправить в канал MAX"""
+        """Отправить сообщение в канал MAX, обрезая до 4096 символов"""
+        # Обрезаем до 4096 символов
         if len(text) > 4096:
             text = text[:4093] + "..."
+            logger.warning(f"Сообщение обрезано до 4096 символов")
 
         url = f"https://platform-api.max.ru/messages?chat_id={self.channel_id}"
-        headers = {"Authorization": f"{self.bot_token}", "Content-Type": "application/json"}
-        response = requests.post(url, headers=headers, json={"text": text}, timeout=30)
-        response.raise_for_status()
-        return response.json()
+        headers = {
+            "Authorization": f"{self.bot_token}",
+            "Content-Type": "application/json"
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json={"text": text}, timeout=30)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"Ошибка MAX API: {e.response.status_code} - {e.response.text[:200]}")
+            raise
 
     def publish_video(self, playlist_name: str):
         """Опубликовать случайное видео из плейлиста"""
