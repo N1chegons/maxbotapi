@@ -429,15 +429,18 @@ class VkIntegration:
 
         # 3. Берём только ПЕРВЫЙ АБЗАЦ (до первого переноса строки или до 500 символов)
         if description:
-            # Разбиваем по двойному переносу строки (пустая строка)
             import re
-            # Ищем первый абзац: текст до первого \n\n или до точки с пробелом и заглавной буквой
-            paragraphs = re.split(r'\n\s*\n|\.\s+(?=[A-ZА-Я])', description, maxsplit=1)
+            # Разбиваем по двойному переносу строки (пустая строка)
+            paragraphs = re.split(r'\n\s*\n', description, maxsplit=1)
             first_paragraph = paragraphs[0].strip()
 
             # Если первый абзац слишком короткий (меньше 100 символов) — берем первые 500 символов текста
             if len(first_paragraph) < 100 and len(description) > 200:
                 first_paragraph = description[:500].strip()
+
+            # Если текст обрывается без точки — добавляем многоточие
+            if not first_paragraph.endswith(('.', '!', '?', '…')):
+                first_paragraph = first_paragraph.rstrip() + "..."
 
             description = first_paragraph
 
