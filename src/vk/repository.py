@@ -356,7 +356,7 @@ class VkIntegration:
         except:
             return ""
 
-    def get_pdf_from_s3(self, prefix: str) -> Optional[Dict]:
+    async def get_pdf_from_s3(self, prefix: str) -> Optional[Dict]:
         try:
             bucket = self.pdf_buckets.get(prefix)
             if not bucket:
@@ -370,43 +370,70 @@ class VkIntegration:
                 logger.warning(f"Нет файлов в бакете {bucket}")
                 return None
 
+            # Собираем PDF файлы и соответствующие TXT
             pdf_files = []
+            txt_map = {}  # словарь: имя pdf -> имя txt
+
             for obj in response['Contents']:
                 key = obj['Key']
                 if key.lower().endswith('.pdf'):
                     pdf_files.append(key)
+                    # Ищем соответствующий txt
+                    txt_key = key[:-4] + '.txt'
+                    txt_map[key] = txt_key
+                elif key.lower().endswith('.txt'):
+                    # Тоже запоминаем, но не используем напрямую
+                    pass
 
             if not pdf_files:
                 logger.warning(f"Нет PDF в бакете {bucket}")
                 return None
 
+            # Выбираем случайный PDF
             pdf_key = random.choice(pdf_files)
-            logger.info(f"Выбран PDF: {pdf_key}")
+            txt_key = pdf_key[:-4] + '.txt'
 
-            # Кодируем URL
+            logger.info(f"Выбран PDF: {pdf_key}")
+            logger.debug(f"Ожидаемый TXT: {txt_key}")
+
+            # Кодируем URL для PDF
             encoded_key = quote(pdf_key, safe='')
             pdf_url = f"https://storage.yandexcloud.net/{bucket}/{encoded_key}"
 
-            # Ищем описание
+            # Получаем описание
             description = None
             if has_description:
-                txt_key = pdf_key.replace('.pdf', '.txt')
-                logger.debug(f"Ищем описание: {txt_key}")
-
                 try:
+                    # Пробуем получить txt файл
                     txt_obj = self.s3.get_object(Bucket=bucket, Key=txt_key)
                     txt_content = txt_obj['Body'].read().decode('utf-8')
                     description = txt_content.strip()
-                    logger.info(f"Описание загружено для {pdf_key}, длина {len(description)} символов")
+                    logger.info(f"✅ Описание загружено для {pdf_key}, длина {len(description)} символов")
                 except Exception as e:
-                    logger.warning(f"Не удалось загрузить txt для {pdf_key}: {e}")
+                    logger.warning(f"❌ Не удалось загрузить txt для {pdf_key}: {e}")
+                    # Пробуем найти txt без расширения в словаре
+                    try:
+                        # Может быть txt_key в другой кодировке?
+                        # Попробуем найти любой txt файл с таким же именем (без учета регистра)
+                        response_txt = self.s3.list_objects_v2(Bucket=bucket, Prefix=pdf_key[:-4])
+                        if 'Contents' in response_txt:
+                            for obj in response_txt['Contents']:
+                                if obj['Key'].lower().endswith('.txt'):
+                                    txt_obj = self.s3.get_object(Bucket=bucket, Key=obj['Key'])
+                                    txt_content = txt_obj['Body'].read().decode('utf-8')
+                                    description = txt_content.strip()
+                                    logger.info(f"✅ Описание найдено по префиксу: {obj['Key']}")
+                                    break
+                    except Exception as e2:
+                        logger.warning(f"❌ Не удалось найти txt по префиксу: {e2}")
 
+            # Имя файла без расширения (для красивого заголовка)
             filename = Path(pdf_key).stem.replace('_', ' ').replace('-', ' ')
 
             # Если описания нет — используем имя файла
             if not description:
                 description = filename
-                logger.info(f"Использую имя файла как описание: {filename}")
+                logger.info(f"ℹ️ Использую имя файла как описание: {filename}")
 
             return {
                 'url': pdf_url,
