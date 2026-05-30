@@ -495,62 +495,75 @@ class VkIntegration:
         }
 
     def get_random_article(self) -> Optional[Dict]:
-        """Получить случайную книгу/статью через yt-dlp (парсинг стены)"""
+        """Получить случайную книгу — парсит блог @socnep.biblio"""
         import random
-        import subprocess
         import re
+        import json
+        import os
+        from datetime import datetime, timedelta
 
-        try:
-            # yt-dlp умеет парсить стену VK через wall-URL
-            wall_url = "https://vk.com/wall-186451829"
+        cache_file = "/home/psylogic/maxapibotnew/books_cache.json"
+        cache_ttl = timedelta(hours=24)
 
-            # Получаем список всех постов со стены
-            result = subprocess.run(
-                [
-                    "yt-dlp",
-                    "--flat-playlist",
-                    "--print", "webpage_url",
-                    wall_url
-                ],
-                capture_output=True,
-                text=True,
-                timeout=120
-            )
+        article_links = None
 
-            if result.returncode != 0:
-                logger.error(f"Ошибка yt-dlp: {result.stderr}")
+        # Пробуем загрузить из кэша
+        if os.path.exists(cache_file):
+            try:
+                with open(cache_file, "r") as f:
+                    cache = json.load(f)
+                    cache_time = datetime.fromisoformat(cache["timestamp"])
+                    if datetime.now() - cache_time < cache_ttl:
+                        article_links = cache["links"]
+                        logger.info(f"Загружено {len(article_links)} ссылок из кэша")
+            except Exception as e:
+                logger.warning(f"Ошибка чтения кэша: {e}")
+
+        # Если кэша нет или он устарел — парсим
+        if not article_links:
+            try:
+                from vk_url_scraper import VkScraper
+
+                vks = VkScraper(settings.VK_USERNAME, settings.VK_PASSWORD)
+                result = vks.scrape("https://vk.com/@socnep.biblio")
+
+                if result and len(result) > 0:
+                    page_text = result[0].get("text", "")
+                    article_links = re.findall(r'https://vk\.com/@socnep\.biblio-[^\s"\'>]+', page_text)
+                    article_links = list(dict.fromkeys(article_links))
+
+                    if article_links:
+                        with open(cache_file, "w") as f:
+                            json.dump({
+                                "timestamp": datetime.now().isoformat(),
+                                "links": article_links
+                            }, f)
+                        logger.info(f"Спарсено {len(article_links)} ссылок")
+                    else:
+                        logger.error("Не найдено ссылок на странице блога")
+                        return None
+                else:
+                    logger.error("Не удалось получить данные с блога")
+                    return None
+
+            except ImportError:
+                logger.error("Библиотека vk-url-scraper не установлена")
+                return None
+            except Exception as e:
+                logger.error(f"Ошибка парсинга блога: {e}")
                 return None
 
-            urls = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-
-            if not urls:
-                logger.warning("Нет постов на стене")
-                return None
-
-            # Фильтруем только статьи (содержат @-186451829-)
-            article_urls = [url for url in urls if "/@-186451829-" in url]
-
-            if not article_urls:
-                logger.warning("Нет статей в постах")
-                return None
-
-            # Рандомный выбор
-            random.shuffle(article_urls)
-            article_url = random.choice(article_urls)
-
-            logger.info(f"Выбрана случайная статья: {article_url}")
-
-            return {
-                "url": article_url,
-                "description": "📖 Интересная статья"
-            }
-
-        except subprocess.TimeoutExpired:
-            logger.error("Таймаут при парсинге стены")
+        if not article_links:
+            logger.error("Нет доступных книг")
             return None
-        except Exception as e:
-            logger.error(f"Ошибка получения статьи: {e}")
-            return None
+
+        article_url = random.choice(article_links)
+        logger.info(f"Выбрана книга: {article_url}")
+
+        return {
+            "url": article_url,
+            "description": "📖 Интересная статья"
+        }
 
     def send_to_channel(self, text: str):
         """Отправить сообщение в канал MAX, обрезая до 4096 символов"""
