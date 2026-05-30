@@ -519,9 +519,9 @@ class VkIntegration:
         self.send_to_channel(message)
         logger.info(f"Опубликовано видео: {playlist_name}")
 
-    def publish_pdf(self, pdf_prefix: str):
+    async def publish_pdf(self, pdf_prefix: str):
         """Опубликовать PDF"""
-        pdf_data † self.get_pdf_from_s3(pdf_prefix)
+        pdf_data = await self.get_pdf_from_s3(pdf_prefix)
         if not pdf_data:
             logger.error(f"❌ Нет PDF для {pdf_prefix}, пропускаем")
             return
