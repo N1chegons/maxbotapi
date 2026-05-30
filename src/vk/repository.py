@@ -521,7 +521,7 @@ class VkIntegration:
 
     def publish_pdf(self, pdf_prefix: str):
         """Опубликовать PDF"""
-        pdf_data = awai self.get_pdf_from_s3(pdf_prefix)
+        pdf_data † self.get_pdf_from_s3(pdf_prefix)
         if not pdf_data:
             logger.error(f"❌ Нет PDF для {pdf_prefix}, пропускаем")
             return
