@@ -3,7 +3,7 @@ from typing import Optional, Dict, Any
 import random
 import subprocess
 from urllib.parse import quote
-
+import random
 import requests
 from pathlib import Path
 from aiofiles import os
@@ -495,52 +495,95 @@ class VkIntegration:
         }
 
     def get_random_article(self) -> Optional[Dict]:
-        """Получить случайную книгу из VK"""
-        url = "https://api.vk.com/method/wall.get"
-        params = {
-            "access_token": self.token,
-            "owner_id": "-186451829",
-            "count": 100,
-            "v": "5.199"
-        }
-
+        """Получить случайную книгу/статью через yt-dlp (без токена VK)"""
         try:
-            import random
-            import requests
+            # Получаем список постов со стены через yt-dlp
+            # yt-dlp умеет парсить VK wall как плейлист
+            wall_url = "https://vk.com/wall-186451829"
 
-            response = requests.get(url, params=params)
-            data = response.json()
+            result = subprocess.run(
+                [
+                    "yt-dlp",
+                    "--flat-playlist",
+                    "--print", "webpage_url",
+                    "--match-filter", "duration = 0",  # только посты без видео (статьи)
+                    wall_url
+                ],
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
 
-            if "error" in data:
-                logger.error(f"VK API ошибка: {data['error']['error_msg']}")
+            if result.returncode != 0:
+                logger.error(f"Ошибка yt-dlp: {result.stderr}")
                 return None
 
-            items = data.get("response", {}).get("items", [])
-            if not items:
+            # Получаем список ссылок на посты
+            post_urls = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+            if not post_urls:
+                logger.warning("Не найдено постов со статьями")
                 return None
 
-            random.shuffle(items)
+            # Фильтруем только статьи (содержат @-186451829-)
+            article_urls = [url for url in post_urls if "/@-186451829-" in url]
 
-            for post in items:
-                if "attachments" in post:
-                    for att in post["attachments"]:
-                        if att.get("type") == "link":
-                            link_url = att["link"]["url"]
-                            if "/@-186451829-" in link_url:
-                                description = post.get("text", "").strip()
-                                # Если описания нет — ставим заглушку
-                                if len(description) < 50:
-                                    description = "📖 Интересная статья"
+            if not article_urls:
+                logger.warning("Не найдено статей")
+                return None
 
-                                return {
-                                    "url": link_url,
-                                    "description": description
-                                }
+            # Выбираем случайную статью
+            random.shuffle(article_urls)
+            article_url = random.choice(article_urls)
+
+            # Получаем описание статьи
+            description = self._get_article_description_via_ytdlp(article_url)
+
+            logger.info(f"Выбрана статья: {article_url}")
+
+            return {
+                "url": article_url,
+                "description": description or "📖 Интересная статья"
+            }
+
+        except subprocess.TimeoutExpired:
+            logger.error("Таймаут при получении статей")
             return None
-
         except Exception as e:
             logger.error(f"Ошибка получения статьи: {e}")
             return None
+
+    def _get_article_description_via_ytdlp(self, article_url: str) -> str:
+        """Получить описание статьи через yt-dlp"""
+        try:
+            import subprocess
+
+            result = subprocess.run(
+                [
+                    "yt-dlp",
+                    "--get-description",
+                    article_url
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+
+            if result.returncode != 0:
+                logger.debug(f"Не удалось получить описание: {result.stderr}")
+                return ""
+
+            description = result.stdout.strip()
+
+            # Обрезаем длинное описание
+            if len(description) > 800:
+                description = description[:797] + "..."
+
+            return description
+
+        except Exception as e:
+            logger.error(f"Ошибка получения описания статьи: {e}")
+            return ""
 
     def send_to_channel(self, text: str):
         """Отправить сообщение в канал MAX, обрезая до 4096 символов"""
