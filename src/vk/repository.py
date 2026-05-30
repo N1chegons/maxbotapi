@@ -430,23 +430,26 @@ class VkIntegration:
         # 3. Берём только ПЕРВЫЙ АБЗАЦ (до первого переноса строки или до 500 символов)
         if description:
             import re
-            # Разбиваем по двойному переносу строки (пустая строка)
             paragraphs = re.split(r'\n\s*\n', description, maxsplit=1)
             first_paragraph = paragraphs[0].strip()
 
-            # Если первый абзац слишком короткий (меньше 100 символов) — берем первые 500 символов текста
             if len(first_paragraph) < 100 and len(description) > 200:
                 first_paragraph = description[:500].strip()
 
-            # Если текст обрывается без точки — добавляем многоточие
             if not first_paragraph.endswith(('.', '!', '?', '…')):
                 first_paragraph = first_paragraph.rstrip() + "..."
 
             description = first_paragraph
 
-            # Обрезаем если всё ещё длинный
             if len(description) > 800:
                 description = description[:797] + "..."
+
+            # Убираем первую строку-заголовок с датой (например "20231214 | Текст")
+            lines = description.split('\n')
+            first_line = lines[0].strip() if lines else ""
+            if re.match(r'^\d{8}\s*\|', first_line):
+                description = '\n'.join(lines[1:]).strip()
+                logger.debug(f"Удалён заголовок из описания")
 
             logger.info(f"✅ Взят первый абзац, длина {len(description)} символов")
 
@@ -516,19 +519,24 @@ class VkIntegration:
         self.send_to_channel(message)
         logger.info(f"Опубликовано видео: {playlist_name}")
 
-    async def publish_pdf(self, pdf_prefix: str):
-        """Опубликовать PDF (асинхронно)"""
-        pdf_data = await self.get_pdf_from_s3(pdf_prefix)
+    def publish_pdf(self, pdf_prefix: str):
+        """Опубликовать PDF"""
+        pdf_data = awai self.get_pdf_from_s3(pdf_prefix)
         if not pdf_data:
             logger.error(f"❌ Нет PDF для {pdf_prefix}, пропускаем")
             return
 
         prefix = self.pdf_prefixes.get(pdf_prefix, "📄 Материал")
 
-        if pdf_data.get('description'):
-            message = f"{prefix}\n\n{pdf_data['description']}\n\n📄 Читать: {pdf_data['url']}"
+        # Для иностранных бакетов (pt, fa, zh) — только название и ссылка
+        if pdf_prefix in ["pt", "fa", "zh"]:
+            message = f"{prefix}\n\n📄 Читать: {pdf_data['url']}"
         else:
-            message = f"{prefix}\n\n{pdf_data['filename']}\n\n📄 Читать: {pdf_data['url']}"
+            # Для mod и soc — с описанием
+            if pdf_data.get('description'):
+                message = f"{prefix}\n\n{pdf_data['description']}\n\n📄 Читать: {pdf_data['url']}"
+            else:
+                message = f"{prefix}\n\n{pdf_data['filename']}\n\n📄 Читать: {pdf_data['url']}"
 
         self.send_to_channel(message)
         logger.info(f"✅ Опубликован PDF: {pdf_prefix}")
