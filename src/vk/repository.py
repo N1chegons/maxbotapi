@@ -1,6 +1,5 @@
 import json
 from typing import Optional, Dict, Any
-import random
 import subprocess
 from urllib.parse import quote
 import random
@@ -495,9 +494,9 @@ class VkIntegration:
         }
 
     def get_random_article(self) -> Optional[Dict]:
-        """Получить случайную книгу — парсит блог @socnep.biblio"""
-        import random
+        """Получить случайную книгу — парсим ссылки из ленты VK (без авторизации)"""
         import re
+        import requests
         import json
         import os
         from datetime import datetime, timedelta
@@ -519,38 +518,38 @@ class VkIntegration:
             except Exception as e:
                 logger.warning(f"Ошибка чтения кэша: {e}")
 
-        # Если кэша нет или он устарел — парсим
+        # Если кэша нет или устарел — парсим ленту
         if not article_links:
             try:
-                from vk_url_scraper import VkScraper
+                # Парсим ленту блога (публичная страница, не требует авторизации)
+                blog_url = "https://vk.com/@socnep.biblio"
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                }
 
-                vks = VkScraper(settings.VK_USERNAME, settings.VK_PASSWORD)
-                result = vks.scrape("https://vk.com/@socnep.biblio")
+                response = requests.get(blog_url, headers=headers, timeout=30)
+                response.raise_for_status()
 
-                if result and len(result) > 0:
-                    page_text = result[0].get("text", "")
-                    article_links = re.findall(r'https://vk\.com/@socnep\.biblio-[^\s"\'>]+', page_text)
-                    article_links = list(dict.fromkeys(article_links))
+                # Ищем все ссылки на статьи блога в HTML
+                # Паттерн: https://vk.com/@socnep.biblio-...
+                article_links = re.findall(r'https://vk\.com/@socnep\.biblio-[^\s"\'>]+', response.text)
 
-                    if article_links:
-                        with open(cache_file, "w") as f:
-                            json.dump({
-                                "timestamp": datetime.now().isoformat(),
-                                "links": article_links
-                            }, f)
-                        logger.info(f"Спарсено {len(article_links)} ссылок")
-                    else:
-                        logger.error("Не найдено ссылок на странице блога")
-                        return None
+                # Убираем дубликаты
+                article_links = list(dict.fromkeys(article_links))
+
+                if article_links:
+                    with open(cache_file, "w") as f:
+                        json.dump({
+                            "timestamp": datetime.now().isoformat(),
+                            "links": article_links
+                        }, f)
+                    logger.info(f"Спарсено {len(article_links)} ссылок из ленты VK")
                 else:
-                    logger.error("Не удалось получить данные с блога")
+                    logger.error("Не найдено ссылок на странице блога")
                     return None
 
-            except ImportError:
-                logger.error("Библиотека vk-url-scraper не установлена")
-                return None
             except Exception as e:
-                logger.error(f"Ошибка парсинга блога: {e}")
+                logger.error(f"Ошибка парсинга ленты: {e}")
                 return None
 
         if not article_links:
