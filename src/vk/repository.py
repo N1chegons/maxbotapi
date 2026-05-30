@@ -197,6 +197,7 @@ class VkIntegration:
     def __init__(self):
         self.channel_id = settings.MAX_CHANNEL_ID
         self.bot_token = settings.MAX_BOT_TOKEN
+        self.token = settings.VK_ACCESS_TOKEN
 
         # S3 клиент
         self.s3 = get_s3_client()
@@ -275,6 +276,33 @@ class VkIntegration:
                 return json.load(f)
         except:
             return {}
+
+    def _parse_article_page(self, article_url: str) -> str:
+        """Парсит страницу статьи и возвращает первый абзац"""
+        try:
+            import requests
+            from bs4 import BeautifulSoup
+
+            headers = {"User-Agent": "Mozilla/5.0"}
+            response = requests.get(article_url, headers=headers, timeout=15)
+
+            if response.status_code != 200:
+                return ""
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            # Ищем первый параграф
+            for p in soup.find_all('p'):
+                text = p.get_text().strip()
+                if len(text) > 100:
+                    if len(text) > 800:
+                        text = text[:797] + "..."
+                    return text
+
+            return ""
+        except Exception as e:
+            logger.error(f"Ошибка парсинга страницы: {e}")
+            return ""
 
     def _save_video_cache(self):
         with open(self.video_cache_file, "w") as f:
@@ -467,17 +495,51 @@ class VkIntegration:
         }
 
     def get_random_article(self) -> Optional[Dict]:
-        """Получить случайную статью из VK (через yt-dlp парсинг)"""
-        # Альтернатива: парсим статьи через requests + BeautifulSoup
-        # Пока вернём заглушку, но можно сделать полноценный парсинг
+        """Получить случайную книгу из VK"""
+        url = "https://api.vk.com/method/wall.get"
+        params = {
+            "access_token": self.token,
+            "owner_id": "-186451829",
+            "count": 100,
+            "v": "5.199"
+        }
+
         try:
-            # Пример ссылки на книгу
-            article_url = "https://vk.ru/@-186451829-duet-02"
-            return {
-                'url': article_url,
-                'description': "Дуэт — это книга о взаимодействии и сотрудничестве."
-            }
-        except:
+            import random
+            import requests
+
+            response = requests.get(url, params=params)
+            data = response.json()
+
+            if "error" in data:
+                logger.error(f"VK API ошибка: {data['error']['error_msg']}")
+                return None
+
+            items = data.get("response", {}).get("items", [])
+            if not items:
+                return None
+
+            random.shuffle(items)
+
+            for post in items:
+                if "attachments" in post:
+                    for att in post["attachments"]:
+                        if att.get("type") == "link":
+                            link_url = att["link"]["url"]
+                            if "/@-186451829-" in link_url:
+                                description = post.get("text", "").strip()
+                                # Если описания нет — ставим заглушку
+                                if len(description) < 50:
+                                    description = "📖 Интересная статья"
+
+                                return {
+                                    "url": link_url,
+                                    "description": description
+                                }
+            return None
+
+        except Exception as e:
+            logger.error(f"Ошибка получения статьи: {e}")
             return None
 
     def send_to_channel(self, text: str):
