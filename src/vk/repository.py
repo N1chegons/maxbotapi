@@ -495,60 +495,72 @@ class VkIntegration:
         }
 
     def get_random_article(self) -> Optional[Dict]:
-        """Получить случайную книгу/статью через yt-dlp (без токена VK)"""
+        """Получить случайную книгу/статью из группы VK (без токена)"""
+        import random
+        import requests
+
         try:
-            # Получаем список постов со стены через yt-dlp
-            # yt-dlp умеет парсить VK wall как плейлист
-            wall_url = "https://vk.com/wall-186451829"
+            # Открытый метод wall.get не требует токена для публичных групп
+            # owner_id = -186451829 (минус означает группу)
+            url = "https://api.vk.com/method/wall.get"
+            params = {
+                "owner_id": "-186451829",
+                "count": 50,  # последние 50 постов
+                "v": "5.199"
+            }
 
-            result = subprocess.run(
-                [
-                    "yt-dlp",
-                    "--flat-playlist",
-                    "--print", "webpage_url",
-                    "--match-filter", "duration = 0",  # только посты без видео (статьи)
-                    wall_url
-                ],
-                capture_output=True,
-                text=True,
-                timeout=120
-            )
+            response = requests.get(url, params=params)
+            data = response.json()
 
-            if result.returncode != 0:
-                logger.error(f"Ошибка yt-dlp: {result.stderr}")
+            if "error" in data:
+                logger.error(f"VK API ошибка: {data['error']['error_msg']}")
                 return None
 
-            # Получаем список ссылок на посты
-            post_urls = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-
-            if not post_urls:
-                logger.warning("Не найдено постов со статьями")
+            items = data.get("response", {}).get("items", [])
+            if not items:
+                logger.warning("Нет постов в группе")
                 return None
 
-            # Фильтруем только статьи (содержат @-186451829-)
-            article_urls = [url for url in post_urls if "/@-186451829-" in url]
+            # Собираем все ссылки на статьи из постов
+            article_urls = []
+            for post in items:
+                if "attachments" in post:
+                    for att in post["attachments"]:
+                        if att.get("type") == "link":
+                            link_url = att["link"]["url"]
+                            # Фильтруем только статьи (содержат @-186451829-)
+                            if "/@-186451829-" in link_url:
+                                article_urls.append(link_url)
 
             if not article_urls:
-                logger.warning("Не найдено статей")
+                logger.warning("Не найдено статей в постах")
                 return None
 
-            # Выбираем случайную статью
+            # Рандомно выбираем статью
             random.shuffle(article_urls)
             article_url = random.choice(article_urls)
 
-            # Получаем описание статьи
-            description = self._get_article_description_via_ytdlp(article_url)
+            # Берём описание из поста
+            description = ""
+            for post in items:
+                if "attachments" in post:
+                    for att in post["attachments"]:
+                        if att.get("type") == "link" and att["link"]["url"] == article_url:
+                            description = post.get("text", "").strip()
+                            if description and len(description) > 800:
+                                description = description[:797] + "..."
+                            break
 
-            logger.info(f"Выбрана статья: {article_url}")
+            if not description:
+                description = "📖 Интересная статья"
+
+            logger.info(f"Выбрана случайная статья: {article_url}")
 
             return {
                 "url": article_url,
-                "description": description or "📖 Интересная статья"
+                "description": description
             }
 
-        except subprocess.TimeoutExpired:
-            logger.error("Таймаут при получении статей")
-            return None
         except Exception as e:
             logger.error(f"Ошибка получения статьи: {e}")
             return None
