@@ -344,19 +344,59 @@ class VkIntegration:
             "description": "📖 Интересная статья"
         }
 
+    def get_article_slug_from_post(self, post_number: int) -> Optional[str]:
+        """Из поста wall-186451829_XX вытаскивает ссылку вида @socnep.biblio-XXXX-XX"""
+        import requests
+        import re
+
+        post_url = f"https://vk.ru/wall-186451829_{post_number}"
+
+        try:
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            response = requests.get(post_url, headers=headers, timeout=15)
+
+            if response.status_code != 200:
+                logger.error(f"Не удалось получить пост {post_number}")
+                return None
+
+            # Ищем ссылку вида vk.ru/@socnep.biblio-... или https://vk.ru/@socnep.biblio-...
+            match = re.search(r'https?://vk\.ru/@socnep\.biblio-[^\s"\'>]+', response.text)
+            if not match:
+                # Пробуем без https
+                match = re.search(r'vk\.ru/@socnep\.biblio-[^\s"\'>]+', response.text)
+
+            if match:
+                slug = match.group(0)
+                if not slug.startswith('http'):
+                    slug = 'https://' + slug
+                logger.info(f"Пост {post_number} -> {slug}")
+                return slug
+
+            logger.warning(f"Не найдена ссылка на статью в посте {post_number}")
+            return None
+
+        except Exception as e:
+            logger.error(f"Ошибка парсинга поста {post_number}: {e}")
+            return None
+
     def get_random_book(self) -> Optional[Dict]:
-        """Получить случайную книгу из диапазона"""
+        """Получить случайную книгу с человекочитаемой ссылкой"""
         import random
 
-        # Случайный номер от min до max
         random_number = random.randint(self.book_min, self.book_max)
 
-        book_url = f"https://vk.ru/wall-186451829_{random_number}"
+        # Парсим человекочитаемую ссылку из поста
+        article_url = self.get_article_slug_from_post(random_number)
 
-        logger.info(f"Случайная книга {random_number}: {book_url}")
+        if not article_url:
+            # Если не спарсилось — используем числовую ссылку
+            article_url = f"https://vk.ru/wall-186451829_{random_number}"
+            logger.warning(f"Использую числовую ссылку для {random_number}")
+
+        logger.info(f"Случайная книга {random_number}: {article_url}")
 
         return {
-            "url": book_url,
+            "url": article_url,
             "description": "📖 Интересная статья"
         }
 
