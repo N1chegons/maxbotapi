@@ -8,6 +8,8 @@ from src.max.models import Message, ProblemRequest
 
 ADMIN_IDS = [235995783, 12456095, 8177043133, 588276824, 140167601]
 
+
+# noinspection PyDeprecation
 class AdminService:
     @classmethod
     def is_admin(cls, user_id: int):
@@ -35,6 +37,20 @@ class AdminService:
             await session.execute(stmt)
             await session.commit()
 
+    # noinspection PyBroadException
+    @classmethod
+    async def notify_admins(cls, text: str):
+        from src.telegram.manager_sending import send_notification_telegram
+        from src.max.manager_sending import send_notification_max
+
+        for admin_id in ADMIN_IDS:  # прямо из списка
+            try:
+                await send_notification_telegram(admin_id, text)
+            except:
+                try:
+                    await send_notification_max(admin_id, text)
+                except:
+                    pass
 
     @classmethod
     async def get_total_messages_last_days_admin(cls):
@@ -93,6 +109,8 @@ class AdminService:
             )
             await session.execute(stmt)
             await session.commit()
+
+            await cls.notify_admins("🆕 Новое обращение")
 
 
     @classmethod
