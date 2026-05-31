@@ -272,7 +272,7 @@ class VkIntegration:
         self.video_cache = self._load_video_cache()
 
         # Диапазон книг
-        self.book_min = 1  # самая старая книга (найди один раз)
+        self.book_min = 9  # самая старая книга (найди один раз)
         self.book_max = 48  # текущая самая новая (будет обновляться)
 
     def _load_video_cache(self) -> Dict:
