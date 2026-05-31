@@ -307,7 +307,7 @@ async def send_sub_buttons(user_id: int, user):
         payment_link = await create_payment_link(14.00, user_id)
         kb.row(LinkButton(text="💳 14 рублей за 14 дней теста", url=payment_link))
 
-    await bot.send_message(    user_id=user_id, text="Оплатите подписку:", attachments=[kb.as_markup()])
+    await bot.send_message(user_id=user_id, text="Оплатите подписку:", attachments=[kb.as_markup()])
 async def get_subscription_status(user):
     # noinspection PyDeprecation
     now = datetime.utcnow()
@@ -944,7 +944,8 @@ async def cancel_subscription_callback(callback: MessageCallback):
     await callback.message.edit(
         text=f"✅ Подписка отменена.\n"
              f"Доступ сохранится до {user.subscription_ends_at.strftime('%d.%m.%Y')}.\n"
-             f"Чтобы возобновить, оплатите через /sub"
+             f"Чтобы возобновить, оплатите через /sub",
+        attachments=[]
     )
 
 # noinspection PyUnresolvedReferences
