@@ -2,6 +2,9 @@ import asyncio
 import sys
 from datetime import datetime
 
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
