@@ -246,7 +246,6 @@ async def igor_command(event: MessageCreated):
         attachments=[reply_kb.as_markup()]
     )
 
-
 # noinspection PyUnresolvedReferences
 @dp.message_created(Command('bot'))
 async def help_bot_command(event: MessageCreated):
@@ -277,6 +276,7 @@ async def help_bot_command(event: MessageCreated):
         )
 
 async def create_payment_link(amount: float, user_id: int) -> Any | None:
+    await asyncio.sleep(1)
     payment_data = TochkaApiService().create_payment_link(amount)
     logger.info(f"Создание ссылки на оплату для пользователя {user_id}")
     if payment_data and payment_data.get("payment_link"):
@@ -384,7 +384,6 @@ async def admin_panel(event: MessageCreated):
 
     await bot.send_message(user_id=user_id, text=text)
 
-
 # noinspection PyUnresolvedReferences
 @dp.message_created(Command('st'))
 async def stats_command(event: MessageCreated):
@@ -414,7 +413,6 @@ async def stats_command(event: MessageCreated):
 
     logger_admin.info(f"Админ {user_id} просмотрел статистику по сообщеиям за {count_message} дней")
     await bot.send_message(user_id=user_id, text=report)
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(Command('con'))
@@ -486,7 +484,6 @@ async def view_appointment(event: MessageCreated):
 
         logger_admin.info(f"Админ посмотрел список консультаций")
         await bot.send_message(user_id=user_id, text=text)
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(Command('req'))
@@ -562,7 +559,6 @@ async def view_problem_appointment(event: MessageCreated):
         logger_admin.info(f"Админ {user_id} посмотрел список обращений")
         await bot.send_message(user_id=user_id, text=text)
 
-
 # noinspection PyUnresolvedReferences
 @dp.message_created(Command('ha'))
 async def admin_help_command(event: MessageCreated):
@@ -582,7 +578,6 @@ async def admin_help_command(event: MessageCreated):
     )
 
     await bot.send_message(user_id=user_id, text=text)
-
 
 # logic
 @dp.bot_started()
@@ -624,7 +619,6 @@ async def bot_started(event: BotStarted):
                  "Если хочешь начать все сначала пиши - /new"
         )
 
-
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "delete_agree")
 async def handle_continue(callback: MessageCallback):
@@ -639,7 +633,6 @@ async def handle_continue(callback: MessageCallback):
         attachments=[]
     )
 
-
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "delete_disagree")
 async def handle_continue(callback: MessageCallback):
@@ -650,7 +643,6 @@ async def handle_continue(callback: MessageCallback):
         text="Давай продолжим. На чём мы остановились",
         attachments=[]
     )
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "continue")
@@ -680,7 +672,6 @@ async def handle_continue(callback: MessageCallback):
         attachments=[reply_kb.as_markup()]
     )
 
-
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "disagree")
 async def handle_disagree(callback: MessageCallback):
@@ -689,7 +680,6 @@ async def handle_disagree(callback: MessageCallback):
             "Понял. Возвращайся, если передумаешь"
         ), attachments=[]
     )
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "agree")
@@ -718,7 +708,6 @@ async def handle_agree(callback: MessageCallback):
         ),
         attachments = [reply_kb.as_markup()]
     )
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "query")
@@ -753,7 +742,6 @@ async def handle_query(callback: MessageCallback):
         ),
         attachments=[reply_kb.as_markup()]
     )
-
 
 # noinspection PyUnresolvedReferences
 async def handle_agree_subs(callback: MessageCallback):
@@ -795,7 +783,6 @@ async def show_chat(user_id: int):
         text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
     )
 
-
 # noinspection PyUnresolvedReferences
 async def send_video(callback: MessageCallback):
     video = InputMedia(path="video_cache/04.mp4")
@@ -803,7 +790,6 @@ async def send_video(callback: MessageCallback):
         text="",
         attachments=[video]
     )
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "memory_none")
@@ -829,7 +815,6 @@ async def handle_memory_none(callback: MessageCallback):
     else:
         await handle_agree_subs(callback)
 
-
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "mem_memory_none")
 async def handle_mem_memory_none(callback: MessageCallback):
@@ -841,7 +826,6 @@ async def handle_mem_memory_none(callback: MessageCallback):
         text='Выбор памяти изменен на "Без памяти"\n\nМожете продолжить диалог.',
         attachments=[]
     )
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "memory_dialog")
@@ -866,7 +850,6 @@ async def handle_memory_dialog(callback: MessageCallback):
     else:
         await handle_agree_subs(callback)
 
-
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "mem_memory_dialog")
 async def handle_mem_memory_dialog(callback: MessageCallback):
@@ -878,7 +861,6 @@ async def handle_mem_memory_dialog(callback: MessageCallback):
         text='Выбор памяти изменен на "Один диалог"\n\nМожете продолжить диалог.',
         attachments=[]
     )
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "memory_full")
@@ -903,7 +885,6 @@ async def handle_memory_full(callback: MessageCallback):
     else:
         await handle_agree_subs(callback)
 
-
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "mem_memory_full")
 async def handle_mem_memory_full(callback: MessageCallback):
@@ -915,7 +896,6 @@ async def handle_mem_memory_full(callback: MessageCallback):
         text='Выбор памяти изменен на "Вся память"\n\nМожете продолжить диалог.',
         attachments=[]
     )
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "consult_agree")
@@ -935,7 +915,6 @@ async def handle_consult_agree(callback: MessageCallback):
         attachments=[reply_kb.as_markup()]
     )
 
-
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "consult_disagree")
 async def handle_consult_disagree(callback: MessageCallback):
@@ -946,7 +925,6 @@ async def handle_consult_disagree(callback: MessageCallback):
         text="Ты отменил заявку на консультацию. Если хочешь записаться на консультацию - /igor",
         attachments=[]
     )
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "cancel_subscription")
@@ -968,7 +946,6 @@ async def cancel_subscription_callback(callback: MessageCallback):
              f"Доступ сохранится до {user.subscription_ends_at.strftime('%d.%m.%Y')}.\n"
              f"Чтобы возобновить, оплатите через /sub"
     )
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "bot_send_problem")
@@ -992,7 +969,6 @@ async def bot_report(callback: MessageCallback):
         attachments=[]
     )
 
-
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "bot_dsend")
 async def bot_cancel(callback: MessageCallback):
@@ -1015,7 +991,7 @@ async def handle_message(event: MessageCreated):
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
-    logger.info(f"Пользователь {user_id} отправил сообщение: {text[10:]}")
+    logger.info(f"Пользователь {user_id} отправил сообщение: {text[:10]}")
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
@@ -1054,7 +1030,6 @@ async def handle_message(event: MessageCreated):
                 text="⚠️ Не удалось получить ответ. Попробуйте позже."
             )
 
-
 # noinspection PyUnresolvedReferences
 @dp.message_created(F.message.body.attachments[0].type == 'contact')
 async def handle_contact(event: MessageCreated):
@@ -1085,7 +1060,6 @@ async def handle_contact(event: MessageCreated):
         text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
              "Вы можете продолжить вести диалог.",
     )
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(F.message.body.attachments)
