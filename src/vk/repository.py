@@ -357,7 +357,7 @@ class VkIntegration:
         }
 
     def get_article_slug_from_post(self, post_number: int) -> Optional[str]:
-        """Из поста wall-186451829_XX вытаскивает ссылку вида @socnep.biblio-XXXX-XX"""
+        """Из поста wall-186451829_XX вытаскивает ссылку на статью"""
         import requests
         import re
 
@@ -371,11 +371,12 @@ class VkIntegration:
                 logger.error(f"Не удалось получить пост {post_number}")
                 return None
 
-            # Ищем ссылку вида vk.ru/@socnep.biblio-... или https://vk.ru/@socnep.biblio-...
-            match = re.search(r'https?://vk\.ru/@socnep\.biblio-[^\s"\'>]+', response.text)
+            # Ищем оба варианта ссылок:
+            # 1. vk.ru/@socnep.biblio-...
+            # 2. vk.ru/@-186451829-...
+            match = re.search(r'https?://vk\.ru/(@socnep\.biblio-|@-\d+-)[^\s"\'>]+', response.text)
             if not match:
-                # Пробуем без https
-                match = re.search(r'vk\.ru/@socnep\.biblio-[^\s"\'>]+', response.text)
+                match = re.search(r'vk\.ru/(@socnep\.biblio-|@-\d+-)[^\s"\'>]+', response.text)
 
             if match:
                 slug = match.group(0)
