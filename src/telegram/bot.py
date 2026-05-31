@@ -145,7 +145,7 @@ async def delete_info(message):
 async def closed_session(message):
     user_id = message.from_user.id
     user = await MaxService.get_user(user_id)
-    if user.memmory_mode != MemoryMode.none:
+    if user.memory_mode != MemoryMode.none:
         await ending_session(user_id, user, "TELEGRAM")
     else:
         logger.info(f"Пользоватлеь {user_id} заканчивает диалог с памятью {MemoryMode.none}")
