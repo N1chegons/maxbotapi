@@ -1,6 +1,5 @@
 import asyncio
 import sys
-from datetime import datetime
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -10,7 +9,7 @@ sys.path.insert(0, project_root)
 
 from src.logger_config import setup_logger
 from src.max.manager_sending import send_notification_max
-from src.max.models import MemoryMode, User
+from src.max.models import MemoryMode
 from src.max.repository import MaxService
 from src.telegram.manager_sending import send_notification_telegram
 from src.yandexai.config import THEMES_INDEXES
@@ -68,9 +67,6 @@ async def send_daily_checkin(user):
         await send_notification_telegram(user.user_id, message)
 
 async def process_inactive_users():
-    """Основная функция"""
-    now = datetime.utcnow()
-
     end_users = await MaxService.get_users_silent_between(30, 50)
     for user in end_users:
         try:
