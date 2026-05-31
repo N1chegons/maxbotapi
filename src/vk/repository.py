@@ -192,6 +192,7 @@ class VkIntegrationNew:
         self.send_to_channel(message)
         print(f"✅ Отправлено видео из плейлиста {playlist_name}")
 
+
 class VkIntegration:
     def __init__(self):
         self.channel_id = settings.MAX_CHANNEL_ID
@@ -263,11 +264,16 @@ class VkIntegration:
         self.state_files = {
             "type1_index": "/home/psylogic/type1_index.txt",
             "type2_index": "/home/psylogic/type2_index.txt",
+            "book_index": "/home/psylogic/book_index.txt",  # ← новый для книг
         }
 
         # Кэш для ссылок видео
         self.video_cache_file = "/home/psylogic/video_cache.json"
         self.video_cache = self._load_video_cache()
+
+        # Диапазон книг
+        self.book_min = 1  # самая старая книга (найди один раз)
+        self.book_max = 48  # текущая самая новая (будет обновляться)
 
     def _load_video_cache(self) -> Dict:
         try:
@@ -275,33 +281,6 @@ class VkIntegration:
                 return json.load(f)
         except:
             return {}
-
-    def _parse_article_page(self, article_url: str) -> str:
-        """Парсит страницу статьи и возвращает первый абзац"""
-        try:
-            import requests
-            from bs4 import BeautifulSoup
-
-            headers = {"User-Agent": "Mozilla/5.0"}
-            response = requests.get(article_url, headers=headers, timeout=15)
-
-            if response.status_code != 200:
-                return ""
-
-            soup = BeautifulSoup(response.text, 'html.parser')
-
-            # Ищем первый параграф
-            for p in soup.find_all('p'):
-                text = p.get_text().strip()
-                if len(text) > 100:
-                    if len(text) > 800:
-                        text = text[:797] + "..."
-                    return text
-
-            return ""
-        except Exception as e:
-            logger.error(f"Ошибка парсинга страницы: {e}")
-            return ""
 
     def _save_video_cache(self):
         with open(self.video_cache_file, "w") as f:
@@ -320,20 +299,78 @@ class VkIntegration:
         with open(file_path, "w") as f:
             f.write(str(next_index))
 
-        return index  # возвращаем текущий индекс (то, что надо публиковать)
+        return index
 
     def get_next_playlist_type1(self) -> str:
-        """Получить следующую тему из первого листа"""
         index = self._get_next_index(self.state_files["type1_index"], len(self.playlist_type1))
         return self.playlist_type1[index]
 
     def get_next_playlist_type2(self) -> str:
-        """Получить следующую тему из второго листа"""
         index = self._get_next_index(self.state_files["type2_index"], len(self.playlist_type2))
         return self.playlist_type2[index]
 
+    # ==================== КНИГИ (НОВЫЙ МЕТОД) ====================
+
+    def _get_current_book_number(self) -> int:
+        """Получить текущий номер книги из файла"""
+        try:
+            with open(self.state_files["book_index"], "r") as f:
+                return int(f.read().strip())
+        except:
+            return self.book_max
+
+    def _save_current_book_number(self, number: int):
+        with open(self.state_files["book_index"], "w") as f:
+            f.write(str(number))
+
+    def _get_max_book_number(self) -> int:
+        """Проверить, не появилась ли новая книга (с большим номером)"""
+        current_max = self.book_max
+        for offset in range(1, 11):
+            test_number = current_max + offset
+            test_url = f"https://vk.ru/wall-186451829_{test_number}"
+            try:
+                resp = requests.head(test_url, timeout=10)
+                if resp.status_code == 200:
+                    logger.info(f"Найдена новая книга! Номер {test_number}")
+                    return test_number
+            except:
+                pass
+        return current_max
+
+    def get_next_book(self) -> Optional[Dict]:
+        """Получить следующую книгу по очереди"""
+        self.book_max = self._get_max_book_number()
+        current = self._get_current_book_number()
+
+        if current < self.book_max:
+            next_number = current + 1
+        else:
+            next_number = self.book_min
+
+        book_url = f"https://vk.ru/wall-186451829_{next_number}"
+
+        # Проверка что ссылка работает
+        try:
+            resp = requests.head(book_url, timeout=10)
+            if resp.status_code != 200:
+                logger.error(f"Книга {next_number} не найдена")
+                return None
+        except Exception as e:
+            logger.error(f"Ошибка проверки книги: {e}")
+            return None
+
+        self._save_current_book_number(next_number)
+        logger.info(f"Книга {next_number} (макс: {self.book_max})")
+
+        return {
+            "url": book_url,
+            "description": "📖 Интересная статья"
+        }
+
+    # ==================== ОСТАЛЬНЫЕ МЕТОДЫ ====================
+
     def get_video_links_from_playlist(self, playlist_url: str) -> list:
-        """Получить все ссылки на видео из плейлиста через yt-dlp"""
         if playlist_url in self.video_cache:
             logger.info(f"Из кэша: {len(self.video_cache[playlist_url])} видео")
             return self.video_cache[playlist_url]
@@ -358,7 +395,6 @@ class VkIntegration:
             return []
 
     def get_random_video_from_playlist(self, playlist_name: str) -> Optional[str]:
-        """Возвращает случайную ссылку на видео из плейлиста"""
         playlist_url = self.playlist_urls.get(playlist_name)
         if not playlist_url:
             return None
@@ -368,7 +404,6 @@ class VkIntegration:
         return random.choice(links)
 
     def get_video_description(self, video_url: str) -> str:
-        """Получить описание видео через yt-dlp"""
         try:
             result = subprocess.run(
                 ["yt-dlp", "--get-description", video_url],
@@ -384,12 +419,11 @@ class VkIntegration:
             return ""
 
     async def get_pdf_from_s3(self, prefix: str) -> Optional[Dict]:
-        """Получить случайный PDF из бакета, описание - только первый абзац"""
         try:
             from pypdf import PdfReader
             import io
         except ImportError:
-            logger.error("pypdf не установлен. Установи: pip install pypdf")
+            logger.error("pypdf не установлен")
             return None
 
         bucket = self.pdf_buckets.get(prefix)
@@ -398,12 +432,10 @@ class VkIntegration:
             return None
 
         response = self.s3.list_objects_v2(Bucket=bucket, Prefix="")
-
         if 'Contents' not in response:
             logger.warning(f"Нет файлов в бакете {bucket}")
             return None
 
-        # Собираем PDF файлы
         pdf_files = []
         for obj in response['Contents']:
             key = obj['Key']
@@ -417,176 +449,77 @@ class VkIntegration:
         pdf_key = random.choice(pdf_files)
         logger.info(f"Выбран PDF: {pdf_key}")
 
-        # Кодируем URL
         encoded_key = quote(pdf_key, safe='')
         pdf_url = f"https://storage.yandexcloud.net/{bucket}/{encoded_key}"
 
-        # Пытаемся получить описание
         description = None
 
-        # 1. Сначала пробуем TXT файл
+        # TXT файл
         txt_key = pdf_key.replace('.pdf', '.txt')
         try:
             txt_obj = self.s3.get_object(Bucket=bucket, Key=txt_key)
             description = txt_obj['Body'].read().decode('utf-8').strip()
-            logger.info(f"✅ Описание взято из TXT для {pdf_key}")
-        except Exception as e:
-            logger.debug(f"Нет TXT для {pdf_key}: {e}")
+            logger.info(f"✅ Описание из TXT")
+        except:
+            logger.debug(f"Нет TXT для {pdf_key}")
 
-        # 2. Если TXT нет — парсим сам PDF
+        # Парсинг PDF
         if not description:
             try:
                 pdf_obj = self.s3.get_object(Bucket=bucket, Key=pdf_key)
                 pdf_bytes = pdf_obj['Body'].read()
-
                 reader = PdfReader(io.BytesIO(pdf_bytes))
                 text_parts = []
                 for page in reader.pages:
                     page_text = page.extract_text()
                     if page_text:
                         text_parts.append(page_text)
-
                 if text_parts:
                     description = '\n'.join(text_parts).strip()
-                    logger.info(f"✅ Описание извлечено из PDF для {pdf_key} (длина {len(description)})")
-                else:
-                    logger.warning(f"Не удалось извлечь текст из PDF {pdf_key}")
+                    logger.info(f"✅ Описание из PDF")
             except Exception as e:
-                logger.error(f"Ошибка при парсинге PDF {pdf_key}: {e}")
+                logger.error(f"Ошибка парсинга PDF: {e}")
 
-        # 3. Берём только ПЕРВЫЙ АБЗАЦ (до первого переноса строки или до 500 символов)
+        # Первый абзац
         if description:
-            import re
             paragraphs = re.split(r'\n\s*\n', description, maxsplit=1)
             first_paragraph = paragraphs[0].strip()
-
             if len(first_paragraph) < 100 and len(description) > 200:
                 first_paragraph = description[:500].strip()
-
             if not first_paragraph.endswith(('.', '!', '?', '…')):
                 first_paragraph = first_paragraph.rstrip() + "..."
-
             description = first_paragraph
-
             if len(description) > 800:
                 description = description[:797] + "..."
 
-            # Убираем первую строку-заголовок с датой (например "20231214 | Текст")
             lines = description.split('\n')
             first_line = lines[0].strip() if lines else ""
             if re.match(r'^\d{8}\s*\|', first_line):
                 description = '\n'.join(lines[1:]).strip()
-                logger.debug(f"Удалён заголовок из описания")
-
-            logger.info(f"✅ Взят первый абзац, длина {len(description)} символов")
 
         filename = Path(pdf_key).stem.replace('_', ' ').replace('-', ' ')
-
-        # Если описания нет вообще — используем имя файла
         if not description:
             description = filename
-            logger.info(f"ℹ️ Использую имя файла как описание: {filename}")
 
-        return {
-            'url': pdf_url,
-            'description': description,
-            'filename': filename
-        }
-
-    def get_random_article(self) -> Optional[Dict]:
-        """Получить случайную книгу — парсим ссылки из ленты VK (без авторизации)"""
-        import re
-        import requests
-        import json
-        import os
-        from datetime import datetime, timedelta
-
-        cache_file = "/home/psylogic/maxapibotnew/books_cache.json"
-        cache_ttl = timedelta(hours=24)
-
-        article_links = None
-
-        # Пробуем загрузить из кэша
-        if os.path.exists(cache_file):
-            try:
-                with open(cache_file, "r") as f:
-                    cache = json.load(f)
-                    cache_time = datetime.fromisoformat(cache["timestamp"])
-                    if datetime.now() - cache_time < cache_ttl:
-                        article_links = cache["links"]
-                        logger.info(f"Загружено {len(article_links)} ссылок из кэша")
-            except Exception as e:
-                logger.warning(f"Ошибка чтения кэша: {e}")
-
-        # Если кэша нет или устарел — парсим ленту
-        if not article_links:
-            try:
-                # Парсим ленту блога (публичная страница, не требует авторизации)
-                blog_url = "https://vk.com/@socnep.biblio"
-                headers = {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                }
-
-                response = requests.get(blog_url, headers=headers, timeout=30)
-                response.raise_for_status()
-
-                # Ищем все ссылки на статьи блога в HTML
-                # Паттерн: https://vk.com/@socnep.biblio-...
-                article_links = re.findall(r'https://vk\.com/@socnep\.biblio-[^\s"\'>]+', response.text)
-
-                # Убираем дубликаты
-                article_links = list(dict.fromkeys(article_links))
-
-                if article_links:
-                    with open(cache_file, "w") as f:
-                        json.dump({
-                            "timestamp": datetime.now().isoformat(),
-                            "links": article_links
-                        }, f)
-                    logger.info(f"Спарсено {len(article_links)} ссылок из ленты VK")
-                else:
-                    logger.error("Не найдено ссылок на странице блога")
-                    return None
-
-            except Exception as e:
-                logger.error(f"Ошибка парсинга ленты: {e}")
-                return None
-
-        if not article_links:
-            logger.error("Нет доступных книг")
-            return None
-
-        article_url = random.choice(article_links)
-        logger.info(f"Выбрана книга: {article_url}")
-
-        return {
-            "url": article_url,
-            "description": "📖 Интересная статья"
-        }
+        return {'url': pdf_url, 'description': description, 'filename': filename}
 
     def send_to_channel(self, text: str):
-        """Отправить сообщение в канал MAX, обрезая до 4096 символов"""
-        # Обрезаем до 4096 символов
         if len(text) > 4096:
             text = text[:4093] + "..."
-            logger.warning(f"Сообщение обрезано до 4096 символов")
+            logger.warning(f"Сообщение обрезано")
 
         url = f"https://platform-api.max.ru/messages?chat_id={self.channel_id}"
-        headers = {
-            "Authorization": f"{self.bot_token}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"{self.bot_token}", "Content-Type": "application/json"}
 
         try:
             response = requests.post(url, headers=headers, json={"text": text}, timeout=30)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            logger.error(f"Ошибка MAX API: {e.response.status_code} - {e.response.text[:200]}")
+            logger.error(f"Ошибка MAX API: {e.response.status_code}")
             raise
 
     def publish_video(self, playlist_name: str):
-        """Опубликовать случайное видео из плейлиста"""
         video_url = self.get_random_video_from_playlist(playlist_name)
         if not video_url:
             logger.error(f"Нет видео для {playlist_name}")
@@ -604,19 +537,16 @@ class VkIntegration:
         logger.info(f"Опубликовано видео: {playlist_name}")
 
     async def publish_pdf(self, pdf_prefix: str):
-        """Опубликовать PDF"""
         pdf_data = await self.get_pdf_from_s3(pdf_prefix)
         if not pdf_data:
-            logger.error(f"❌ Нет PDF для {pdf_prefix}, пропускаем")
+            logger.error(f"❌ Нет PDF для {pdf_prefix}")
             return
 
         prefix = self.pdf_prefixes.get(pdf_prefix, "📄 Материал")
 
-        # Для иностранных бакетов (pt, fa, zh) — только название и ссылка
         if pdf_prefix in ["pt", "fa", "zh"]:
             message = f"{prefix}\n\n📄 Читать: {pdf_data['url']}"
         else:
-            # Для mod и soc — с описанием
             if pdf_data.get('description'):
                 message = f"{prefix}\n\n{pdf_data['description']}\n\n📄 Читать: {pdf_data['url']}"
             else:
@@ -626,16 +556,15 @@ class VkIntegration:
         logger.info(f"✅ Опубликован PDF: {pdf_prefix}")
 
     def publish_article(self):
-        article = self.get_random_article()
-        if not article:
-            logger.error("Нет статьи")
+        """Опубликовать книгу (по очереди, без парсинга)"""
+        book = self.get_next_book()
+        if not book:
+            logger.error("Нет книги для публикации")
             return
 
-        # Только заголовок и ссылка, без описания
-        message = f"📚 Книга\n\n📖 Читать: {article['url']}"
-
+        message = f"📚 Книга\n\n📖 Читать: {book['url']}"
         self.send_to_channel(message)
-        logger.info("Опубликована статья")
+        logger.info(f"✅ Опубликована книга: {book['url']}")
 
 
 # ========== ЗАПУСК ПО РАСПИСАНИЮ ==========
