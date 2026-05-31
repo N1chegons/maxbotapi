@@ -267,13 +267,25 @@ class VkIntegration:
             "book_index": "/home/psylogic/book_index.txt",  # ← новый для книг
         }
 
-        # Кэш для ссылок видео
         self.video_cache_file = "/home/psylogic/video_cache.json"
+        self.book_slugs_cache_file = "/home/psylogic/maxapibotnew/book_slugs_cache.json"
         self.video_cache = self._load_video_cache()
 
-        # Диапазон книг
-        self.book_min = 9  # самая старая книга (найди один раз)
-        self.book_max = 48  # текущая самая новая (будет обновляться)
+        self.book_min = 9
+        self.book_max = 48
+
+    def _load_slugs_cache(self) -> Dict:
+        try:
+            with open(self.book_slugs_cache_file, "r") as f:
+                return json.load(f)
+        except:
+            return {}
+
+    def _save_slugs_cache(self, cache: Dict):
+        with open(self.book_slugs_cache_file, "w") as f:
+            json.dump(cache, f, indent=2)
+
+
 
     def _load_video_cache(self) -> Dict:
         try:
@@ -380,20 +392,29 @@ class VkIntegration:
             return None
 
     def get_random_book(self) -> Optional[Dict]:
-        """Получить случайную книгу с человекочитаемой ссылкой"""
+        """Получить случайную книгу с человекочитаемой ссылкой (с кэшем)"""
         import random
 
+        # Загружаем кэш
+        cache = self._load_slugs_cache()
+
+        # Случайный номер
         random_number = random.randint(self.book_min, self.book_max)
 
-        # Парсим человекочитаемую ссылку из поста
-        article_url = self.get_article_slug_from_post(random_number)
-
-        if not article_url:
-            # Если не спарсилось — используем числовую ссылку
-            article_url = f"https://vk.ru/wall-186451829_{random_number}"
-            logger.warning(f"Использую числовую ссылку для {random_number}")
-
-        logger.info(f"Случайная книга {random_number}: {article_url}")
+        # Проверяем, есть ли ссылка в кэше
+        if str(random_number) in cache:
+            article_url = cache[str(random_number)]
+            logger.info(f"Случайная книга {random_number} (из кэша): {article_url}")
+        else:
+            # Парсим ссылку
+            article_url = self.get_article_slug_from_post(random_number)
+            if article_url:
+                cache[str(random_number)] = article_url
+                self._save_slugs_cache(cache)
+                logger.info(f"Случайная книга {random_number} (спарсено): {article_url}")
+            else:
+                article_url = f"https://vk.ru/wall-186451829_{random_number}"
+                logger.warning(f"Использую числовую ссылку для {random_number}")
 
         return {
             "url": article_url,
