@@ -48,10 +48,3 @@ async def ending_session(user_id: int, user, platform: str):
                 await send_notification_max(user_id, answer)
             else:
                 await send_notification_telegram(user_id, answer)
-
-        else:
-            logger.info(f"Пользователь {user_id} заканчивает диалог с памятью {MemoryMode.none}")
-            if platform == "MAX":
-                await send_notification_max(user_id, answer)
-            else:
-                await send_notification_telegram(user_id, answer)
