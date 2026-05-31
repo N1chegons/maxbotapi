@@ -1,6 +1,9 @@
 import asyncio
 import sys
 
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
