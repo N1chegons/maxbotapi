@@ -1,5 +1,9 @@
 import asyncio
+import sys
 from datetime import datetime
+
+project_root = '/home/psylogic/maxapibotnew'
+sys.path.insert(0, project_root)
 
 from src.logger_config import setup_logger
 from src.max.manager_sending import send_notification_max
