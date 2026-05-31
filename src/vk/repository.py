@@ -312,7 +312,6 @@ class VkIntegration:
     # ==================== КНИГИ (НОВЫЙ МЕТОД) ====================
 
     def _get_current_book_number(self) -> int:
-        """Получить текущий номер книги из файла"""
         try:
             with open(self.state_files["book_index"], "r") as f:
                 return int(f.read().strip())
@@ -324,22 +323,9 @@ class VkIntegration:
             f.write(str(number))
 
     def _get_max_book_number(self) -> int:
-        """Проверить, не появилась ли новая книга (с большим номером)"""
-        current_max = self.book_max
-        for offset in range(1, 11):
-            test_number = current_max + offset
-            test_url = f"https://vk.ru/wall-186451829_{test_number}"
-            try:
-                resp = requests.head(test_url, timeout=10)
-                if resp.status_code == 200:
-                    logger.info(f"Найдена новая книга! Номер {test_number}")
-                    return test_number
-            except:
-                pass
-        return current_max
+        return self.book_max
 
     def get_next_book(self) -> Optional[Dict]:
-        """Получить следующую книгу по очереди"""
         self.book_max = self._get_max_book_number()
         current = self._get_current_book_number()
 
@@ -350,18 +336,8 @@ class VkIntegration:
 
         book_url = f"https://vk.ru/wall-186451829_{next_number}"
 
-        # Проверка что ссылка работает
-        try:
-            resp = requests.head(book_url, timeout=10)
-            if resp.status_code != 200:
-                logger.error(f"Книга {next_number} не найдена")
-                return None
-        except Exception as e:
-            logger.error(f"Ошибка проверки книги: {e}")
-            return None
-
         self._save_current_book_number(next_number)
-        logger.info(f"Книга {next_number} (макс: {self.book_max})")
+        logger.info(f"Книга {next_number}: {book_url}")
 
         return {
             "url": book_url,
