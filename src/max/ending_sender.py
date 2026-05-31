@@ -71,7 +71,7 @@ async def process_inactive_users():
     """Основная функция"""
     now = datetime.utcnow()
 
-    end_users = await MaxService.get_users_silent_between(1, 60)
+    end_users = await MaxService.get_users_silent_between(30, 50)
     for user in end_users:
         try:
             await ending_session(user.user_id, user, user.platform)
