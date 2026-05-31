@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import select, update, insert, delete, or_
 
+from src.admin.repository import AdminService
 from src.config import settings
 from src.db import async_session
 from src.logger_config import setup_logger
@@ -218,6 +219,8 @@ class MaxService:
             await session.execute(stmt)
             await session.commit()
             logger.info(f"Заявка для пользователя {client_id} добавлена")
+
+            await AdminService.notify_admins("📅 Новая запись на консультацию")
 
     @classmethod
     async def mark_request_viewed(cls, appointment_id: int):
