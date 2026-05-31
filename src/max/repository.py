@@ -132,8 +132,7 @@ class MaxService:
                 content=content
             )
             await session.execute(stmt)
-            await session.commit()
-            logger.info(f"Сообщение для пользователя {user_id} добавлено")
+            logger.debug(f"Сообщение для пользователя {user_id} добавлено")
 
             await session.execute(
                 update(User)
@@ -141,7 +140,7 @@ class MaxService:
                 .values(last_message_at=datetime.utcnow())
             )
             await session.commit()
-            logger.info(f"Последнее сообщение для пользователя {user_id} обновлено")
+            logger.debug(f"Последнее сообщение для пользователя {user_id} обновлено")
 
     @classmethod
     async def get_history(cls, user_id: int, limit: int = 200):
