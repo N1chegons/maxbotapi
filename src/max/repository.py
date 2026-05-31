@@ -38,6 +38,26 @@ class MaxService:
             await session.commit()
             logger.info(f"Пользователь {user_id} успешно создан")
 
+    @classmethod
+    async def get_users_silent_between(cls, min_minutes: int, max_minutes: int):
+        """Пользователи, которые молчат от min до max минут"""
+        from datetime import datetime, timedelta
+
+        async with async_session() as session:
+            max_ago = datetime.utcnow() - timedelta(minutes=min_minutes)
+            min_ago = datetime.utcnow() - timedelta(minutes=max_minutes)
+
+            result = await session.execute(
+                select(User)
+                .where(
+                    User.memory_mode != MemoryMode.none,
+                    User.last_message_at <= max_ago,
+                    User.last_message_at >= min_ago,
+                    User.last_message_at.isnot(None)
+                )
+            )
+            return result.scalars().all()
+
     # user state
     @classmethod
     async def update_user_state(cls, user_id: int, new_state: UserState):
@@ -113,7 +133,14 @@ class MaxService:
             )
             await session.execute(stmt)
             await session.commit()
-            logger.debug(f"Сообщение для пользователя {user_id} добавлено")
+            logger.info(f"Сообщение для пользователя {user_id} добавлено")
+
+            await session.execute(
+                update(User)
+                .where(User.user_id == user_id)
+                .values(last_message_at=datetime.utcnow())
+            )
+            logger.info(f"Последнее сообщение для пользователя {user_id} обновлено")
 
     @classmethod
     async def get_history(cls, user_id: int, limit: int = 200):

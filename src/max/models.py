@@ -73,6 +73,8 @@ class User(Base):
     has_started_subscription: Mapped[bool] = mapped_column(default=False)
     grace_period_attempts: Mapped[int] = mapped_column(default=0)
 
+    last_message_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
+
 
 class Payment(Base):
     __tablename__ = "payments"
