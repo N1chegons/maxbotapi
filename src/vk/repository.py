@@ -214,7 +214,7 @@ class VkIntegration:
         # Префиксы для PDF (заголовки)
         self.pdf_prefixes = {
             "mod": "📘 Четвёртая модернизация России",
-            "fa": "🇮🇷 Передай привет иранскому другу",
+            "fa": "🕌 Передай привет иранскому другу",
             "zh": "🇨🇳 Передай привет китайскому другу",
             "soc": "📖 Социология Неповинных",
             "pt": "🇧🇷 Есть друг из Анголы или Бразилии?",
@@ -222,7 +222,7 @@ class VkIntegration:
 
         # Префиксы для видео (заголовки)
         self.video_prefixes = {
-            "Здоровье": "🏥 Немного о здоровье",
+            "Здоровье": "💉Немного о здоровье",
             "Машиностроение": "⚙️ Машиностроение России",
             "Педагогика": "📚 А ты знал?",
             "Питание": "🍎 А ты знал?",
@@ -590,16 +590,20 @@ class VkIntegration:
         logger.info(f"Опубликовано видео: {playlist_name}")
 
     async def publish_pdf(self, pdf_prefix: str):
+        """Опубликовать PDF"""
         pdf_data = await self.get_pdf_from_s3(pdf_prefix)
         if not pdf_data:
-            logger.error(f"❌ Нет PDF для {pdf_prefix}")
+            logger.error(f"❌ Нет PDF для {pdf_prefix}, пропускаем")
             return
 
         prefix = self.pdf_prefixes.get(pdf_prefix, "📄 Материал")
 
+        # Для иностранных бакетов (pt, fa, zh) — только название файла и ссылка
         if pdf_prefix in ["pt", "fa", "zh"]:
-            message = f"{prefix}\n\n📄 Читать: {pdf_data['url']}"
+            filename = pdf_data.get('filename', 'Материал')
+            message = f"{prefix}\n\n{filename}\n\n📄 Читать: {pdf_data['url']}"
         else:
+            # Для mod и soc — с описанием
             if pdf_data.get('description'):
                 message = f"{prefix}\n\n{pdf_data['description']}\n\n📄 Читать: {pdf_data['url']}"
             else:
