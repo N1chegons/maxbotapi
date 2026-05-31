@@ -7,7 +7,10 @@ from src.db import async_session
 from src.logger_config import setup_logger
 from src.max.models import Message, ProblemRequest
 
-ADMIN_IDS = [235995783, 12456095, 8177043133, 588276824, 140167601]
+TG_ADMIN_IDS = [8177043133]
+MAX_ADMIN_IDS = [235995783, 12456095, 140167601]
+ADMIN_IDS = list(TG_ADMIN_IDS + MAX_ADMIN_IDS)
+
 logger = setup_logger("admin_repository", "admin", "admin_work.log")
 # noinspection PyDeprecation
 class AdminService:
@@ -43,17 +46,20 @@ class AdminService:
         from src.telegram.manager_sending import send_notification_telegram
         from src.max.manager_sending import send_notification_max
 
-        for admin_id in ADMIN_IDS:  # прямо из списка
+        for admin_id in TG_ADMIN_IDS:
             try:
-                logger.info(f"Отправка уведомления в TELEGRAM админу {admin_id}, текст: {text}")
                 await send_notification_telegram(admin_id, text)
-            except:
-                logger.info(f"Отправка уведомления в MAX админу {admin_id}, текст: {text}")
-                try:
-                    await send_notification_max(admin_id, text)
-                    logger.info(f"✅ MAX уведомление отправлено {admin_id}")
-                except Exception as e:
-                    logger.error(f"❌ Ошибка MAX уведомления для {admin_id}: {e}")
+                logger.info(f"✅ Уведомление в Telegram для {admin_id}")
+            except Exception as e:
+                logger.error(f"❌ Ошибка Telegram для {admin_id}: {e}")
+
+            # Отправляем в MAX
+        for admin_id in MAX_ADMIN_IDS:
+            try:
+                await send_notification_max(admin_id, text)
+                logger.info(f"✅ Уведомление в MAX для {admin_id}")
+            except Exception as e:
+                logger.error(f"❌ Ошибка MAX для {admin_id}: {e}")
 
     @classmethod
     async def get_total_messages_last_days_admin(cls):
