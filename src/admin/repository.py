@@ -4,11 +4,11 @@ from sqlalchemy import select, func, insert, update
 
 from src.admin.models import CommandLog
 from src.db import async_session
+from src.logger_config import setup_logger
 from src.max.models import Message, ProblemRequest
 
 ADMIN_IDS = [235995783, 12456095, 8177043133, 588276824, 140167601]
-
-
+logger = setup_logger("admin_repository", "admin", "admin_work.log")
 # noinspection PyDeprecation
 class AdminService:
     @classmethod
@@ -45,12 +45,15 @@ class AdminService:
 
         for admin_id in ADMIN_IDS:  # прямо из списка
             try:
+                logger.info(f"Отправка уведомления в TELEGRAM админу {admin_id}, текст: {text}")
                 await send_notification_telegram(admin_id, text)
             except:
+                logger.info(f"Отправка уведомления в MAX админу {admin_id}, текст: {text}")
                 try:
                     await send_notification_max(admin_id, text)
-                except:
-                    pass
+                    logger.info(f"✅ MAX уведомление отправлено {admin_id}")
+                except Exception as e:
+                    logger.error(f"❌ Ошибка MAX уведомления для {admin_id}: {e}")
 
     @classmethod
     async def get_total_messages_last_days_admin(cls):
