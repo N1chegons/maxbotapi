@@ -980,6 +980,17 @@ async def bot_cancel(callback: MessageCallback):
         text="❌ Обращение отменено. Если передумаешь — напиши /bot"
     )
 
+@dp.message_created()
+async def unknown_command(event: MessageCreated):
+    text = event.message.body.text
+    if text and text.startswith('/'):
+        cmd = text.split()[0]
+        await bot.send_message(
+            user_id=event.message.sender.user_id,
+            text=f"❌ Команда {cmd} не найдена.\n\n"
+                 f"📋 Напишите /help для списка команд."
+        )
+
 # messages
 # noinspection PyUnresolvedReferences
 @dp.message_created(F.message.body.text)
@@ -1144,17 +1155,6 @@ async def handle_voice_message(event: MessageCreated):
         except Exception as e:
             logger.exception(f"Ошибка обработки голосового сообщения от пользователя {user_id}, ошибка: {e}")
             await bot.send_message(user_id=user_id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
-
-@dp.message_created()
-async def unknown_command(event: MessageCreated):
-    text = event.message.body.text
-    if text and text.startswith('/'):
-        cmd = text.split()[0]
-        await bot.send_message(
-            user_id=event.message.sender.user_id,
-            text=f"❌ Команда {cmd} не найдена.\n\n"
-                 f"📋 Напишите /help для списка команд."
-        )
 
 # started
 async def main():
