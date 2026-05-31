@@ -9,7 +9,7 @@ from src.telegram.manager_sending import send_notification_telegram
 from src.yandexai.config import THEMES_INDEXES
 from src.yandexai.orchestrator import ask_ai_with_index
 
-logger = setup_logger('max_bot', 'max', 'MAX_bot.log')
+logger = setup_logger('sender_bot', 'sender', 'sender_work.log')
 
 async def ending_session(user_id: int, user, platform: str):
     session_user = await MaxService.get_session(user_id)
