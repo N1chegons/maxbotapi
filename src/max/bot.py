@@ -18,6 +18,7 @@ from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 from src.admin.repository import AdminService
 
 from src.config import settings
+from src.max.ending_sender import ending_session
 from src.max.models import UserState, MemoryMode, SubsStatus
 from src.max.utils import upload_to_s3
 from src.tochka_api.service import TochkaApiService
@@ -158,53 +159,17 @@ async def delete_info(event: MessageCreated):
 # noinspection PyUnresolvedReferences
 @dp.message_created(Command('end'))
 async def closed_session(event: MessageCreated):
-    user_id = event.message.sender.user_id
-    user = await MaxService.get_user(user_id)
-    session_user = await MaxService.get_session(user_id)
-    logger.info(f"Пользователь {user_id} заканчивает диалог")
+        user_id = event.message.sender.user_id
+        user = await MaxService.get_user(user_id)
 
-    if not session_user:
-        logger.warning(f"У пользователя {user_id} не найдена сессия")
-        await bot.send_message(
-            user_id=user_id,
-            text="Данные не найдены.\n\nИспользуйте команду /new"
-        )
-    else:
-        history = await MaxService.get_history(user_id)
-        logger.info(f"Получена история сообщений для пользоватля {user_id}")
-
-        selected_topic = "Консультации"
-        index_id = THEMES_INDEXES.get(selected_topic)
-        text = f"""
-            ПРОМТ для команды /end
-                Проанализируй сообщения пользователя и коротко перечисли темы, которые обсудили, плюс выводы, к которым пришли.
-            
-            Вот все сообщения пользоватля:
-            {history}
-            """
-
-        answer = ask_ai_with_index(index_id, text, selected_topic, history)
-
-        if user.memory_mode == MemoryMode.session:
-            logger.info(f"Пользователь {user_id} заканчивает диалог с памятью {MemoryMode.session}")
-            await MaxService.delete_messages(user.user_id)
-            await bot.send_message(
-                user_id=user_id,
-                text=answer
-            )
-        elif user.memory_mode == MemoryMode.full:
-            logger.info(f"Пользователь {user_id} заканчивает диалог с памятью {MemoryMode.full}")
-            await bot.send_message(
-            user_id=user_id,
-                text=answer
-            )
+        if user.memory_mode != MemoryMode.none:
+            await ending_session(user_id, user, "MAX")
         else:
             logger.info(f"Пользователь {user_id} заканчивает диалог с памятью {MemoryMode.none}")
             await bot.send_message(
             user_id=user_id,
                 text="Данные не найдены.\nИзмените тип памяти при помощи /mem"
             )
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(Command('help'))
