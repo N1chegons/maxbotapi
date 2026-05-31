@@ -140,6 +140,7 @@ class MaxService:
                 .where(User.user_id == user_id)
                 .values(last_message_at=datetime.utcnow())
             )
+            await session.commit()
             logger.info(f"Последнее сообщение для пользователя {user_id} обновлено")
 
     @classmethod
