@@ -344,6 +344,22 @@ class VkIntegration:
             "description": "📖 Интересная статья"
         }
 
+    def get_random_book(self) -> Optional[Dict]:
+        """Получить случайную книгу из диапазона"""
+        import random
+
+        # Случайный номер от min до max
+        random_number = random.randint(self.book_min, self.book_max)
+
+        book_url = f"https://vk.ru/wall-186451829_{random_number}"
+
+        logger.info(f"Случайная книга {random_number}: {book_url}")
+
+        return {
+            "url": book_url,
+            "description": "📖 Интересная статья"
+        }
+
     # ==================== ОСТАЛЬНЫЕ МЕТОДЫ ====================
 
     def get_video_links_from_playlist(self, playlist_url: str) -> list:
@@ -532,15 +548,15 @@ class VkIntegration:
         logger.info(f"✅ Опубликован PDF: {pdf_prefix}")
 
     def publish_article(self):
-        """Опубликовать книгу (по очереди, без парсинга)"""
-        book = self.get_next_book()
+        """Опубликовать случайную книгу"""
+        book = self.get_random_book()  # ← вместо get_next_book
         if not book:
             logger.error("Нет книги для публикации")
             return
 
         message = f"📚 Книга\n\n📖 Читать: {book['url']}"
         self.send_to_channel(message)
-        logger.info(f"✅ Опубликована книга: {book['url']}")
+        logger.info(f"✅ Опубликована случайная книга")
 
 
 # ========== ЗАПУСК ПО РАСПИСАНИЮ ==========
