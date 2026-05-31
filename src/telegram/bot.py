@@ -245,6 +245,7 @@ async def help_bot_command(message):
         )
 
 async def create_payment_link(amount: float, user_id: int) -> Any | None:
+    await asyncio.sleep(1)
     payment_data = TochkaApiService().create_payment_link(amount)
     logger.info(f"Создание ссылки на оплату для пользователя {user_id}")
     if payment_data and payment_data.get("payment_link"):
@@ -984,7 +985,7 @@ async def handle_message(message):
     user_reg = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
-    logger.info(f"Пользователь {user_id} отправил сообщение: {text[10:]}")
+    logger.info(f"Пользователь {user_id} отправил сообщение: {text[:10]}")
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
