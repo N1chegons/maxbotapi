@@ -75,7 +75,7 @@ async def process_inactive_users():
         except Exception as e:
             logger.error(f"Ошибка /end для {user.user_id}: {e}")
 
-    daily_users = await MaxService.get_users_silent_between(1440, 1460)
+    daily_users = await MaxService.get_users_silent_between(1440, 1456)
     for user in daily_users:
         try:
             await send_daily_checkin(user)
