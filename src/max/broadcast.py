@@ -121,7 +121,7 @@ async def send_test_payment(amount: float = 111):
     )
 
     # Отправляем в Telegram
-    from src.telegram import bot
+    from src.telegram.bot import bot
     from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
     keyboard = InlineKeyboardMarkup()
