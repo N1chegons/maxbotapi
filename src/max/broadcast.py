@@ -116,7 +116,7 @@ async def send_test_payment(amount: float = 111):
 
     await TochkaApiService.save_payment(
         user_id=test_user_id,
-        operation_id=payment_link,
+        operation_id=payment_data["payment_id"],
         amount=111
     )
 
