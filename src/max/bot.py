@@ -320,6 +320,14 @@ async def get_subscription_status(user):
         else:
             status_text = "❌ Истекла"
 
+
+    elif user.subscription_status == SubsStatus.trial:
+        if user.trial_ends_at and user.trial_ends_at > now:
+            next_date = user.trial_ends_at
+            status_text = "🧪 Пробный период"
+        else:
+            status_text = "❌ Пробный период истёк"
+
     elif user.subscription_status == SubsStatus.cancelled:
         if user.subscription_ends_at and user.subscription_ends_at > now:
             next_date = user.subscription_ends_at
