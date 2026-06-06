@@ -33,7 +33,7 @@ class MaxService:
     @classmethod
     async def get_all_users(cls):
         async with async_session() as session:
-            query = select(User).filter_by(subscription_status=none)
+            query = select(User)
             result = await session.execute(query)
             return result.scalars().all()
 
