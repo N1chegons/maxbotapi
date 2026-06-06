@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import select, update, insert, delete, or_
 
-from max.bot import closed_session
 from src.admin.repository import AdminService
 from src.config import settings
 from src.db import async_session
