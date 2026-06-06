@@ -1,4 +1,9 @@
 import asyncio
+import sys
+
+project_root = '/home/psylogic/maxapibotnew'
+sys.path.insert(0, project_root)
+
 from src.max.repository import MaxService
 from src.tochka_api.service import TochkaApiService
 from src.logger_config import setup_logger
