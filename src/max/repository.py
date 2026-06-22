@@ -284,44 +284,6 @@ class MaxService:
                 date_utc = date_msk.astimezone(pytz.UTC).replace(tzinfo=None)
 
     @classmethod
-    async def start_trial(cls, user_id: int):
-        logger.info(f"Запуск пробного периода для пользователя {user_id}")
-        async with async_session() as session:
-            now = datetime.utcnow()
-            await session.execute(
-                update(User)
-                .filter_by(user_id=user_id)
-                .values(
-                    trial_started_at=now,
-                    trial_ends_at=now + timedelta(days=14),
-                    state=UserState.TRIAL_ACTIVE
-                )
-            )
-            await session.commit()
-            logger.info(f"Пробный период для пользователя {user_id} активирован до {now + timedelta(days=14)}")
-
-    @classmethod
-    async def expire_trial_if_needed(cls, user_id: int):
-        user = await cls.get_user(user_id)
-
-        if user.state != UserState.TRIAL_ACTIVE:
-            return
-
-        if user.trial_ends_at and user.trial_ends_at <= datetime.utcnow():
-            logger.info(f"Истечение пробного периода для пользователя {user_id}")
-            async with async_session() as session:
-                await session.execute(
-                    update(User)
-                    .where(User.user_id == user_id)
-                    .values(
-                        state=UserState.TRIAL_ENDED_NOT_PAID,
-                        subscription_status=SubsStatus.expired
-                    )
-                )
-                await session.commit()
-                logger.info(f"Пробный период пользователя {user_id} истёк, статус обновлён")
-
-    @classmethod
     async def activate_subscription(cls, user_id: int, tier: SubsTier, state: UserState):
         logger.info(f"Активация подписки {tier} для пользователя {user_id}")
         async with async_session() as session:
@@ -375,20 +337,8 @@ class MaxService:
             await session.commit()
 
     @classmethod
-    async def mark_started_subscription(cls, user_id: int):
-        logger.info(f"Отметка о начале платной подписки для пользователя {user_id}")
-        async with async_session() as session:
-            await session.execute(
-                update(User)
-                .where(User.user_id == user_id)
-                .values(has_started_subscription=True)
-            )
-            await session.commit()
-
-    @classmethod
     async def can_send_message(cls, user_id: int) -> bool:
         logger.debug(f"Проверка возможности отправки сообщения для пользователя {user_id}")
-        await cls.expire_trial_if_needed(user_id)
 
         user = await cls.get_user(user_id)
         if not user:
@@ -396,6 +346,11 @@ class MaxService:
             return False
 
         now = datetime.utcnow()
+
+        if user.message_count < user.free_messages_limit:
+            remaining = user.free_messages_limit - user.message_count
+            logger.debug(f"Пользователь {user_id} может отправить {remaining} бесплатных сообщений")
+            return True
 
         if user.subscription_status == SubsStatus.active:
             result = user.subscription_ends_at and user.subscription_ends_at > now
@@ -412,14 +367,8 @@ class MaxService:
             logger.debug(f"Пользователь {user_id} (отменённая подписка): {result}")
             return result
 
-        if user.subscription_status == SubsStatus.trial:
-            result = user.trial_ends_at and user.trial_ends_at > now
-            logger.debug(f"Пользователь {user_id} (пробный период): {result}")
-            return result
-
         logger.debug(f"Пользователь {user_id} не может отправлять сообщения")
         return False
-
     # -------------------------------------- CRON ---------------------------------------
     @classmethod
     async def get_users_for_auto_charge(cls):
@@ -445,22 +394,6 @@ class MaxService:
             return users
 
     @classmethod
-    async def get_users_with_expired_trial(cls):
-        logger.debug("Получение пользователей с истёкшим пробным периодом")
-        async with async_session() as session:
-            now = datetime.utcnow()
-            result = await session.execute(
-                select(User)
-                .where(
-                    User.subscription_status == SubsStatus.trial,
-                    User.trial_ends_at <= now
-                )
-            )
-            users = result.scalars().all()
-            logger.debug(f"Найдено {len(users)} пользователей с истёкшим пробным периодом")
-            return users
-
-    @classmethod
     async def update_grace_period_attempts(cls, user_id: int, attempts: int):
         logger.debug(f"Обновление количества попыток льготного периода для пользователя {user_id}: {attempts}")
         async with async_session() as session:
@@ -470,26 +403,6 @@ class MaxService:
                 .values(grace_period_attempts=attempts)
             )
             await session.commit()
-
-    @classmethod
-    async def activate_subscription_after_trial(cls, user_id: int):
-        logger.info(f"Активация платной подписки после пробного периода для пользователя {user_id}")
-        async with async_session() as session:
-            new_end = datetime.utcnow() + timedelta(days=31)
-            await session.execute(
-                update(User)
-                .where(User.user_id == user_id)
-                .values(
-                    subscription_status=SubsStatus.active,
-                    subscription_ends_at=new_end,
-                    trial_ends_at=None,
-                    has_started_subscription=True,
-                    state=UserState.PAID,
-                    grace_period_attempts=0
-                )
-            )
-            await session.commit()
-            logger.info(f"Подписка для пользователя {user_id} активирована до {new_end}")
 
 
 class AudioService:
