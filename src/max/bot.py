@@ -800,7 +800,6 @@ async def handle_mem_memory_dialog(callback: MessageCallback):
 @dp.message_callback(F.callback.payload == "memory_full")
 async def handle_memory_full(callback: MessageCallback):
     user_id = callback.callback.user.user_id
-    user = await MaxService.get_user(user_id)
     logger.info(f"Тип памяти {MemoryMode.full} выбран для пользователя {user_id}")
 
     await MaxService.update_memory_mode(user_id, MemoryMode.full)
