@@ -74,6 +74,8 @@ class User(Base):
 
     last_message_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
+    message_count: Mapped[int] = mapped_column(default=0)
+    free_messages_limit: Mapped[int] = mapped_column(default=111)
 
 class Payment(Base):
     __tablename__ = "payments"

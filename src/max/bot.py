@@ -155,7 +155,6 @@ async def delete_info(event: MessageCreated):
             attachments=[reply_kb.as_markup()]
         )
 
-
 # noinspection PyUnresolvedReferences
 @dp.message_created(Command('end'))
 async def closed_session(event: MessageCreated):
@@ -199,7 +198,6 @@ async def instruction(event: MessageCreated):
         attachments=[reply_kb.as_markup()]
 
     )
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(Command('igor'))
@@ -320,7 +318,6 @@ async def get_subscription_status(user):
         else:
             status_text = "❌ Истекла"
 
-
     elif user.subscription_status == SubsStatus.trial:
         if user.trial_ends_at and user.trial_ends_at > now:
             next_date = user.trial_ends_at
@@ -339,7 +336,6 @@ async def get_subscription_status(user):
         status_text = "❌ Нет активной подписки"
 
     return status_text, next_date
-
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(Command('sub'))
@@ -752,54 +748,6 @@ async def handle_query(callback: MessageCallback):
     )
 
 # noinspection PyUnresolvedReferences
-async def handle_agree_subs(callback: MessageCallback):
-    user_id = callback.callback.user.user_id
-    payment_data = TochkaApiService().create_payment_link(14)
-
-    if not payment_data or not payment_data.get("payment_link"):
-        await callback.message.answer()
-        await callback.message.edit(
-            text="❌ Ошибка при создании платежа. Попробуйте позже."
-        )
-        return
-
-    await TochkaApiService.save_payment(
-        user_id=user_id,
-        operation_id=payment_data["payment_id"],
-        amount=14.00
-    )
-
-    kb = InlineKeyboardBuilder()
-    kb.row(LinkButton(text="💳 14 рублей за 14 дней теста", url=payment_data["payment_link"]))
-    kb.row(LinkButton(text="Изучить сайт", url="https://psy.nepovinnyh.ru"))
-
-    await callback.message.answer(
-        text=(
-            "Ты посмотрел видео и выбрал память. Оцени свой уровень доверия ⚠️ Если информации недостаточно, изучи сайт👇 Сначала тест, потом автоматические списания по 650р каждый месяц ❗️ Если что-то не понял и хочешь вернуться назад, напиши /new"
-        ),
-        attachments=[kb.as_markup()]
-    )
-
-    await callback.message.answer(
-        text=(
-            "После оплаты 14 рублей начнётся консультация."
-        )
-    )
-async def show_chat(user_id: int):
-    await bot.send_message(
-        user_id=user_id,
-        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\nДля начала нам нужна та эмоция, которая актуальна в данный момент. Что ты чувствуешь? Что переживаешь?",
-    )
-
-# noinspection PyUnresolvedReferences
-async def send_video(callback: MessageCallback):
-    video = InputMedia(path="video_cache/04.mp4")
-    await callback.message.edit(
-        text="",
-        attachments=[video]
-    )
-
-# noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "memory_none")
 async def handle_memory_none(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -807,21 +755,10 @@ async def handle_memory_none(callback: MessageCallback):
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
     logger.info(f"Тип памяти {MemoryMode.none} выбран для пользователя {user_id}")
 
-    user = await MaxService.get_user(user_id)
-
-    await callback.answer()
-    await callback.message.edit(
-            text="🎬 Видео загружается, секунду...",
-            attachments=[]
-        )
-
-    asyncio.create_task(send_video(callback))
-
-    await asyncio.sleep(10)
-    if user.has_started_subscription:
-        await show_chat(user.user_id)
-    else:
-        await handle_agree_subs(callback)
+    await bot.send_message(
+        user_id=user_id,
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?"
+    )
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "mem_memory_none")
@@ -842,21 +779,10 @@ async def handle_memory_dialog(callback: MessageCallback):
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
     logger.info(f"Тип памяти {MemoryMode.session} выбран для пользователя {user_id}")
 
-    user = await MaxService.get_user(user_id)
-
-    await callback.answer()
-    await callback.message.edit(
-        text="🎬 Видео загружается, секунду...",
-        attachments=[]
+    await bot.send_message(
+        user_id=user_id,
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?"
     )
-
-    asyncio.create_task(send_video(callback))
-
-    await asyncio.sleep(10)
-    if user.has_started_subscription:
-        await show_chat(user.user_id)
-    else:
-        await handle_agree_subs(callback)
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "mem_memory_dialog")
@@ -879,19 +805,10 @@ async def handle_memory_full(callback: MessageCallback):
 
     await MaxService.update_memory_mode(user_id, MemoryMode.full)
 
-    await callback.answer()
-    await callback.message.edit(
-        text="🎬 Видео загружается, секунду...",
-        attachments=[]
+    await bot.send_message(
+        user_id=user_id,
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?"
     )
-
-    asyncio.create_task(send_video(callback))
-
-    await asyncio.sleep(10)
-    if user.has_started_subscription:
-        await show_chat(user.user_id)
-    else:
-        await handle_agree_subs(callback)
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "mem_memory_full")
