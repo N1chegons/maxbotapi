@@ -779,9 +779,9 @@ async def handle_memory_dialog(callback: MessageCallback):
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
     logger.info(f"Тип памяти {MemoryMode.session} выбран для пользователя {user_id}")
 
-    await bot.send_message(
-        user_id=user_id,
-        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?"
+    await callback.message.edit(
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?",
+        attachments=[]
     )
 
 # noinspection PyUnresolvedReferences
@@ -805,9 +805,9 @@ async def handle_memory_full(callback: MessageCallback):
 
     await MaxService.update_memory_mode(user_id, MemoryMode.full)
 
-    await bot.send_message(
-        user_id=user_id,
-        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?"
+    await callback.message.edit(
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?",
+        attachments=[]
     )
 
 # noinspection PyUnresolvedReferences
