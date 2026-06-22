@@ -755,8 +755,7 @@ async def handle_memory_none(callback: MessageCallback):
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
     logger.info(f"Тип памяти {MemoryMode.none} выбран для пользователя {user_id}")
 
-    await bot.send_message(
-        user_id=user_id,
+    await callback.message.edit(
         text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?"
     )
 
