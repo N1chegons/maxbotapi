@@ -104,7 +104,6 @@ class Session(Base):
             "TIMEZONE('utc', now())")
     )
     ended_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
-
     messages: Mapped[list["Message"]] = relationship(back_populates="session")
 
 class Message(Base):
