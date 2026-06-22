@@ -297,15 +297,21 @@ async def send_sub_buttons(user_id: int, user):
             await bot.send_message(user_id=user_id, text="🔧 Управление подпиской:", attachments=[kb.as_markup()])
             return
 
-    if user.has_started_subscription:
-        payment_link = await create_payment_link(650.00, user_id)
-        kb.row(LinkButton(text="💳 Оплатить 650 ₽", url=payment_link))
+    if user.message_count < user.free_messages_limit:
+        remaining = user.free_messages_limit - user.message_count
+        info_text = f"📊 У вас осталось **{remaining}** бесплатных сообщений из {user.free_messages_limit}"
     else:
-        # Создаём ссылку на 14 ₽
-        payment_link = await create_payment_link(14.00, user_id)
-        kb.row(LinkButton(text="💳 14 рублей за 14 дней теста", url=payment_link))
+        info_text = "🔒 Бесплатные сообщения закончились"
 
-    await bot.send_message(user_id=user_id, text="Оплатите подписку:", attachments=[kb.as_markup()])
+    payment_link = await create_payment_link(1111.00, user_id)
+    kb.row(LinkButton(text="💳 Оплатить 1111 ₽", url=payment_link))
+
+    # Отправляем информацию + кнопку
+    await bot.send_message(
+        user_id=user_id,
+        text=f"{info_text}\n\n💳 Оплатите подписку для продолжения:",
+        attachments=[kb.as_markup()]
+    )
 async def get_subscription_status(user):
     # noinspection PyDeprecation
     now = datetime.utcnow()
@@ -317,13 +323,6 @@ async def get_subscription_status(user):
             status_text = "✅ Активна"
         else:
             status_text = "❌ Истекла"
-
-    elif user.subscription_status == SubsStatus.trial:
-        if user.trial_ends_at and user.trial_ends_at > now:
-            next_date = user.trial_ends_at
-            status_text = "🧪 Пробный период"
-        else:
-            status_text = "❌ Пробный период истёк"
 
     elif user.subscription_status == SubsStatus.cancelled:
         if user.subscription_ends_at and user.subscription_ends_at > now:
@@ -354,7 +353,7 @@ async def cmd_sub(event: MessageCreated):
 
     text = f"💳 **Подписка**\n"
     text += f"📌 Статус: {status_text}\n"
-    text += f"💰 Тариф: Базовый (650 ₽/мес)\n"
+    text += f"💰 Тариф: Базовый (1111 ₽/мес)\n"
     if next_date:
         # noinspection PyDeprecation
         days_left = (next_date - datetime.utcnow()).days

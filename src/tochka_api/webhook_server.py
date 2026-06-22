@@ -12,8 +12,6 @@ sys.path.insert(0, project_root)
 from src.max.repository import MaxService
 from src.tochka_api.service import TochkaApiService
 from src.max.models import SubsTier, SubsStatus, UserState, PaymentStatus
-from src.telegram.bot import show_chat_tg
-from src.max.bot import show_chat
 from src.logger_config import setup_logger
 
 logger = setup_logger('webhook_tochka', 'tochka_api', 'webhook_server.log')
@@ -56,30 +54,17 @@ async def handle_webhook(request):
             await MaxService.save_payment_method(user_id, operation_id)
             logger.info(f"💳 Сохранён токен карты (operationId) для {user_id}")
 
-            if float(amount) == 14.00:
-                await MaxService.mark_started_subscription(user_id)
-                await MaxService.start_trial(user_id)
-                await MaxService.change_subscription_status(user_id, SubsStatus.trial)
-                logger.info(f"📆 Триал активирован для {user_id}")
-                await TochkaApiService.update_status_payment(operation_id, PaymentStatus.succeeded)
-
-                if user.platform == "MAX":
-                    await show_chat(user_id)
-                else:
-                    await show_chat_tg(user_id)
-
+            if user.subscription_status == SubsStatus.active and user.subscription_ends_at:
+                new_end_date = user.subscription_ends_at + timedelta(days=31)
             else:
-                if user.subscription_status == SubsStatus.active and user.subscription_ends_at:
-                    new_end_date = user.subscription_ends_at + timedelta(days=31)
-                else:
-                    # noinspection PyDeprecation
-                    new_end_date = datetime.utcnow() + timedelta(days=31)
+                # noinspection PyDeprecation
+                new_end_date = datetime.utcnow() + timedelta(days=31)
 
-                await MaxService.update_subscription_end_date(user_id, new_end_date)
-                await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.PAID)
-                await MaxService.change_subscription_status(user_id, SubsStatus.active)
-                await TochkaApiService.update_status_payment(operation_id, PaymentStatus.succeeded)
-                logger.info(f"✅ Подписка активна для {user_id} до {new_end_date}")
+            await MaxService.update_subscription_end_date(user_id, new_end_date)
+            await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.PAID)
+            await MaxService.change_subscription_status(user_id, SubsStatus.active)
+            await TochkaApiService.update_status_payment(operation_id, PaymentStatus.succeeded)
+            logger.info(f"✅ Подписка активна для {user_id} до {new_end_date}")
 
         else:
             await TochkaApiService.update_status_payment(operation_id, PaymentStatus.failed)

@@ -21,55 +21,17 @@ async def auto_charge_active_subscriptions():
             logger.warning(f"❌ У пользователя {user.user_id} нет payment_method_id, пропускаем")
             continue
 
-        logger.info(f"💰 Попытка списания 650 ₽ для пользователя {user.user_id}")
-        success = TochkaApiService().charge_payments(650.00, user.payment_method_id)
+        logger.info(f"💰 Попытка списания 1111 ₽ для пользователя {user.user_id}")
+        success = TochkaApiService().charge_payments(1111.00, user.payment_method_id)
 
         if success:
             logger.info(f"✅ Списание инициировано для {user.user_id}")
             if user.platform == "MAX":
-                await send_notification_max(user.user_id, "💰 Производится списание 650 ₽")
+                await send_notification_max(user.user_id, "💰 Производится списание 1111 ₽")
             else:
-                await send_notification_telegram(user.user_id, "💰 Производится списание 650 ₽")
+                await send_notification_telegram(user.user_id, "💰 Производится списание 1111 ₽")
         else:
             logger.error(f"❌ Ошибка списания для {user.user_id}")
-            await handle_failed_charge(user)
-
-
-async def auto_charge_after_trial():
-    logger.info("🔄 Запуск auto_charge_after_trial")
-    users = await MaxService.get_users_with_expired_trial()
-    logger.info(f"📋 Найдено пользователей с истекшим триалом: {len(users)}")
-
-    for user in users:
-        logger.info(f"👤 Обработка пользователя {user.user_id}, payment_method_id: {user.payment_method_id}")
-
-        if not user.payment_method_id:
-            logger.warning(f"❌ У пользователя {user.user_id} нет payment_method_id, переводим в expired")
-            await MaxService.change_subscription_status(user.user_id, SubsStatus.expired)
-            if user.platform == "MAX":
-                await send_notification_max(
-                    user.user_id,
-                    "⚠️ Ваш пробный период закончился. Оплатите подписку в /sub"
-                )
-            else:
-                await send_notification_telegram(
-                    user.user_id,
-                    "⚠️ Ваш пробный период закончился. Оплатите подписку в /sub"
-                )
-            continue
-
-        logger.info(f"💰 Попытка списания 650 ₽ для пользователя {user.user_id} (после триала)")
-        success = TochkaApiService().charge_payments(650.00, user.payment_method_id)
-
-        if success:
-            logger.info(f"✅ Списание инициировано для {user.user_id}, активируем подписку")
-            await MaxService.activate_subscription_after_trial(user.user_id)
-            if user.platform == "MAX":
-                await send_notification_max(user.user_id, "💰 Триал закончился, списано 650 ₽")
-            else:
-                await send_notification_telegram(user.user_id, "💰 Триал закончился, списано 650 ₽")
-        else:
-            logger.error(f"❌ Ошибка списания для {user.user_id} (после триала)")
             await handle_failed_charge(user)
 
 

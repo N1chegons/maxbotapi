@@ -268,14 +268,20 @@ async def send_sub_buttons(user_id: int, user, message):
             await bot.send_message(chat_id=message.chat.id, text="🔧 Управление подпиской:", reply_markup=kb)
             return
 
-    if user.has_started_subscription:
-        payment_link = await create_payment_link(650.00, user_id)
-        kb.row(InlineKeyboardButton(text="💳 Оплатить 650 ₽", url=payment_link))
+    if user.message_count < user.free_messages_limit:
+        remaining = user.free_messages_limit - user.message_count
+        info_text = f"📊 У вас осталось {remaining} бесплатных сообщений из {user.free_messages_limit}"
     else:
-        payment_link = await create_payment_link(14.00, user_id)
-        kb.row(InlineKeyboardButton(text="💳 14 рублей за 14 дней теста", url=payment_link))
+        info_text = "🔒 Бесплатные сообщения закончились"
 
-    await bot.send_message(chat_id=message.chat.id, text="Оплатите подписку:", reply_markup=kb)
+    payment_link = await create_payment_link(1111.00, user_id)
+    kb.row(InlineKeyboardButton(text="💳 Оплатить 1111 ₽", url=payment_link))
+
+    await bot.send_message(
+        chat_id=message.chat.id,
+        text=f"{info_text}\n\n💳 Оплатите подписку для продолжения:",
+        reply_markup=kb
+    )
 async def get_subscription_status(user):
     # noinspection PyDeprecation
     now = datetime.utcnow()
@@ -287,13 +293,6 @@ async def get_subscription_status(user):
             status_text = "✅ Активна"
         else:
             status_text = "❌ Истекла"
-
-    elif user.subscription_status == SubsStatus.trial:
-        if user.trial_ends_at and user.trial_ends_at > now:
-            next_date = user.trial_ends_at
-            status_text = "🧪 Пробный период"
-        else:
-            status_text = "❌ Пробный период истёк"
 
     elif user.subscription_status == SubsStatus.cancelled:
         if user.subscription_ends_at and user.subscription_ends_at > now:
@@ -322,7 +321,7 @@ async def cmd_sub(message):
 
     text = f"💳 **Подписка**\n"
     text += f"📌 Статус: {status_text}\n"
-    text += f"💰 Тариф: Базовый (650 ₽/мес)\n"
+    text += f"💰 Тариф: Базовый (1111 ₽/мес)\n"
     if next_date:
         # noinspection PyDeprecation,PyUnresolvedReferences
         days_left = (next_date - datetime.utcnow()).days
@@ -595,11 +594,6 @@ async def handle_agree(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_user_state(user_id, UserState.ONBOARDING_MENU)
 
-    user = await MaxService.get_user(user_id)
-
-    if user and user.state != UserState.TRIAL_ACTIVE:
-        await MaxService.start_trial(user_id)
-
     kb = InlineKeyboardMarkup()
     kb.add(InlineKeyboardButton(text="Запрос >", callback_data="query"),
     InlineKeyboardButton(text="про Бота >", url="https://disk.yandex.ru/i/AHiHqufv2KT9bQ"),
@@ -636,53 +630,6 @@ async def handle_query(call: CallbackQuery):
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
         reply_markup=kb
-    )
-
-async def handle_agree_subs(call: CallbackQuery):
-    user_id = call.from_user.id
-    payment_data = TochkaApiService().create_payment_link(14)
-
-    if not payment_data or not payment_data.get("payment_link"):
-        # noinspection PyUnresolvedReferences
-        await bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text="❌ Ошибка при создании платежа. Попробуйте позже."
-        )
-        return
-
-    await TochkaApiService.save_payment(
-        user_id=user_id,
-        operation_id=payment_data["payment_id"],
-        amount=14.00
-    )
-
-    kb = InlineKeyboardMarkup()
-    kb.add(InlineKeyboardButton(text="💳 14 рублей за 14 дней теста", url=payment_data["payment_link"]))
-    kb.add(InlineKeyboardButton(text="Изучить сайт", url="https://psy.nepovinnyh.ru"))
-
-    # noinspection PyUnresolvedReferences
-    await bot.send_message(
-        chat_id=call.message.chat.id,
-        text=(
-            "Ты посмотрел видео и выбрал память. Оцени свой уровень доверия ⚠️ Если информации недостаточно, изучи сайт👇 Сначала тест, потом автоматические списания по 650р каждый месяц ❗️ Если что-то не понял и хочешь вернуться назад, напиши /new"
-        ),
-        reply_markup=kb
-    )
-    await asyncio.sleep(2)
-    # noinspection PyUnresolvedReferences
-    await bot.send_message(
-        chat_id=call.message.chat.id,
-        text=(
-            "После оплаты 14 рублей начнётся консультация."
-        )
-    )
-async def show_chat_tg(user_id: int):
-    await bot.send_message(
-        chat_id=user_id,
-        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.\n"
-             "Для начала нам нужна та эмоция, которая актуальна в данный момент. "
-             "Что ты чувствуешь? Что переживаешь?"
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == "memory_none")
