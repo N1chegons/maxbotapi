@@ -692,24 +692,11 @@ async def handle_memory_none(call: CallbackQuery):
     await MaxService.update_memory_mode(user_id, MemoryMode.none)
     logger.info(f"Тип памяти {MemoryMode.none} выбран для пользователя {user_id}")
 
-    user = await MaxService.get_user(user_id)
-
-    kb = InlineKeyboardMarkup()
-    kb.add(InlineKeyboardButton(text="видео", url="https://disk.yandex.ru/i/F8LpWWDviR-Erw"))
-
-    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
-        "Посмотри перед консультацией",
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?",
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        reply_markup=kb
     )
-
-    if user.has_started_subscription:
-        await show_chat_tg(user_id)
-    else:
-        await handle_agree_subs(call)
-
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_none")
 async def handle_mem_memory_none(call: CallbackQuery):
     user_id = call.from_user.id
@@ -729,22 +716,11 @@ async def handle_memory_dialog(call: CallbackQuery):
     await MaxService.update_memory_mode(user_id, MemoryMode.session)
     logger.info(f"Тип памяти {MemoryMode.session} выбран для пользователя {user_id}")
 
-    user = await MaxService.get_user(user_id)
-
-    kb = InlineKeyboardMarkup()
-    kb.add(InlineKeyboardButton(text="видео", url="https://disk.yandex.ru/i/F8LpWWDviR-Erw"))
-
-    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
-        "Посмотри перед консультацией",
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?",
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        reply_markup=kb
     )
-    if user.has_started_subscription:
-        await show_chat_tg(user_id)
-    else:
-        await handle_agree_subs(call)
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_dialog")
 async def handle_mem_memory_dialog(call: CallbackQuery):
     user_id = call.from_user.id
@@ -762,23 +738,13 @@ async def handle_mem_memory_dialog(call: CallbackQuery):
 async def handle_memory_full(call: CallbackQuery):
     user_id = call.from_user.id
     await MaxService.update_memory_mode(user_id, MemoryMode.full)
-    user = await MaxService.get_user(user_id)
     logger.info(f"Тип памяти {MemoryMode.full} выбран для пользователя {user_id}")
 
-    kb = InlineKeyboardMarkup()
-    kb.add(InlineKeyboardButton(text="видео", url="https://disk.yandex.ru/i/F8LpWWDviR-Erw"))
-
-    # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
-        "Посмотри перед консультацией",
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?",
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        reply_markup=kb
     )
-    if user.has_started_subscription:
-        await show_chat_tg(user_id)
-    else:
-        await handle_agree_subs(call)
 @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_full")
 async def handle_mem_memory_full(call: CallbackQuery):
     user_id = call.from_user.id
