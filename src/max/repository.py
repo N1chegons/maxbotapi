@@ -145,7 +145,7 @@ class MaxService:
             await session.execute(
                 update(User)
                 .where(User.user_id == user_id)
-                .values(last_message_at=datetime.utcnow())
+                .values(last_message_at=datetime.utcnow(), message_count=User.message_count + 1)
             )
             await session.commit()
             logger.debug(f"Последнее сообщение для пользователя {user_id} обновлено")
