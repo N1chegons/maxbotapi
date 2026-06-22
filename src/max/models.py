@@ -152,13 +152,3 @@ class ProblemRequest(Base):
     )
     messages: Mapped[str] = mapped_column(nullable=True)
     viewed: Mapped[bool] = mapped_column(nullable=True, default=False)
-
-
-class ThemeChoice(StatesGroup):
-    first_choice = State()
-
-class ConsultChoice(StatesGroup):
-    ant_choice = State()
-
-class WaitingForPhone(StatesGroup):
-    waiting = State()
