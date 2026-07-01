@@ -900,7 +900,8 @@ async def bot_cancel(callback: MessageCallback):
     logger.info(f"Пользователь {user_id} остановил отправку обращения")
 
     await callback.message.edit(
-        text="❌ Обращение отменено. Если передумаешь — напиши /bot"
+        text="❌ Обращение отменено. Если передумаешь — напиши /bot",
+        attachments=[]
     )
 
 # messages
