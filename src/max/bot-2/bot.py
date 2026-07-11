@@ -183,3 +183,22 @@ async def handle_voice_message(event: MessageCreated):
     except Exception as e:
         logger.exception(f"Ошибка обработки голосового сообщения от пользователя {user_id}, ошибка: {e}")
         await bot.send_message(user_id=user_id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
+
+async def main():
+    webhook_url = "https://bot.nepovinnyh.ru/webhook"
+    webhook_secret = settings.SECRET_WEBHOOK_KEY
+
+    # Регистрируем новую на поддомен
+    await bot.subscribe_webhook(url=webhook_url, secret=webhook_secret)
+
+    await dp.handle_webhook(
+        bot=bot,
+        host='0.0.0.0',
+        port=8082,
+        secret=webhook_secret,
+        path='/webhook'
+    )
+
+if __name__ == '__main__':
+    logger.info("Бот успешно запущен")
+    asyncio.run(main())
