@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     SEARCH_INDEX_2027: str
 
     MAX_BOT_TOKEN: str
+    MAX_BOT_TOKEN_2: str
     TELEGRAM_BOT_TOKEN: str
 
     YC_FOLDER_ID: str
