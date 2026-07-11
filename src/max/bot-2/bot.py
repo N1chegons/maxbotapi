@@ -175,7 +175,7 @@ async def handle_voice_message(event: MessageCreated):
         await bot.send_message(user_id=user_id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
 
 async def main():
-    webhook_url = "https://bot.nepovinnyh.ru/webhook"
+    webhook_url = "https://bot.nepovinnyh.ru/webhook2"
     webhook_secret = settings.SECRET_WEBHOOK_KEY
 
     # Регистрируем новую на поддомен
