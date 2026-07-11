@@ -100,7 +100,6 @@ async def mem_memory_choice(message):
 
     kb = InlineKeyboardMarkup()
     kb.add(
-        InlineKeyboardButton(text="Без памяти", callback_data="mem_memory_none"),
         InlineKeyboardButton(text="Один диалог", callback_data="mem_memory_dialog"),
         InlineKeyboardButton(text="Вся память", callback_data="mem_memory_full")
     )
@@ -108,11 +107,10 @@ async def mem_memory_choice(message):
 
     await bot.send_message(
         chat_id=message.chat.id,
-        text="Скажи, что мы будем делать с твоими сообщениями?\n\n"
-        "➖ Без памяти — каждая сессия с чистого листа, ничего не сохраняю. Максимум приватности, но минимум персонализации.\n\n"
-        "➗ Память в рамках диалога — помню контекст, пока ты не скажешь «забудь». Потом стираю.\n\n"
-        "➕ Вся память — помню всё, что ты мне говорил. Так я могу работать с тобой глубоко и замечать паттерны. Ты в любой момент можешь стереть всё командой - /mem.\n\n"
-        "👉 Важно: на твоём гаджете сообщения останутся, удаляю с сервера. Выбирай.",
+        text="Скажи, что мы будет делать с твоими сообщениями?\n\n"
+            "➗ Память в рамках диалога - твои сообщения стираются автоматически после каждой сессии.\n\n"
+            "➕ Вся память - помню всё, что ты мне говорил. Память стираешь вручную через команду /del. Всё под твоим контролем.\n\n"
+            "👉 Важно: на твоём гаджете сообщения останутся, удаляю с сервера. Выбирай.",
         reply_markup=kb
     )
 
@@ -615,47 +613,46 @@ async def handle_query(call: CallbackQuery):
 
     kb = InlineKeyboardMarkup()
     kb.add(
-        InlineKeyboardButton(text="Без памяти", callback_data="memory_none"),
         InlineKeyboardButton(text="Один диалог", callback_data="memory_dialog"),
         InlineKeyboardButton(text="Вся память", callback_data="memory_full")
     )
+    kb.add(InlineKeyboardButton(text="про Память >", url="https://disk.yandex.ru/i/4N1TT70-vEuRwg"))
 
     # noinspection PyUnresolvedReferences
     await bot.edit_message_text(
-        "Скажи, что мы будем делать с твоими сообщениями?\n\n"
-        "➖ Без памяти — каждая сессия с чистого листа, ничего не сохраняю. Максимум приватности, но минимум персонализации.\n\n"
-        "➗ Память в рамках диалога — помню контекст, пока ты не скажешь «забудь». Потом стираю.\n\n"
-        "➕ Вся память — помню всё, что ты мне говорил. Так я могу работать с тобой глубоко и замечать паттерны. Ты в любой момент можешь стереть всё командой - /mem.\n\n"
+        text="Скажи, что мы будет делать с твоими сообщениями?\n\n"
+        "➗ Память в рамках диалога - твои сообщения стираются автоматически после каждой сессии.\n\n"
+        "➕ Вся память - помню всё, что ты мне говорил. Память стираешь вручную через команду /del. Всё под твоим контролем.\n\n"
         "👉 Важно: на твоём гаджете сообщения останутся, удаляю с сервера. Выбирай.",
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
         reply_markup=kb
     )
 
-@bot.callback_query_handler(func=lambda call: call.data == "memory_none")
-async def handle_memory_none(call: CallbackQuery):
-    user_id = call.from_user.id
-
-    await MaxService.update_memory_mode(user_id, MemoryMode.none)
-    logger.info(f"Тип памяти {MemoryMode.none} выбран для пользователя {user_id}")
-
-    await bot.edit_message_text(
-        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?",
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-    )
-@bot.callback_query_handler(func=lambda call: call.data == "mem_memory_none")
-async def handle_mem_memory_none(call: CallbackQuery):
-    user_id = call.from_user.id
-    await MaxService.update_memory_mode(user_id, MemoryMode.none)
-    logger.info(f"Тип памяти {MemoryMode.none} изменен для пользователя {user_id}")
-
-    # noinspection PyUnresolvedReferences
-    await bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        text='Выбор памяти изменен на "Без памяти"\n\nМожете продолжить диалог.'
-    )
+# @bot.callback_query_handler(func=lambda call: call.data == "memory_none")
+# async def handle_memory_none(call: CallbackQuery):
+#     user_id = call.from_user.id
+#
+#     await MaxService.update_memory_mode(user_id, MemoryMode.none)
+#     logger.info(f"Тип памяти {MemoryMode.none} выбран для пользователя {user_id}")
+#
+#     await bot.edit_message_text(
+#         text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?",
+#         chat_id=call.message.chat.id,
+#         message_id=call.message.message_id,
+#     )
+# @bot.callback_query_handler(func=lambda call: call.data == "mem_memory_none")
+# async def handle_mem_memory_none(call: CallbackQuery):
+#     user_id = call.from_user.id
+#     await MaxService.update_memory_mode(user_id, MemoryMode.none)
+#     logger.info(f"Тип памяти {MemoryMode.none} изменен для пользователя {user_id}")
+#
+#     # noinspection PyUnresolvedReferences
+#     await bot.edit_message_text(
+#         chat_id=call.message.chat.id,
+#         message_id=call.message.message_id,
+#         text='Выбор памяти изменен на "Без памяти"\n\nМожете продолжить диалог.'
+#     )
 
 @bot.callback_query_handler(func=lambda call: call.data == "memory_dialog")
 async def handle_memory_dialog(call: CallbackQuery):
