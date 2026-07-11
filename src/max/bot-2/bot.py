@@ -1,28 +1,18 @@
 import asyncio
-import os
-from datetime import datetime
-from typing import Any
 
-import aiofiles
 import aiohttp
 import magic
 import subprocess
 
 from src.logger_config import setup_logger
 from maxapi import Bot, Dispatcher, F
-from maxapi.filters.command import Command
 from maxapi.types import MessageCreated, BotStarted, CallbackButton, InputMedia, LinkButton, \
     RequestContactButton, MessageCallback
-from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
-
-from src.admin.repository import AdminService
 
 from src.config import settings
-from src.max.ending_sender import ending_session
-from src.max.models import UserState, MemoryMode, SubsStatus
+from src.max.models import UserState
 from src.max.repository import MaxService, AudioService
 from src.max.utils import upload_to_s3
-from src.tochka_api.service import TochkaApiService
 from src.yandexai.config import THEMES_INDEXES
 from src.yandexai.orchestrator import ask_ai_with_index
 
