@@ -82,10 +82,6 @@ async def mem_memory_choice(event: MessageCreated):
         reply_kb = InlineKeyboardBuilder()
         reply_kb.row(
             CallbackButton(
-                text="Без памяти",
-                payload="mem_memory_none"
-            ),
-            CallbackButton(
                 text="Один диалог",
                 payload="mem_memory_dialog"
             ),
@@ -93,32 +89,22 @@ async def mem_memory_choice(event: MessageCreated):
                 text="Вся память",
                 payload="mem_memory_full"
             ),
-        )
-
-        reply_kb_vid = InlineKeyboardBuilder()
-        reply_kb_vid.row(
             LinkButton(
                 text="про Память >",
                 url="https://disk.yandex.ru/i/4N1TT70-vEuRwg"
             )
         )
 
+
         await bot.send_message(
             user_id=user_id,
             text=(
                 "Скажи, что мы будет делать с твоими сообщениями?\n\n"
-                "➖ Без памяти — каждая сессия с чистого листа, ничего не сохраняю. Максимум приватности, но минимум персонализации.\n\n"
-                "➗ Память в рамках диалога — помню контекст, пока ты не скажешь «забудь». Потом стираю.\n\n"
-                "➕ Вся память — помню всё, что ты мне говорил. Так я могу работать с тобой глубоко и замечать паттерны. Ты в любой момент можешь стереть всё командой - /mem.\n\n"
+                "➗ Память в рамках диалога - твои сообщения стираются автоматически после каждой сессии.\n\n"
+                "➕ Вся память - помню всё, что ты мне говорил. Память стираешь вручную через команду /del. Всё под твоим контролем.\n\n"
                 "👉 Важно: на твоём гаджете сообщения останутся, удаляю с сервера. Выбирай."
             ),
             attachments=[reply_kb.as_markup()]
-        )
-
-        await bot.send_message(
-            user_id=user_id,
-            text="Можешь посмотреть видео",
-            attachments=[reply_kb_vid.as_markup()]
         )
 
 @dp.message_created(Command('del'))
@@ -188,7 +174,7 @@ async def instruction(event: MessageCreated):
         text=(
             "📋 **Что я умею:**\n\n"
             "🔁 /new — начать всё заново, очистить текущую сессию\n"
-            "🧠 /mem — выбрать, сколько я буду помнить (всё / диалог / ничего) + короткое видео\n"
+            "🧠 /mem — выбрать, сколько я буду помнить (всё / диалог) + короткое видео\n"
             "💀 /del — полностью удалить все твои данные (без возможности восстановления)\n"
             "❓ /help — частые вопросы и видео про меня\n"
             "💳 /sub — проверить подписку, продлить или оплатить\n"
@@ -722,10 +708,6 @@ async def handle_query(callback: MessageCallback):
     reply_kb = InlineKeyboardBuilder()
     reply_kb.row(
         CallbackButton(
-            text="Без памяти",
-            payload="memory_none"
-        ),
-        CallbackButton(
             text="Один диалог",
             payload="memory_dialog"
         ),
@@ -733,43 +715,45 @@ async def handle_query(callback: MessageCallback):
             text="Вся память",
             payload="memory_full"
         ),
+        LinkButton(
+            text="про Память >",
+            url="https://disk.yandex.ru/i/4N1TT70-vEuRwg"
+        )
     )
 
     await callback.message.edit(
         text=(
             "Скажи, что мы будет делать с твоими сообщениями?\n\n"
-            "➖ Без памяти — каждая сессия с чистого листа, ничего не сохраняю. Максимум приватности, но минимум персонализации.\n\n"
-            "➗ Память в рамках диалога — помню контекст, пока ты не скажешь «забудь». Потом стираю.\n\n"
-            "➕ Вся память — помню всё, что ты мне говорил. Так я могу работать с тобой глубоко и замечать паттерны. Ты в любой момент можешь стереть всё командой - /mem.\n\n"
-            "👉 Важно: на твоём гаджете сообщения останутся, удаляю с сервера. Выбирай."
-        ),
+            "➗ Память в рамках диалога - твои сообщения стираются автоматически после каждой сессии.\n\n"
+            "➕ Вся память - помню всё, что ты мне говорил. Память стираешь вручную через команду /del. Всё под твоим контролем.\n\n"
+            "👉 Важно: на твоём гаджете сообщения останутся, удаляю с сервера. Выбирай."),
         attachments=[reply_kb.as_markup()]
     )
 
-# noinspection PyUnresolvedReferences
-@dp.message_callback(F.callback.payload == "memory_none")
-async def handle_memory_none(callback: MessageCallback):
-    user_id = callback.callback.user.user_id
-
-    await MaxService.update_memory_mode(user_id, MemoryMode.none)
-    logger.info(f"Тип памяти {MemoryMode.none} выбран для пользователя {user_id}")
-
-    await callback.message.edit(
-        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?",
-        attachments = []
-    )
-
-# noinspection PyUnresolvedReferences
-@dp.message_callback(F.callback.payload == "mem_memory_none")
-async def handle_mem_memory_none(callback: MessageCallback):
-    user_id = callback.callback.user.user_id
-    await MaxService.update_memory_mode(user_id, MemoryMode.none)
-    logger.info(f"Тип памяти {MemoryMode.none} изменен для пользователя {user_id}")
-
-    await callback.message.edit(
-        text='Выбор памяти изменен на "Без памяти"\n\nМожете продолжить диалог.',
-        attachments=[]
-    )
+# # noinspection PyUnresolvedReferences
+# @dp.message_callback(F.callback.payload == "memory_none")
+# async def handle_memory_none(callback: MessageCallback):
+#     user_id = callback.callback.user.user_id
+#
+#     await MaxService.update_memory_mode(user_id, MemoryMode.none)
+#     logger.info(f"Тип памяти {MemoryMode.none} выбран для пользователя {user_id}")
+#
+#     await callback.message.edit(
+#         text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас. Нам нужна актуальная эмоция. Что ты чувствуешь? Что переживаешь?",
+#         attachments = []
+#     )
+#
+# # noinspection PyUnresolvedReferences
+# @dp.message_callback(F.callback.payload == "mem_memory_none")
+# async def handle_mem_memory_none(callback: MessageCallback):
+#     user_id = callback.callback.user.user_id
+#     await MaxService.update_memory_mode(user_id, MemoryMode.none)
+#     logger.info(f"Тип памяти {MemoryMode.none} изменен для пользователя {user_id}")
+#
+#     await callback.message.edit(
+#         text='Выбор памяти изменен на "Без памяти"\n\nМожете продолжить диалог.',
+#         attachments=[]
+#     )
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "memory_dialog")
