@@ -198,7 +198,7 @@ async def main():
         secret=webhook_secret,
         path='/webhook'
     )
-    logger.info("Бот успешно запущен")
 
 if __name__ == '__main__':
+    logger.info("Бот успешно запущен")
     asyncio.run(main())
