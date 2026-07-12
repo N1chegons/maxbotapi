@@ -7,3 +7,11 @@ async def send_notification_max(user_id: int, text: str):
         logging.info(f"✅ Уведомление отправлено пользователю {user_id}")
     except Exception as e:
         logging.error(f"❌ Не удалось отправить уведомление {user_id}: {e}")
+
+async def send_notification_max_2(user_id: int, text: str):
+    try:
+        from src.max.bot_dominant.bot import bot
+        await bot.send_message(user_id=user_id, text=text)
+        logging.info(f"✅ Уведомление отправлено пользователю {user_id}")
+    except Exception as e:
+        logging.error(f"❌ Не удалось отправить уведомление {user_id}: {e}")
