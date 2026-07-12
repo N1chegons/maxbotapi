@@ -73,6 +73,7 @@ class User(Base):
     grace_period_attempts: Mapped[int] = mapped_column(default=0)
 
     last_message_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    last_message_at_dominator: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
     message_count: Mapped[int] = mapped_column(default=0, server_default="0")
     free_messages_limit: Mapped[int] = mapped_column(default=111, server_default="111")

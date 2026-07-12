@@ -157,44 +157,40 @@ async def send_daily_checkin(user):
 # ОСНОВНОЙ ЦИКЛ ДЛЯ CRON
 # ==========================================
 async def process_inactive_users():
-    # ====== 1️⃣ /end ЧЕРЕЗ 30-50 МИНУТ ======
+    # ====== 1️⃣ /end ДЛЯ ЭМПАТИЧНОГО И TELEGRAM ======
     end_users = await MaxService.get_users_silent_between(30, 50)
-
-    logger.info(f"🔍 Найдено {len(end_users)} пользователей для /end")
-    for user in end_users:
-        logger.info(f"   - Пользователь {user.user_id}, last_message_at: {user.last_message_at}")
+    logger.info(f"🔍 Найдено {len(end_users)} пользователей для /end (эмпатичный/telegram)")
 
     for user in end_users:
         try:
             bot_name = await MaxService.get_last_bot_for_user(user.user_id)
-            if bot_name:
+            if bot_name and bot_name != "MAX_Dominant":
                 await ending_session(user.user_id, user, user.platform, bot_name)
                 logger.info(f"/end отправлен {user.user_id} (бот: {bot_name})")
-            else:
-                logger.info(f"У {user.user_id} нет сообщений ни в одном боте — пропускаем")
         except Exception as e:
             logger.error(f"Ошибка /end для {user.user_id}: {e}")
 
-    logger.info(f"🔍 Найдено {len(end_users)} пользователей для /end")
-    for user in end_users:
-        logger.info(f"   - Пользователь {user.user_id}, last_message_at: {user.last_message_at}")
+    # ====== 2️⃣ /end ДЛЯ ДОМИНАНТНОГО БОТА ======
+    end_users_dominant = await MaxService.get_users_silent_between(30, 50, "MAX_Dominant")
+    logger.info(f"🔍 Найдено {len(end_users_dominant)} пользователей для /end (доминантный)")
 
-    # ====== 2️⃣ DAILY ЧЕРЕЗ 24 ЧАСА (ТОЛЬКО ДЛЯ ЭМПАТИЧНОГО) ======
+    for user in end_users_dominant:
+        try:
+            await ending_session(user.user_id, user, user.platform, "MAX_Dominant")
+            logger.info(f"/end отправлен {user.user_id} (доминантный)")
+        except Exception as e:
+            logger.error(f"Ошибка /end для {user.user_id}: {e}")
+
+    # ====== 3️⃣ DAILY (только эмпатичный) ======
     daily_users = await MaxService.get_users_silent_between(1440, 1456)
-
     for user in daily_users:
         try:
-            # Проверяем, есть ли история в эмпатичном боте
             history = await MaxService.get_history(user.user_id, "MAX_Empathetic", limit=1)
             if history:
                 await send_daily_checkin(user)
-                logger.info(f"Daily отправлен {user.user_id} (эмпатичный)")
-            else:
-                logger.info(f"У {user.user_id} нет истории в эмпатичном боте — daily пропущен")
+                logger.info(f"Daily отправлен {user.user_id}")
         except Exception as e:
             logger.error(f"Ошибка daily для {user.user_id}: {e}")
-
-
 def run():
     asyncio.run(process_inactive_users())
 
