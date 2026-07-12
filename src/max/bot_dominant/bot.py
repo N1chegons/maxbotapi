@@ -1,15 +1,13 @@
 import asyncio
+import subprocess
 
 import aiohttp
 import magic
-import subprocess
-
-from src.logger_config import setup_logger
 from maxapi import Bot, Dispatcher, F
-from maxapi.types import MessageCreated, BotStarted, CallbackButton, InputMedia, LinkButton, \
-    RequestContactButton, MessageCallback
+from maxapi.types import MessageCreated, BotStarted
 
 from src.config import settings
+from src.logger_config import setup_logger
 from src.max.models import UserState
 from src.max.repository import MaxService, AudioService
 from src.max.utils import upload_to_s3
@@ -76,13 +74,13 @@ async def handle_message(event: MessageCreated):
     # else:
     selected_topic = "Мировоззрение"
     index_id = THEMES_INDEXES.get(selected_topic)
-    history = await MaxService.get_history(user_id, limit=200)
+    history = await MaxService.get_history("MAX_Dominant", user_id, limit=200)
     # noinspection PyTypeChecker
     answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
     if answer:
-        await MaxService.add_message(user_id, session_user.id, "user", text)
-        await MaxService.add_message(user_id, session_user.id, "assistant", answer)
+        await MaxService.add_message(user_id, session_user.id, "user", text, "MAX_Dominant")
+        await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Dominant")
         await bot.send_message(user_id=user_id, text=answer)
         logger.info(f"Пользователь успешно получил ответ от ассистента")
     else:
@@ -119,7 +117,7 @@ async def handle_voice_message(event: MessageCreated):
     # else:
     selected_topic = "Мировоззрение"
     index_id = THEMES_INDEXES.get(selected_topic)
-    history = await MaxService.get_history(user_id, limit=200)
+    history = await MaxService.get_history("MAX_Dominant", user_id, limit=200)
 
 
     audio_attachment = None
@@ -159,8 +157,8 @@ async def handle_voice_message(event: MessageCreated):
 
         if answer:
             # if user.memory_mode != MemoryMode.none:
-            await MaxService.add_message(user_id, session_user.id, "user", recognized_text)
-            await MaxService.add_message(user_id, session_user.id, "assistant", answer)
+            await MaxService.add_message(user_id, session_user.id, "user", recognized_text, "MAX_Dominant")
+            await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Dominant")
             await bot.send_message(user_id=user_id, text=answer)
             logger.info(f"Пользователь {user_id} успешно получил ответ от ассистента")
         else:

@@ -144,7 +144,7 @@ async def closed_session(message):
     user_id = message.from_user.id
     user = await MaxService.get_user(user_id)
     if user.memory_mode != MemoryMode.none:
-        await ending_session(user_id, user, "TELEGRAM")
+        await ending_session(user_id, user, "TELEGRAM", "TELEGRAM_Empathetic")
     else:
         logger.info(f"Пользоватлеь {user_id} заканчивает диалог с памятью {MemoryMode.none}")
         await bot.send_message(
@@ -247,7 +247,7 @@ async def create_payment_link(amount: float, user_id: int) -> Any | None:
     payment_data = TochkaApiService().create_payment_link(amount)
     logger.info(f"Создание ссылки на оплату для пользователя {user_id}")
     if payment_data and payment_data.get("payment_link"):
-        logger.info(f"Платежная ссылка для пользователя {user_id} создана: {payment_data.get("payment_link")}")
+        logger.info(f"Платежная ссылка для пользователя {user_id} создана: {payment_data.get('payment_link')}")
         await TochkaApiService.save_payment(
             user_id=user_id,
             operation_id=payment_data["payment_id"],
@@ -863,7 +863,7 @@ async def handle_voice(message):
     else:
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history(user_id, limit=200)
+        history = await MaxService.get_history("TELEGRAM_Empathetic", user_id, limit=200)
         file_info = await bot.get_file(message.voice.file_id)
 
         file_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_info.file_path}"
@@ -878,8 +878,8 @@ async def handle_voice(message):
         try:
             if answer:
                 if user_reg.memory_mode != MemoryMode.none:
-                    await MaxService.add_message(user_id, session_user.id, "user", recognized_text)
-                    await MaxService.add_message(user_id, session_user.id, "assistant", answer)
+                    await MaxService.add_message(user_id, session_user.id, "user", recognized_text, "TELEGRAM_Empathetic")
+                    await MaxService.add_message(user_id, session_user.id, "assistant", answer, "TELEGRAM_Empathetic")
                 await bot.send_message(chat_id=message.chat.id, text=answer)
                 logger.info(f"Пользователь {user_id} успешно получил ответ от ассистента")
             else:
@@ -924,13 +924,13 @@ async def handle_message(message):
     else:
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history(user_id, limit=200)
+        history = await MaxService.get_history("TELEGRAM_Empathetic", user_id, limit=200)
         answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
         if answer:
             if user_reg.memory_mode != MemoryMode.none:
-                await MaxService.add_message(user_id, session_user.id, "user", text)
-                await MaxService.add_message(user_id, session_user.id, "assistant", answer)
+                await MaxService.add_message(user_id, session_user.id, "user", text, "TELEGRAM_Empathetic")
+                await MaxService.add_message(user_id, session_user.id, "assistant", answer, "TELEGRAM_Empathetic")
             await bot.send_message(chat_id=message.chat.id, text=answer)
             logger.info(f"Пользователь {user_id} успешно получил ответ от ассистента")
         else:

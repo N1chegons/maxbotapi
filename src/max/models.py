@@ -119,6 +119,7 @@ class Message(Base):
             "TIMEZONE('utc', now())")
     )
     is_crisis_flagged: Mapped[bool] = mapped_column(default=False)
+    bot_name: Mapped["str"]
 
     session: Mapped["Session"] = relationship(back_populates="messages")
 

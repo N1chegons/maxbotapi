@@ -130,14 +130,15 @@ class MaxService:
 
     # history message section
     @classmethod
-    async def add_message(cls, user_id: int, session_id: int, role: str, content: str):
+    async def add_message(cls, user_id: int, session_id: int, role: str, content: str, bot_name: str):
         logger.debug(f"Добавление сообщения от {role} для пользователя {user_id} в сессию {session_id}")
         async with async_session() as session:
             stmt = insert(Message).values(
                 user_id=user_id,
                 session_id=session_id,
                 role=role,
-                content=content
+                content=content,
+                bot_name=bot_name,
             )
             await session.execute(stmt)
             logger.debug(f"Сообщение для пользователя {user_id} добавлено")
@@ -156,12 +157,12 @@ class MaxService:
             logger.debug(f"Последнее сообщение для пользователя {user_id} обновлено")
 
     @classmethod
-    async def get_history(cls, user_id: int, limit: int = 200):
+    async def get_history(cls, bot_name: str, user_id: int, limit: int = 200):
         logger.debug(f"Получение последних {limit} сообщений для пользователя {user_id}")
         async with async_session() as session:
             stmt = (
                 select(Message)
-                .filter_by(user_id=user_id)
+                .where(Message.user_id == user_id, Message.bot_name == bot_name)
                 .order_by(Message.created_at.desc())
                 .limit(limit)
             )
@@ -172,6 +173,18 @@ class MaxService:
                 {"role": m.role, "content": m.content}
                 for m in reversed(messages)
             ]
+
+    @classmethod
+    async def get_last_bot_for_user(cls, user_id: int) -> str | None:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Message.bot_name)
+                .where(Message.user_id == user_id)
+                .order_by(Message.created_at.desc())
+                .limit(1)
+            )
+            row = result.scalar_one_or_none()
+            return row
 
     @classmethod
     async def delete_messages(cls, user_id: int):
