@@ -47,23 +47,29 @@ class MaxService:
             logger.info(f"Пользователь {user_id} успешно создан")
 
     @classmethod
-    async def get_users_silent_between(cls, min_minutes: int, max_minutes: int):
-        """Пользователи, которые молчат от min до max минут"""
-        from datetime import datetime, timedelta
-
+    async def get_users_silent_between(cls, min_minutes: int, max_minutes: int, bot_name: str = None):
         async with async_session() as session:
             max_ago = datetime.utcnow() - timedelta(minutes=min_minutes)
             min_ago = datetime.utcnow() - timedelta(minutes=max_minutes)
 
-            result = await session.execute(
-                select(User)
-                .where(
-                    User.memory_mode != MemoryMode.none,
+            query = select(User).where(
+                User.memory_mode != MemoryMode.none
+            )
+
+            if bot_name == "MAX_Dominant":
+                query = query.where(
+                    User.last_message_at_dominator <= max_ago,
+                    User.last_message_at_dominator >= min_ago,
+                    User.last_message_at_dominator.isnot(None)
+                )
+            else:
+                query = query.where(
                     User.last_message_at <= max_ago,
                     User.last_message_at >= min_ago,
                     User.last_message_at.isnot(None)
                 )
-            )
+
+            result = await session.execute(query)
             return result.scalars().all()
 
     # user state
@@ -144,13 +150,19 @@ class MaxService:
             logger.debug(f"Сообщение для пользователя {user_id} добавлено")
 
             if role == "user":
+                update_values = {
+                    "message_count": User.message_count + 1
+                }
+
+                if bot_name == "MAX_Dominant":
+                    update_values["last_message_at_dominator"] = datetime.utcnow()
+                else:
+                    update_values["last_message_at"] = datetime.utcnow()
+
                 await session.execute(
                     update(User)
                     .where(User.user_id == user_id)
-                    .values(
-                        last_message_at=datetime.utcnow(),
-                        message_count=User.message_count + 1
-                    )
+                    .values(**update_values)
                 )
 
             await session.commit()
