@@ -160,6 +160,10 @@ async def process_inactive_users():
     # ====== 1️⃣ /end ЧЕРЕЗ 30-50 МИНУТ ======
     end_users = await MaxService.get_users_silent_between(30, 50)
 
+    logger.info(f"🔍 Найдено {len(end_users)} пользователей для /end")
+    for user in end_users:
+        logger.info(f"   - Пользователь {user.user_id}, last_message_at: {user.last_message_at}")
+
     for user in end_users:
         try:
             bot_name = await MaxService.get_last_bot_for_user(user.user_id)
@@ -170,6 +174,10 @@ async def process_inactive_users():
                 logger.info(f"У {user.user_id} нет сообщений ни в одном боте — пропускаем")
         except Exception as e:
             logger.error(f"Ошибка /end для {user.user_id}: {e}")
+
+    logger.info(f"🔍 Найдено {len(end_users)} пользователей для /end")
+    for user in end_users:
+        logger.info(f"   - Пользователь {user.user_id}, last_message_at: {user.last_message_at}")
 
     # ====== 2️⃣ DAILY ЧЕРЕЗ 24 ЧАСА (ТОЛЬКО ДЛЯ ЭМПАТИЧНОГО) ======
     daily_users = await MaxService.get_users_silent_between(1440, 1456)
