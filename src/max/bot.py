@@ -2,6 +2,7 @@ import asyncio
 import os
 from datetime import datetime
 from typing import Any
+import logging
 
 import aiofiles
 import aiohttp
@@ -1057,7 +1058,7 @@ async def handle_voice_message(event: MessageCreated):
 async def main():
     webhook_url = "https://bot.nepovinnyh.ru/webhook"
     webhook_secret = settings.SECRET_WEBHOOK_KEY
-
+    logging.info(f"Вебхук зарегистрирован: {webhook_url}")
     # Регистрируем новую на поддомен
     await bot.subscribe_webhook(url=webhook_url, secret=webhook_secret)
 
