@@ -157,18 +157,19 @@ class MaxService:
             logger.debug(f"Последнее сообщение для пользователя {user_id} обновлено")
 
     @classmethod
-    async def get_history(cls, bot_name: str, user_id: int, limit: int = 200):
-        logger.debug(f"Получение последних {limit} сообщений для пользователя {user_id}")
+    async def get_history(cls, user_id: int, bot_name: str, limit: int = 200):
         async with async_session() as session:
             stmt = (
                 select(Message)
-                .where(Message.user_id == user_id, Message.bot_name == bot_name)
+                .where(
+                    Message.user_id == user_id,
+                    Message.bot_name == bot_name
+                )
                 .order_by(Message.created_at.desc())
                 .limit(limit)
             )
             result = await session.execute(stmt)
             messages = result.scalars().all()
-            logger.debug(f"Получено {len(messages)} сообщений для пользователя {user_id}")
             return [
                 {"role": m.role, "content": m.content}
                 for m in reversed(messages)
