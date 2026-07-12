@@ -863,7 +863,7 @@ async def handle_voice(message):
     else:
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history("TELEGRAM_Empathetic", user_id, limit=200)
+        history = await MaxService.get_history(user_id, "TELEGRAM_Empathetic", limit=200)
         file_info = await bot.get_file(message.voice.file_id)
 
         file_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_info.file_path}"
@@ -924,7 +924,7 @@ async def handle_message(message):
     else:
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history("TELEGRAM_Empathetic", user_id, limit=200)
+        history = await MaxService.get_history(user_id, "TELEGRAM_Empathetic",  limit=200)
         answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
         if answer:

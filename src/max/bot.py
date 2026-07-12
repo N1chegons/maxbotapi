@@ -922,7 +922,7 @@ async def handle_message(event: MessageCreated):
     else:
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history("MAX_Empathetic", user_id, limit=200)
+        history = await MaxService.get_history(user_id, "MAX_Empathetic", limit=200)
         # noinspection PyTypeChecker
         answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
@@ -999,7 +999,7 @@ async def handle_voice_message(event: MessageCreated):
     else:
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history("MAX_Empathetic", user_id, limit=200)
+        history = await MaxService.get_history(user_id, "MAX_Empathetic", limit=200)
 
 
         audio_attachment = None
