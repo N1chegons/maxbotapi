@@ -2,6 +2,7 @@ import asyncio
 import os
 from datetime import datetime
 from typing import Any
+import logging
 
 import aiofiles
 import aiohttp
@@ -148,7 +149,7 @@ async def closed_session(event: MessageCreated):
         user = await MaxService.get_user(user_id)
 
         if user.memory_mode != MemoryMode.none:
-            await ending_session(user_id, user, "MAX")
+            await ending_session(user_id, user, "MAX", "MAX_Empathetic")
         else:
             logger.info(f"Пользователь {user_id} заканчивает диалог с памятью {MemoryMode.none}")
             await bot.send_message(
@@ -264,7 +265,7 @@ async def create_payment_link(amount: float, user_id: int) -> Any | None:
     payment_data = TochkaApiService().create_payment_link(amount)
     logger.info(f"Создание ссылки на оплату для пользователя {user_id}")
     if payment_data and payment_data.get("payment_link"):
-        logger.info(f"Платежная ссылка для пользователя {user_id} создана: {payment_data.get("payment_link")}")
+        logger.info(f"Платежная ссылка для пользователя {user_id} создана: {payment_data.get('payment_link')}")
         await TochkaApiService.save_payment(
             user_id=user_id,
             operation_id=payment_data["payment_id"],
@@ -921,15 +922,15 @@ async def handle_message(event: MessageCreated):
     else:
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history(user_id, limit=200)
+        history = await MaxService.get_history(user_id, "MAX_Empathetic", limit=200)
         # noinspection PyTypeChecker
         answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
         if answer:
             if user.memory_mode != MemoryMode.none:
                 # noinspection PyTypeChecker
-                await MaxService.add_message(user_id, session_user.id, "user", text)
-                await MaxService.add_message(user_id, session_user.id, "assistant", answer)
+                await MaxService.add_message(user_id, session_user.id, "user", text, "MAX_Empathetic")
+                await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Empathetic")
             await bot.send_message(user_id=user_id, text=answer)
             logger.info(f"Пользователь успешно получил ответ от ассистента")
         else:
@@ -998,7 +999,7 @@ async def handle_voice_message(event: MessageCreated):
     else:
         selected_topic = "Консультации"
         index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history(user_id, limit=200)
+        history = await MaxService.get_history(user_id, "MAX_Empathetic", limit=200)
 
 
         audio_attachment = None
@@ -1038,8 +1039,8 @@ async def handle_voice_message(event: MessageCreated):
 
             if answer:
                 if user.memory_mode != MemoryMode.none:
-                    await MaxService.add_message(user_id, session_user.id, "user", recognized_text)
-                    await MaxService.add_message(user_id, session_user.id, "assistant", answer)
+                    await MaxService.add_message(user_id, session_user.id, "user", recognized_text, "MAX_Empathetic")
+                    await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Empathetic")
                 await bot.send_message(user_id=user_id, text=answer)
                 logger.info(f"Пользователь {user_id} успешно получил ответ от ассистента")
             else:
@@ -1057,7 +1058,7 @@ async def handle_voice_message(event: MessageCreated):
 async def main():
     webhook_url = "https://bot.nepovinnyh.ru/webhook"
     webhook_secret = settings.SECRET_WEBHOOK_KEY
-
+    logging.info(f"Вебхук зарегистрирован: {webhook_url}")
     # Регистрируем новую на поддомен
     await bot.subscribe_webhook(url=webhook_url, secret=webhook_secret)
 

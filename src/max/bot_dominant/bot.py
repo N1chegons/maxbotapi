@@ -1,28 +1,16 @@
 import asyncio
-import os
-from datetime import datetime
-from typing import Any
-
-import aiofiles
-import aiohttp
-import magic
 import subprocess
 
-from src.logger_config import setup_logger
+import aiohttp
+import magic
 from maxapi import Bot, Dispatcher, F
-from maxapi.filters.command import Command
-from maxapi.types import MessageCreated, BotStarted, CallbackButton, InputMedia, LinkButton, \
-    RequestContactButton, MessageCallback
-from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
-
-from src.admin.repository import AdminService
+from maxapi.types import MessageCreated, BotStarted
 
 from src.config import settings
-from src.max.ending_sender import ending_session
-from src.max.models import UserState, MemoryMode, SubsStatus
+from src.logger_config import setup_logger
+from src.max.models import UserState
 from src.max.repository import MaxService, AudioService
 from src.max.utils import upload_to_s3
-from src.tochka_api.service import TochkaApiService
 from src.yandexai.config import THEMES_INDEXES
 from src.yandexai.orchestrator import ask_ai_with_index
 
@@ -86,13 +74,13 @@ async def handle_message(event: MessageCreated):
     # else:
     selected_topic = "Мировоззрение"
     index_id = THEMES_INDEXES.get(selected_topic)
-    history = await MaxService.get_history(user_id, limit=200)
+    history = await MaxService.get_history(user_id, "MAX_Dominant",  limit=200)
     # noinspection PyTypeChecker
     answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
     if answer:
-        await MaxService.add_message(user_id, session_user.id, "user", text)
-        await MaxService.add_message(user_id, session_user.id, "assistant", answer)
+        await MaxService.add_message(user_id, session_user.id, "user", text, "MAX_Dominant")
+        await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Dominant")
         await bot.send_message(user_id=user_id, text=answer)
         logger.info(f"Пользователь успешно получил ответ от ассистента")
     else:
@@ -129,7 +117,7 @@ async def handle_voice_message(event: MessageCreated):
     # else:
     selected_topic = "Мировоззрение"
     index_id = THEMES_INDEXES.get(selected_topic)
-    history = await MaxService.get_history(user_id, limit=200)
+    history = await MaxService.get_history(user_id, "MAX_Dominant", limit=200)
 
 
     audio_attachment = None
@@ -169,8 +157,8 @@ async def handle_voice_message(event: MessageCreated):
 
         if answer:
             # if user.memory_mode != MemoryMode.none:
-            await MaxService.add_message(user_id, session_user.id, "user", recognized_text)
-            await MaxService.add_message(user_id, session_user.id, "assistant", answer)
+            await MaxService.add_message(user_id, session_user.id, "user", recognized_text, "MAX_Dominant")
+            await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Dominant")
             await bot.send_message(user_id=user_id, text=answer)
             logger.info(f"Пользователь {user_id} успешно получил ответ от ассистента")
         else:
@@ -183,3 +171,22 @@ async def handle_voice_message(event: MessageCreated):
     except Exception as e:
         logger.exception(f"Ошибка обработки голосового сообщения от пользователя {user_id}, ошибка: {e}")
         await bot.send_message(user_id=user_id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
+
+async def main():
+    webhook_url = "https://bot.nepovinnyh.ru/webhook2"
+    webhook_secret = settings.SECRET_WEBHOOK_KEY
+
+    # Регистрируем новую на поддомен
+    await bot.subscribe_webhook(url=webhook_url, secret=webhook_secret)
+
+    await dp.handle_webhook(
+        bot=bot,
+        host='0.0.0.0',
+        port=8082,
+        secret=webhook_secret,
+        path='/webhook2'
+    )
+
+if __name__ == '__main__':
+    logger.info("Бот успешно запущен")
+    asyncio.run(main())

@@ -47,23 +47,29 @@ class MaxService:
             logger.info(f"Пользователь {user_id} успешно создан")
 
     @classmethod
-    async def get_users_silent_between(cls, min_minutes: int, max_minutes: int):
-        """Пользователи, которые молчат от min до max минут"""
-        from datetime import datetime, timedelta
-
+    async def get_users_silent_between(cls, min_minutes: int, max_minutes: int, bot_name: str = None):
         async with async_session() as session:
             max_ago = datetime.utcnow() - timedelta(minutes=min_minutes)
             min_ago = datetime.utcnow() - timedelta(minutes=max_minutes)
 
-            result = await session.execute(
-                select(User)
-                .where(
-                    User.memory_mode != MemoryMode.none,
+            query = select(User).where(
+                User.memory_mode != MemoryMode.none
+            )
+
+            if bot_name == "MAX_Dominant":
+                query = query.where(
+                    User.last_message_at_dominator <= max_ago,
+                    User.last_message_at_dominator >= min_ago,
+                    User.last_message_at_dominator.isnot(None)
+                )
+            else:
+                query = query.where(
                     User.last_message_at <= max_ago,
                     User.last_message_at >= min_ago,
                     User.last_message_at.isnot(None)
                 )
-            )
+
+            result = await session.execute(query)
             return result.scalars().all()
 
     # user state
@@ -130,48 +136,68 @@ class MaxService:
 
     # history message section
     @classmethod
-    async def add_message(cls, user_id: int, session_id: int, role: str, content: str):
+    async def add_message(cls, user_id: int, session_id: int, role: str, content: str, bot_name: str):
         logger.debug(f"Добавление сообщения от {role} для пользователя {user_id} в сессию {session_id}")
         async with async_session() as session:
             stmt = insert(Message).values(
                 user_id=user_id,
                 session_id=session_id,
                 role=role,
-                content=content
+                content=content,
+                bot_name=bot_name,
             )
             await session.execute(stmt)
             logger.debug(f"Сообщение для пользователя {user_id} добавлено")
 
             if role == "user":
+                update_values = {
+                    "message_count": User.message_count + 1
+                }
+
+                if bot_name == "MAX_Dominant":
+                    update_values["last_message_at_dominator"] = datetime.utcnow()
+                else:
+                    update_values["last_message_at"] = datetime.utcnow()
+
                 await session.execute(
                     update(User)
                     .where(User.user_id == user_id)
-                    .values(
-                        last_message_at=datetime.utcnow(),
-                        message_count=User.message_count + 1
-                    )
+                    .values(**update_values)
                 )
 
             await session.commit()
             logger.debug(f"Последнее сообщение для пользователя {user_id} обновлено")
 
     @classmethod
-    async def get_history(cls, user_id: int, limit: int = 200):
-        logger.debug(f"Получение последних {limit} сообщений для пользователя {user_id}")
+    async def get_history(cls, user_id: int, bot_name: str, limit: int = 200):
         async with async_session() as session:
             stmt = (
                 select(Message)
-                .filter_by(user_id=user_id)
+                .where(
+                    Message.user_id == user_id,
+                    Message.bot_name == bot_name
+                )
                 .order_by(Message.created_at.desc())
                 .limit(limit)
             )
             result = await session.execute(stmt)
             messages = result.scalars().all()
-            logger.debug(f"Получено {len(messages)} сообщений для пользователя {user_id}")
             return [
                 {"role": m.role, "content": m.content}
                 for m in reversed(messages)
             ]
+
+    @classmethod
+    async def get_last_bot_for_user(cls, user_id: int) -> str | None:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Message.bot_name)
+                .where(Message.user_id == user_id)
+                .order_by(Message.created_at.desc())
+                .limit(1)
+            )
+            row = result.scalar_one_or_none()
+            return row
 
     @classmethod
     async def delete_messages(cls, user_id: int):
