@@ -26,7 +26,7 @@ logger = setup_logger('telegram_bot', 'telegram', 'TELEGRAM_bot.log')
 logger_admin = setup_logger('admin', 'admin', 'telegram_admin.log')
 
 BOT_TOKEN = settings.TELEGRAM_BOT_TOKEN
-WEBHOOK_PATH = "/tg_webhook2"
+WEBHOOK_PATH = "/tg_webhook"
 WEBHOOK_URL = f"https://bot.nepovinnyh.ru{WEBHOOK_PATH}"
 
 app = web.Application()
