@@ -184,7 +184,7 @@ async def main():
         host='0.0.0.0',
         port=8082,
         secret=webhook_secret,
-        path='/webhook'
+        path='/webhook2'
     )
 
 if __name__ == '__main__':
