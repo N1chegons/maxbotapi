@@ -181,7 +181,7 @@ async def send_sub_buttons_dominator(user_id: int, user):
     kb = InlineKeyboardBuilder()
 
     if user.subscription_status_dominator in (SubsStatus.active, SubsStatus.grace_period):
-        if user.subscription_dominator_ends_at and user.subscription_dominator_ends_at > datetime.utcnow():
+        if user.subscription_ends_at_dominator and user.subscription_ends_at_dominator > datetime.utcnow():
             kb.row(CallbackButton(text="❌ Отменить подписку", payload="cancel_subscription_dominator"))
             await bot.send_message(user_id=user_id, text="🔧 Управление подпиской:", attachments=[kb.as_markup()])
             return
@@ -207,14 +207,14 @@ async def get_subscription_status_dominator(user):
     if user.subscription_status_dominator in (SubsStatus.active, SubsStatus.grace_period):
         if user.subscription_ends_at_dominator and user.subscription_ends_at_dominator > now:
             next_date = user.subscription_ends_at_dominator
-            status_text = "✅ Активна (доминант)"
+            status_text = "✅ Активна"
         else:
-            status_text = "❌ Истекла (доминант)"
+            status_text = "❌ Истекла"
 
     elif user.subscription_status_dominator == SubsStatus.cancelled:
         if user.subscription_ends_at_dominator and user.subscription_ends_at_dominator > now:
             next_date = user.subscription_ends_at_dominator
-            status_text = "⏸ Отменена (доступ до даты) (доминант)"
+            status_text = "⏸ Отменена (доступ до даты)"
         else:
             status_text = "❌ Истекла "
 
