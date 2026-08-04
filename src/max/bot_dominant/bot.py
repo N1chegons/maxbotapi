@@ -115,7 +115,7 @@ async def instruction(event: MessageCreated):
     reply_kb.row(
         LinkButton(
             text="про Бота >",
-            url="https://disk.yandex.ru/i/AHiHqufv2KT9bQ"
+            url="https://disk.yandex.ru/i/Y1qvubfy9EwyOQ"
         )
     )
 
