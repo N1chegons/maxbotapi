@@ -163,7 +163,6 @@ async def help_bot_command(event: MessageCreated):
         )
 
 async def create_payment_link_dominator(amount: float, user_id: int) :
-    """Создает платежную ссылку для доминант-бота"""
     await asyncio.sleep(1)
     payment_data = TochkaApiService().create_payment_link(amount)
     logger.info(f"Создание ссылки на оплату (доминант) для пользователя {user_id}")
@@ -180,22 +179,19 @@ async def create_payment_link_dominator(amount: float, user_id: int) :
     logger.warning(f"Не удалось создать платежную ссылку (доминант) для пользователя {user_id}")
     return None
 async def send_sub_buttons_dominator(user_id: int, user):
-    """Отправляет кнопки подписки для доминант-бота"""
     kb = InlineKeyboardBuilder()
 
-    # Проверяем подписку доминант-бота
-    if user.subscription_dominator_status in (SubsStatus.active, SubsStatus.grace_period):
+    if user.subscription_status_dominator in (SubsStatus.active, SubsStatus.grace_period):
         if user.subscription_dominator_ends_at and user.subscription_dominator_ends_at > datetime.utcnow():
             kb.row(CallbackButton(text="❌ Отменить подписку", payload="cancel_subscription_dominator"))
-            await bot.send_message(user_id=user_id, text="🔧 Управление подпиской (доминант):", attachments=[kb.as_markup()])
+            await bot.send_message(user_id=user_id, text="🔧 Управление подпиской:", attachments=[kb.as_markup()])
             return
 
-    # Проверяем бесплатные сообщения для доминант-бота
     if user.message_count_dominator < user.free_messages_limit_dominator:
         remaining = user.free_messages_limit_dominator - user.message_count_dominator
-        info_text = f"📊 У вас осталось **{remaining}** бесплатных сообщений из {user.free_messages_limit_dominator} (доминант)"
+        info_text = f"📊 У вас осталось {remaining} бесплатных сообщений из {user.free_messages_limit_dominator}"
     else:
-        info_text = "🔒 Бесплатные сообщения для доминант-бота закончились"
+        info_text = "🔒 Бесплатные сообщения закончились"
 
     payment_link = await create_payment_link_dominator(333.00, user_id)
     kb.row(LinkButton(text="💳 Оплатить 333 ₽", url=payment_link))
@@ -206,7 +202,6 @@ async def send_sub_buttons_dominator(user_id: int, user):
         attachments=[kb.as_markup()]
     )
 async def get_subscription_status_dominator(user):
-    """Получает статус подписки для доминант-бота"""
     now = datetime.utcnow()
     next_date = None
 
@@ -222,10 +217,10 @@ async def get_subscription_status_dominator(user):
             next_date = user.subscription_dominator_ends_at
             status_text = "⏸ Отменена (доступ до даты) (доминант)"
         else:
-            status_text = "❌ Истекла (доминант)"
+            status_text = "❌ Истекла "
 
     else:
-        status_text = "❌ Нет активной подписки (доминант)"
+        status_text = "❌ Нет активной подписки"
 
     return status_text, next_date
 
@@ -237,12 +232,12 @@ async def cmd_sub_dominator(event: MessageCreated):
 
     if not user:
         logger.warning(f"Пользователь {user_id} не найден")
-        await bot.send_message(user_id=user_id, text="❌ Пользователь не найден. Напишите /start")
+        await bot.send_message(user_id=user_id, text="❌ Пользователь не найден. Напишите /new")
         return
 
     status_text, next_date = await get_subscription_status_dominator(user)
 
-    text = f"💳 **Подписка на доминант-бота**\n"
+    text = f"💳  Подписка\n"
     text += f"📌 Статус: {status_text}\n"
     text += f"💰 Тариф: Базовый (333 ₽/мес)\n"
     if next_date:
