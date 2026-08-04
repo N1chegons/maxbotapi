@@ -251,11 +251,13 @@ async def create_payment_link(amount: float, user_id: int) -> Any | None:
         await TochkaApiService.save_payment(
             user_id=user_id,
             operation_id=payment_data["payment_id"],
-            amount=amount
+            amount=amount,
+            bot_name="TELEGRAM_Empathetic"
         )
         return payment_data["payment_link"]
     logger.warning(f"Не удалось создать платжную ссылку для пользователя {user_id}")
     return None
+
 async def send_sub_buttons(user_id: int, user, message):
     kb = InlineKeyboardMarkup()
 
