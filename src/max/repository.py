@@ -152,7 +152,7 @@ class MaxService:
             if role == "user":
                 update_values = {}
 
-                if bot_name == "MAX_Dominator":
+                if bot_name == "MAX_Dominant":
                     update_values["message_count_dominator"] = User.message_count_dominator + 1
                     update_values["last_message_at_dominator"] = datetime.utcnow()
                 else:
