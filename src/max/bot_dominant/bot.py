@@ -126,7 +126,6 @@ async def instruction(event: MessageCreated):
             "🔁 /new — начать всё заново\n"
             "❓ /help — частые вопросы и видео про меня\n"
             "💳 /sub — проверить подписку, продлить или оплатить\n"
-            "📊 /end — я проанализирую наш диалог и напишу краткий итог\n"
             "📅 /igor — записаться на живую консультацию с Игорем + видео\n"
             "🤖 /bot — отправить обращение в поддержку\n"
         ),
@@ -193,12 +192,12 @@ async def send_sub_buttons_dominator(user_id: int, user):
     else:
         info_text = "🔒 Бесплатные сообщения закончились"
 
-    payment_link = await create_payment_link_dominator(333.00, user_id)
+    payment_link = await create_payment_link_dominator(1.00, user_id)
     kb.row(LinkButton(text="💳 Оплатить 333 ₽", url=payment_link))
 
     await bot.send_message(
         user_id=user_id,
-        text=f"{info_text}\n\n💳 Оплатите подписку на доминант-бота для продолжения:",
+        text=f"{info_text}\n\n💳 Оплатите подписку для продолжения:",
         attachments=[kb.as_markup()]
     )
 async def get_subscription_status_dominator(user):
@@ -206,15 +205,15 @@ async def get_subscription_status_dominator(user):
     next_date = None
 
     if user.subscription_status_dominator in (SubsStatus.active, SubsStatus.grace_period):
-        if user.subscription_dominator_ends_at and user.subscription_dominator_ends_at > now:
-            next_date = user.subscription_dominator_ends_at
+        if user.subscription_ends_at_dominator and user.subscription_ends_at_dominator > now:
+            next_date = user.subscription_ends_at_dominator
             status_text = "✅ Активна (доминант)"
         else:
             status_text = "❌ Истекла (доминант)"
 
     elif user.subscription_status_dominator == SubsStatus.cancelled:
-        if user.subscription_dominator_ends_at and user.subscription_dominator_ends_at > now:
-            next_date = user.subscription_dominator_ends_at
+        if user.subscription_ends_at_dominator and user.subscription_ends_at_dominator > now:
+            next_date = user.subscription_ends_at_dominator
             status_text = "⏸ Отменена (доступ до даты) (доминант)"
         else:
             status_text = "❌ Истекла "
@@ -247,6 +246,27 @@ async def cmd_sub_dominator(event: MessageCreated):
 
     await bot.send_message(user_id=user_id, text=text)
     await send_sub_buttons_dominator(user_id, user)
+
+@dp.message_callback(F.callback.payload == "cancel_subscription_dominator")
+async def cancel_subscription_callback(callback: MessageCallback):
+    user_id = callback.callback.user.user_id
+
+    user = await MaxService.get_user(user_id)
+
+    if user.subscription_status_dominator not in (SubsStatus.active, SubsStatus.grace_period):
+        logger.warning(f"Пользователь {user_id} не имеет активной подписки")
+        await callback.message.edit(text="❌ У вас нет активной подписки для отмены.")
+        return
+
+    await MaxService.change_subscription_status_dominator(user_id, SubsStatus.cancelled)
+    logger.info(f"Пользователь {user_id} успешно отменил подписку, статус подписки: {SubsStatus.cancelled}")
+
+    await callback.message.edit(
+        text=f"✅ Подписка отменена.\n"
+             f"Доступ сохранится до {user.subscription_ends_at.strftime('%d.%m.%Y')}.\n"
+             f"Чтобы возобновить, оплатите через /sub",
+        attachments=[]
+    )
 
 @dp.message_callback(F.callback.payload == "bot_send_problem")
 async def bot_report(callback: MessageCallback):
