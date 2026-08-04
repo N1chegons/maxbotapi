@@ -69,7 +69,7 @@ async def bot_started(event: BotStarted):
 
 @dp.message_created(Command('new'))
 async def new_session(event: MessageCreated):
-    user_id = event.user.user_id
+    user_id = event.message.sender.user_id
     user = await MaxService.get_user(user_id)
     logger.info(f"Пользователь {user_id} запустил бота-2 с помощью /new")
 
