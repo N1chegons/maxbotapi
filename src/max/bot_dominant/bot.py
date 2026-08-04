@@ -187,8 +187,8 @@ async def send_sub_buttons_dominator(user_id: int, user):
             await bot.send_message(user_id=user_id, text="🔧 Управление подпиской:", attachments=[kb.as_markup()])
             return
 
-    if user.message_count_dominator < user.free_messages_limit_dominator:
-        remaining = user.free_messages_limit_dominator - user.message_count_dominator
+    if user.message_count_dominator < user.free_messages_limit_for_dominant:
+        remaining = user.free_messages_limit_for_dominant - user.message_count_dominator
         info_text = f"📊 У вас осталось {remaining} бесплатных сообщений из {user.free_messages_limit_dominator}"
     else:
         info_text = "🔒 Бесплатные сообщения закончились"
