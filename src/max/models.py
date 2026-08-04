@@ -60,7 +60,11 @@ class User(Base):
     subscription_status: Mapped[SubsStatus] = mapped_column(default=SubsStatus.none)
     subscription_tier: Mapped[SubsTier] = mapped_column(nullable=True)
 
+    subscription_status_dominator: Mapped[SubsStatus] = mapped_column(default=SubsStatus.none)
+    subscription_tier_dominator: Mapped[SubsTier] = mapped_column(nullable=True)
+
     subscription_ends_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    subscription_ends_at_dominator: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
     last_active_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
     disclaimer_agreed_at:  Mapped[datetime.datetime] = mapped_column(nullable=True)
@@ -71,12 +75,15 @@ class User(Base):
     cancelled_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
     has_started_subscription: Mapped[bool] = mapped_column(default=False)
     grace_period_attempts: Mapped[int] = mapped_column(default=0)
+    grace_period_attempts_dominator: Mapped[int] = mapped_column(default=0)
 
     last_message_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
     last_message_at_dominator: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
     message_count: Mapped[int] = mapped_column(default=0, server_default="0")
+    message_count_dominator: Mapped[int] = mapped_column(default=0, server_default="0")
     free_messages_limit: Mapped[int] = mapped_column(default=111, server_default="111")
+    free_messages_limit_for_dominant: Mapped[int] = mapped_column(default=33, server_default="33")
 
 class Payment(Base):
     __tablename__ = "payments"
@@ -94,6 +101,7 @@ class Payment(Base):
         server_default=text("TIMEZONE('utc', now())")
     )
     paid_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    bot_name: Mapped[str] = mapped_column(nullable=True, default=None)
 
 class Session(Base):
     __tablename__ = "sessions"

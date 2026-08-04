@@ -40,10 +40,15 @@ async def handle_webhook(request):
         if webhook_type != 'acquiringInternetPayment':
             return web.Response(status=200, text="OK")
 
-        user_id = await TochkaApiService.find_user_by_operation_id(operation_id)
-        if not user_id:
-            logger.warning(f"⚠️ Пользователь не найден для operation_id: {operation_id}")
+        # 1. Находим платеж в БД
+        payment = await TochkaApiService.find_operation(operation_id)
+        if not payment:
+            logger.warning(f"⚠️ Платеж {operation_id} не найден в БД")
             return web.Response(status=200, text="OK")
+
+        user_id = payment.user_id
+        bot_name = payment.bot_name or "MAX_Empathetic"  # Для обратной совместимости
+        logger.info(f"📌 Платеж для бота: {bot_name}, пользователь: {user_id}")
 
         user = await MaxService.get_user(user_id)
         if not user:
@@ -51,20 +56,50 @@ async def handle_webhook(request):
             return web.Response(status=200, text="OK")
 
         if status == 'APPROVED':
-            await MaxService.save_payment_method(user_id, operation_id)
-            logger.info(f"💳 Сохранён токен карты (operationId) для {user_id}")
-
-            if user.subscription_status == SubsStatus.active and user.subscription_ends_at:
-                new_end_date = user.subscription_ends_at + timedelta(days=31)
-            else:
-                # noinspection PyDeprecation
-                new_end_date = datetime.utcnow() + timedelta(days=31)
-
-            await MaxService.update_subscription_end_date(user_id, new_end_date)
-            await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.PAID)
-            await MaxService.change_subscription_status(user_id, SubsStatus.active)
+            # 2. Обновляем статус платежа
             await TochkaApiService.update_status_payment(operation_id, PaymentStatus.succeeded)
-            logger.info(f"✅ Подписка активна для {user_id} до {new_end_date}")
+
+            # 3. Активируем подписку для нужного бота
+            if bot_name == "MAX_Dominator":
+                # --- Активация подписки ДОМИНАНТ-бота ---
+                logger.info(f"👑 Активация подписки ДОМИНАНТ-бота для {user_id}")
+
+                # Обновляем дату окончания
+                if user.subscription_dominator_status == SubsStatus.active and user.subscription_ends_at_dominator:
+                    new_end_date = user.subscription_ends_at_dominator + timedelta(days=31)
+                else:
+                    new_end_date = datetime.utcnow() + timedelta(days=31)
+
+                # Активируем подписку доминант-бота
+                await MaxService.activate_subscription_dominator(
+                    user_id=user_id,
+                    tier=SubsTier.basic,
+                    days=31  # или использовать new_end_date
+                )
+                # Обновляем статус
+                await MaxService.change_subscription_status_dominator(user_id, SubsStatus.active)
+
+                logger.info(f"✅ Подписка ДОМИНАНТ-бота активна для {user_id} до {new_end_date}")
+
+            else:
+                # --- Активация подписки ОБЫЧНОГО бота ---
+                logger.info(f"🤖 Активация подписки ОБЫЧНОГО бота для {user_id}")
+
+                # Сохраняем метод оплаты
+                await MaxService.save_payment_method(user_id, operation_id)
+                logger.info(f"💳 Сохранён токен карты (operationId) для {user_id}")
+
+                # Обновляем дату окончания
+                if user.subscription_status == SubsStatus.active and user.subscription_ends_at:
+                    new_end_date = user.subscription_ends_at + timedelta(days=31)
+                else:
+                    new_end_date = datetime.utcnow() + timedelta(days=31)
+
+                await MaxService.update_subscription_end_date(user_id, new_end_date)
+                await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.PAID)
+                await MaxService.change_subscription_status(user_id, SubsStatus.active)
+
+                logger.info(f"✅ Подписка ОБЫЧНОГО бота активна для {user_id} до {new_end_date}")
 
         else:
             await TochkaApiService.update_status_payment(operation_id, PaymentStatus.failed)
@@ -86,7 +121,6 @@ async def handle_consult_form(request: web.Request):
         question = data.get('question', 'Не указан')
 
         appointment_date = await MaxService.get_next_free_date()
-        # noinspection PyTypeChecker
         await MaxService.add_request(
             client_id=None,
             contact=contact,
@@ -122,7 +156,6 @@ async def handle_options(request: web.Request):
             'Access-Control-Allow-Headers': 'Content-Type',
         }
     )
-
 
 
 app = web.Application()

@@ -44,13 +44,14 @@ class TochkaApiService:
             return user_id
 
     @classmethod
-    async def save_payment(cls, user_id: int, operation_id: str, amount: float):
+    async def save_payment(cls, user_id: int, operation_id: str, amount: float, bot_name: str = "MAX_Empathetic"):
         logger.info(f"Сохранение платежа: user_id={user_id}, operation_id={operation_id}, amount={amount}")
         async with async_session() as session:
             stmt = insert(Payment).values(
                 payment_id=operation_id,
                 user_id=user_id,
                 amount=amount,
+                bot_name=bot_name
             )
             await session.execute(stmt)
             await session.commit()

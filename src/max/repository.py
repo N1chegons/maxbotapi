@@ -150,13 +150,13 @@ class MaxService:
             logger.debug(f"Сообщение для пользователя {user_id} добавлено")
 
             if role == "user":
-                update_values = {
-                    "message_count": User.message_count + 1
-                }
+                update_values = {}
 
-                if bot_name == "MAX_Dominant":
+                if bot_name == "MAX_Dominator":
+                    update_values["message_count_dominator"] = User.message_count_dominator + 1
                     update_values["last_message_at_dominator"] = datetime.utcnow()
                 else:
+                    update_values["message_count"] = User.message_count + 1
                     update_values["last_message_at"] = datetime.utcnow()
 
                 await session.execute(
@@ -285,6 +285,20 @@ class MaxService:
             messages = result.scalars().all()
             return list(reversed(messages))
 
+    @classmethod
+    async def get_last_messages_for_dominant(cls, client_id: int, limit: int = 20) -> list:
+        logger.debug(f"Получение последних {limit} сообщений для клиента {client_id} с бота Dominant")
+        async with async_session() as session:
+            stmt = (
+                select(Message)
+                .filter_by(user_id=client_id, bot_name="MAX_Dominant")
+                .order_by(Message.created_at.desc())
+                .limit(limit)
+            )
+            result = await session.execute(stmt)
+            messages = result.scalars().all()
+            return list(reversed(messages))
+
     # utils
     @classmethod
     async def get_next_free_date(cls) -> datetime:
@@ -363,8 +377,8 @@ class MaxService:
             await session.commit()
 
     @classmethod
-    async def can_send_message(cls, user_id: int) -> bool:
-        logger.debug(f"Проверка возможности отправки сообщения для пользователя {user_id}")
+    async def can_send_message(cls, user_id: int, bot_name: str = "MAX_Empathetic") -> bool:
+        logger.debug(f"Проверка возможности отправки сообщения для пользователя {user_id} в боте {bot_name}")
 
         user = await cls.get_user(user_id)
         if not user:
@@ -373,28 +387,126 @@ class MaxService:
 
         now = datetime.utcnow()
 
-        if user.message_count < user.free_messages_limit:
-            remaining = user.free_messages_limit - user.message_count
-            logger.debug(f"Пользователь {user_id} может отправить {remaining} бесплатных сообщений")
+        if bot_name == "MAX_Dominator":
+            message_count = user.message_count_dominator
+            free_limit = user.free_messages_limit_dominator
+            subscription_status = user.subscription_dominator_status
+            subscription_ends_at = user.subscription_dominator_ends_at
+
+            if user.trial_dominator_ends_at and user.trial_dominator_ends_at > now:
+                trial_messages_left = user.messages_count_trial_dominator
+                if trial_messages_left > 0:
+                    logger.debug(
+                        f"Пользователь {user_id} может отправить сообщение (триал доминант-бота), осталось {trial_messages_left}")
+                    return True
+        else:
+            message_count = user.message_count
+            free_limit = user.free_messages_limit
+            subscription_status = user.subscription_status
+            subscription_ends_at = user.subscription_ends_at
+
+            # Проверяем триал
+            if user.trial_ends_at and user.trial_ends_at > now:
+                trial_messages_left = user.messages_count_trial
+                if trial_messages_left > 0:
+                    logger.debug(
+                        f"Пользователь {user_id} может отправить сообщение (триал обычного бота), осталось {trial_messages_left}")
+                    return True
+
+        if message_count < free_limit:
+            remaining = free_limit - message_count
+            logger.debug(f"Пользователь {user_id} может отправить {remaining} бесплатных сообщений для бота {bot_name}")
             return True
 
-        if user.subscription_status == SubsStatus.active:
-            result = user.subscription_ends_at and user.subscription_ends_at > now
-            logger.debug(f"Пользователь {user_id} (активная подписка): {result}")
+        if subscription_status == SubsStatus.active:
+            result = subscription_ends_at and subscription_ends_at > now
+            logger.debug(f"Пользователь {user_id} (активная подписка {bot_name}): {result}")
             return result
 
-        if user.subscription_status == SubsStatus.grace_period:
-            result = user.subscription_ends_at and user.subscription_ends_at > now
-            logger.debug(f"Пользователь {user_id} (льготный период): {result}")
+        if subscription_status == SubsStatus.grace_period:
+            result = subscription_ends_at and subscription_ends_at > now
+            logger.debug(f"Пользователь {user_id} (льготный период {bot_name}): {result}")
             return result
 
-        if user.subscription_status == SubsStatus.cancelled:
-            result = user.subscription_ends_at and user.subscription_ends_at > now
-            logger.debug(f"Пользователь {user_id} (отменённая подписка): {result}")
+        if subscription_status == SubsStatus.cancelled:
+            result = subscription_ends_at and subscription_ends_at > now
+            logger.debug(f"Пользователь {user_id} (отменённая подписка {bot_name}): {result}")
             return result
 
-        logger.debug(f"Пользователь {user_id} не может отправлять сообщения")
+        logger.debug(f"Пользователь {user_id} не может отправлять сообщения в боте {bot_name}")
         return False
+
+    # -------------------------------------- DOMINANT ---------------------------------------
+    @classmethod
+    async def activate_subscription_dominator(cls, user_id: int, tier: SubsTier, days: int = 30):
+        """Активирует подписку для доминант-бота"""
+        logger.info(f"Активация подписки доминант-бота для пользователя {user_id}")
+        async with async_session() as session:
+            now = datetime.utcnow()
+            ends_at = now + timedelta(days=days)
+
+            await session.execute(
+                update(User)
+                .filter_by(user_id=user_id)
+                .values(
+                    subscription_dominator_status=SubsStatus.active,
+                    subscription_tier_dominator=tier,
+                    subscription_ends_at_dominator=ends_at,
+                    has_started_subscription=True
+                )
+            )
+            await session.commit()
+            logger.info(f"Подписка доминант-бота для пользователя {user_id} активирована до {ends_at}")
+
+    @classmethod
+    async def change_subscription_status_dominator(cls, user_id: int, status: SubsStatus):
+        """Изменяет статус подписки доминант-бота"""
+        logger.warning(f"Изменение статуса подписки доминант-бота пользователя {user_id} на {status}")
+        async with async_session() as session:
+            await session.execute(
+                update(User)
+                .filter_by(user_id=user_id)
+                .values(subscription_dominator_status=status)
+            )
+            await session.commit()
+            logger.info(f"Статус подписки доминант-бота пользователя {user_id} изменён на {status}")
+
+    @classmethod
+    async def update_subscription_end_date_dominator(cls, user_id: int, new_end_date: datetime):
+        """Обновляет дату окончания подписки доминант-бота"""
+        logger.info(f"Обновление даты окончания подписки доминант-бота пользователя {user_id} на {new_end_date}")
+        async with async_session() as session:
+            await session.execute(
+                update(User)
+                .where(User.user_id == user_id)
+                .values(subscription_ends_at_dominator=new_end_date)
+            )
+            await session.commit()
+
+    @classmethod
+    async def get_users_for_auto_charge_dominator(cls):
+        """Получение пользователей для автоматического списания (доминант-бот)"""
+        logger.debug("Получение пользователей для автоматического списания (доминант)")
+        async with async_session() as session:
+            now = datetime.utcnow()
+            three_days_ago = now - timedelta(days=3)
+
+            result = await session.execute(
+                select(User)
+                .where(
+                    User.subscription_status_dominator.in_([SubsStatus.active, SubsStatus.grace_period]),
+                    User.payment_method_id.isnot(None),
+                    User.subscription_ends_at_dominator <= now,
+                    or_(
+                        User.subscription_status_dominator == SubsStatus.grace_period,
+                        User.subscription_ends_at_dominator >= three_days_ago
+                    )
+                )
+            )
+            users = result.scalars().all()
+            logger.debug(f"Найдено {len(users)} пользователей для автоматического списания (доминант)")
+            return users
+
     # -------------------------------------- CRON ---------------------------------------
     @classmethod
     async def get_users_for_auto_charge(cls):

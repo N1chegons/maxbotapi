@@ -181,6 +181,7 @@ async def instruction(event: MessageCreated):
             "💳 /sub — проверить подписку, продлить или оплатить\n"
             "📊 /end — я проанализирую наш диалог и напишу краткий итог\n"
             "📅 /igor — записаться на живую консультацию с Игорем + видео\n"
+            "🤖 /bot — отправить обращение в поддержку\n"
         ),
         attachments=[reply_kb.as_markup()]
 
@@ -269,7 +270,8 @@ async def create_payment_link(amount: float, user_id: int) -> Any | None:
         await TochkaApiService.save_payment(
             user_id=user_id,
             operation_id=payment_data["payment_id"],
-            amount=amount
+            amount=amount,
+            bot_name="MAX_Empathetic"
         )
         return payment_data["payment_link"]
     logger.warning(f"Не удалось создать платжную ссылку для пользователя {user_id}")
