@@ -64,7 +64,7 @@ class User(Base):
     trial_dominator_ends_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
     messages_count_trial_dominator: Mapped[int] = mapped_column(default=0)
 
-    subscription_status_dominator: Mapped[SubsStatus] = mapped_column(default=SubsStatus.none)
+    subscription_status_dominator: Mapped[SubsStatus] = mapped_column(nullable=True, default=SubsStatus.none)
     subscription_tier_dominator: Mapped[SubsTier] = mapped_column(nullable=True)
 
     subscription_ends_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
