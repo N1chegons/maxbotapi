@@ -390,7 +390,7 @@ class MaxService:
         if bot_name == "MAX_Dominator":
             message_count = user.message_count_dominator
             free_limit = user.free_messages_limit_dominator
-            subscription_status = user.subscription_dominator_status
+            subscription_status = user.subscription_status_dominator
             subscription_ends_at = user.subscription_dominator_ends_at
 
             if user.trial_dominator_ends_at and user.trial_dominator_ends_at > now:
@@ -449,7 +449,7 @@ class MaxService:
                 update(User)
                 .filter_by(user_id=user_id)
                 .values(
-                    subscription_dominator_status=SubsStatus.active,
+                    subscription_status_dominator=SubsStatus.active,
                     subscription_tier_dominator=tier,
                     subscription_ends_at_dominator=ends_at,
                     has_started_subscription=True
@@ -466,7 +466,7 @@ class MaxService:
             await session.execute(
                 update(User)
                 .filter_by(user_id=user_id)
-                .values(subscription_dominator_status=status)
+                .values(subscription_status_dominator=status)
             )
             await session.commit()
             logger.info(f"Статус подписки доминант-бота пользователя {user_id} изменён на {status}")
