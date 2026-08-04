@@ -210,14 +210,14 @@ async def get_subscription_status_dominator(user):
     now = datetime.utcnow()
     next_date = None
 
-    if user.subscription_dominator_status in (SubsStatus.active, SubsStatus.grace_period):
+    if user.subscription_status_dominator in (SubsStatus.active, SubsStatus.grace_period):
         if user.subscription_dominator_ends_at and user.subscription_dominator_ends_at > now:
             next_date = user.subscription_dominator_ends_at
             status_text = "✅ Активна (доминант)"
         else:
             status_text = "❌ Истекла (доминант)"
 
-    elif user.subscription_dominator_status == SubsStatus.cancelled:
+    elif user.subscription_status_dominator == SubsStatus.cancelled:
         if user.subscription_dominator_ends_at and user.subscription_dominator_ends_at > now:
             next_date = user.subscription_dominator_ends_at
             status_text = "⏸ Отменена (доступ до даты) (доминант)"
@@ -229,10 +229,8 @@ async def get_subscription_status_dominator(user):
 
     return status_text, next_date
 
-# noinspection PyUnresolvedReferences
-@dp.message_created(Command('sub_dominator'))
+@dp.message_created(Command('sub'))
 async def cmd_sub_dominator(event: MessageCreated):
-    """Команда для проверки подписки доминант-бота"""
     user_id = event.from_user.user_id
     user = await MaxService.get_user(user_id)
     logger.info(f"Проверка подписки (доминант) для пользователя {user_id}")
@@ -242,7 +240,6 @@ async def cmd_sub_dominator(event: MessageCreated):
         await bot.send_message(user_id=user_id, text="❌ Пользователь не найден. Напишите /start")
         return
 
-    # Проверяем статус подписки доминант-бота
     status_text, next_date = await get_subscription_status_dominator(user)
 
     text = f"💳 **Подписка на доминант-бота**\n"
