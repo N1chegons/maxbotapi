@@ -4,7 +4,8 @@ import subprocess
 import aiohttp
 import magic
 from maxapi import Bot, Dispatcher, F
-from maxapi.types import MessageCreated, BotStarted
+from maxapi.types import MessageCreated, BotStarted, CallbackButton, LinkButton
+from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
 from src.config import settings
 from src.logger_config import setup_logger
@@ -33,15 +34,33 @@ async def bot_started(event: BotStarted):
         await MaxService.create_session(user_id)
         logger.info(f"Пользователь {user_id} успешно зарегестрировался")
 
+    reply_kb = InlineKeyboardBuilder()
+    reply_kb = InlineKeyboardBuilder()
+    reply_kb.row(
+        CallbackButton(
+            text="Поехали >",
+            payload="query"
+        ),
+        LinkButton(
+            text="про Бота >",
+            url="https://disk.yandex.ru/i/AHiHqufv2KT9bQ"
+        ),
+        LinkButton(
+            text="про Эксперта >",
+            url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"
+        ),
+    )
 
     await bot.send_message(
         user_id=user_id,
         text=(
-            "Привет! Можешь задавать любые вопросы по истории и политической ситуации."
-            "Я задоминирую❗"
+            "Привет 👋"
+            "Ты попал к доминантному боту, который тренируется говорить на острые темы 🤬"
+            "и тренирует тебя мыслить конструктивно 😉  Времена нынче опасные, на мозг давят капитально. Важно сохранять спокойствие при понимании, что происходит🫡 \n\n"
+            "Каждый разговор с ботом как урок истории: ты открываешь тему, он продавливает вывод 🤯"
+            "Победить бота не получится: он заставит тебя мыслить верно. Пробуй, разрушай сомнения."
         )
     )
-
 
 @dp.message_created(F.message.body.text)
 async def handle_message(event: MessageCreated):
