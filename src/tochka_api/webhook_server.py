@@ -65,7 +65,7 @@ async def handle_webhook(request):
                 logger.info(f"👑 Активация подписки ДОМИНАНТ-бота для {user_id}")
 
                 # Обновляем дату окончания
-                if user.subscription_dominator_status == SubsStatus.active and user.subscription_ends_at_dominator:
+                if user.subscription_status_dominator == SubsStatus.active and user.subscription_ends_at_dominator:
                     new_end_date = user.subscription_ends_at_dominator + timedelta(days=31)
                 else:
                     new_end_date = datetime.utcnow() + timedelta(days=31)
