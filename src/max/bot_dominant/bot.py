@@ -381,18 +381,18 @@ async def igor_confirm(callback: MessageCallback):
         )
         return
 
-    await MaxService.add_request(
-        client_id=user_id,
-        contact="",
-        messages=f"Обращение от доминантного бота: {text}",
-        appointment_date=None
-    )
-
     await callback.message.edit(
         text=(
             "✅ Вопрос отправлен!\n\n"
         ),
         attachments=[]
+    )
+
+    await MaxService.add_request(
+        client_id=user_id,
+        contact="",
+        messages=f"Обращение от доминантного бота: {text}",
+        appointment_date=None
     )
 
     logger.info(f"Пользователь {user_id} отправил вопрос Игорю: {text[:50]}...")
