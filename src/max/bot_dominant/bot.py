@@ -384,7 +384,6 @@ async def report_confirm(callback: MessageCallback):
         messages=f"Обращение от доминантного бота:\n{report_text}"
     )
 
-
     logger.info(f"Пользователь {user_id} отправил обращение: {report_text[:50]}...")
 
 
