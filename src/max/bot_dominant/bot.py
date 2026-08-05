@@ -374,15 +374,16 @@ async def report_confirm(callback: MessageCallback):
 
     report_text = pending_bot_reports.pop(user_id, None)
 
+    await callback.message.edit(
+        text=f"✅ Обращение отправлено! Богдан разберётся в ближайшее время 😉",
+        attachments=[]
+    )
+
     await AdminService.add_problem_request(
         client_id=user_id,
         messages=f"Обращение от доминантного бота:\n{report_text}"
     )
 
-    await callback.message.edit(
-        text=f"✅ Обращение отправлено! Богдан разберётся в ближайшее время 😉",
-        attachments=[]
-    )
 
     logger.info(f"Пользователь {user_id} отправил обращение: {report_text[:50]}...")
 
