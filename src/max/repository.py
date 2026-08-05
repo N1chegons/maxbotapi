@@ -246,7 +246,7 @@ class MaxService:
 
     @classmethod
     async def add_request(cls, client_id: int, contact: str, messages: str, appointment_date: datetime):
-        logger.info(f"Добавление заявки на консультацию для пользователя {client_id} на {appointment_date}")
+        logger.info(f"Добавление заявки для пользователя {client_id}")
         async with async_session() as session:
             stmt = insert(Request).values(
                 client_id=client_id,
@@ -258,7 +258,10 @@ class MaxService:
             await session.commit()
             logger.info(f"Заявка для пользователя {client_id} добавлена")
 
-            await AdminService.notify_admins("📅 Новая запись на консультацию")
+            if messages and messages.startswith("Обращение от доминантного бота:"):
+                await AdminService.notify_admins("📅 Новый вопрос от доминантного бота")
+            else:
+                await AdminService.notify_admins("📅 Новая запись на консультацию")
 
     @classmethod
     async def mark_request_viewed(cls, appointment_id: int):
