@@ -507,7 +507,6 @@ class MaxService:
 
     @classmethod
     async def get_users_for_auto_charge_dominator(cls):
-        """Получение пользователей для автоматического списания (доминант-бот)"""
         logger.debug("Получение пользователей для автоматического списания (доминант)")
         async with async_session() as session:
             now = datetime.utcnow()
@@ -519,6 +518,7 @@ class MaxService:
                     User.subscription_status_dominator.in_([SubsStatus.active, SubsStatus.grace_period]),
                     User.payment_method_id.isnot(None),
                     User.subscription_ends_at_dominator <= now,
+                    User.grace_period_attempts_dominator == 0,
                     or_(
                         User.subscription_status_dominator == SubsStatus.grace_period,
                         User.subscription_ends_at_dominator >= three_days_ago
@@ -543,6 +543,7 @@ class MaxService:
                     User.subscription_status.in_([SubsStatus.active, SubsStatus.grace_period]),
                     User.payment_method_id.isnot(None),
                     User.subscription_ends_at <= now,
+                    User.grace_period_attempts == 0,  # ✅ ТОЛЬКО ТЕ, У КОГО НЕТ ПОПЫТОК
                     or_(
                         User.subscription_status == SubsStatus.grace_period,
                         User.subscription_ends_at >= three_days_ago

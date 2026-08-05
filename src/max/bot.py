@@ -478,15 +478,14 @@ async def view_appointment(event: MessageCreated):
         await bot.send_message(user_id=user_id, text=text)
 
 # noinspection PyUnresolvedReferences
+# noinspection PyUnresolvedReferences
 @dp.message_created(Command('req'))
 async def view_problem_appointment(event: MessageCreated):
-    user_id = event.message.sender.user_id
-    username = event.message.sender.first_name or "Не указан"
-    user = await MaxService.get_user(user_id)
+    admin_id = event.message.sender.user_id
 
-    if not AdminService.is_admin(user_id):
-        logger_admin.warning(f"Пользователь {user_id} не является админом")
-        await bot.send_message(user_id=user_id, text="⛔ Нет доступа")
+    if not AdminService.is_admin(admin_id):
+        logger_admin.warning(f"Пользователь {admin_id} не является админом")
+        await bot.send_message(user_id=admin_id, text="⛔ Нет доступа")
         return
 
     parts = event.message.body.text.split()
@@ -495,61 +494,73 @@ async def view_problem_appointment(event: MessageCreated):
         try:
             app_id = int(parts[1])
         except ValueError:
-            logger_admin.warning(f"Админ {user_id} ввел неверный формат для просмотра информации по обращению")
-            await bot.send_message(user_id=user_id, text="❌ Неверный формат. Используйте: /con <id>(порядковый номер записи)")
+            logger_admin.warning(f"Админ {admin_id} ввел неверный формат")
+            await bot.send_message(
+                user_id=admin_id,
+                text="❌ Неверный формат. Используйте: /req <id>"
+            )
             return
 
         request = await AdminService.get_problem_request_by_id(app_id)
         if not request:
-            logger_admin.warning(f"Обращение с id {app_id} не найдена")
-            await bot.send_message(user_id=user_id, text=f"❌ Обращение с ID {app_id} не найдена")
+            logger_admin.warning(f"Обращение с id {app_id} не найдено")
+            await bot.send_message(
+                user_id=admin_id,
+                text=f"❌ Обращение с ID {app_id} не найдено"
+            )
             return
 
         await AdminService.mark_request_viewed(app_id)
 
+        # ✅ БЕРЕМ ДАННЫЕ ИЗ ЗАЯВКИ!
+        client_id = request.client_id  # ✅ ID пользователя, который отправил обращение
+
+        # ✅ Получаем данные пользователя, который отправил обращение
+        client_user = await MaxService.get_user(client_id)
+        client_username = client_user.username if client_user else "Не указан"
+        client_platform = client_user.platform if client_user else "Неизвестно"
+
         md_content = f"# 🐞 Обращение в техподдержку\n\n"
-        md_content += f"**Пользователь:** {user_id}\n"
-        md_content += f"**Username:** {username}\n"
-        md_content += f"**Мессенджер:** {user.platform}\n"
-        md_content += f"**Время:** {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n\n"
+        md_content += f"**Пользователь:** {client_id}\n"  # ✅ Теперь правильный ID
+        md_content += f"**Username:** {client_username}\n"  # ✅ Теперь правильный username
+        md_content += f"**Мессенджер:** {client_platform}\n"  # ✅ Теперь правильная платформа
+        md_content += f"**Время:** {request.created_at.strftime('%d.%m.%Y %H:%M:%S')}\n\n"
         md_content += "---\n\n"
         md_content += "## 💬 Последние сообщения\n\n"
         md_content += request.messages if request.messages else "Нет сообщений"
 
-        filename = f"bot_report_{user_id}_{int(datetime.now().timestamp())}.md"
+        filename = f"bot_report_{client_id}_{int(datetime.now().timestamp())}.md"
         async with aiofiles.open(filename, "w", encoding='utf-8') as f:
             await f.write(md_content)
 
-        with open(filename, "rb"):
-            await bot.send_message(
-                user_id=user_id,
-                text=f"📋 Новое обращение от пользователя",
-                attachments=[
-                    InputMedia(
-                        path=filename,
-                    )
-                ]
-            )
+        await bot.send_message(
+            user_id=admin_id,
+            text=f"📋 Обращение #{request.id} от пользователя {client_id}",
+            attachments=[
+                InputMedia(path=filename)
+            ]
+        )
 
-        logger_admin.info(f"Админ {user_id} посмотрел обращение с id {app_id}, файл подготовлен: {filename}")
+        logger_admin.info(f"Админ {admin_id} посмотрел обращение с id {app_id}")
         os.remove(filename)
 
     else:
         appointments = await AdminService.get_unviewed_problem_request()
 
         if not appointments:
-            await bot.send_message(user_id=user_id, text="Нет новых обращений")
+            await bot.send_message(user_id=admin_id, text="📭 Нет новых обращений")
             return
 
         text = "📋 **Обращения в поддержку:**\n\n"
         for app in appointments:
             status = "✅" if app.viewed else "🆕"
-            text += f"{status} id:{app.id} — {datetime.now().strftime('%d.%m.%Y 20:00')}\n"
+            text += f"{status} id:{app.id} — от пользователя {app.client_id}\n"
+            text += f"   📅 {app.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
 
-        text += "\n📝 Для просмотра деталей: /req <id>(порядковый номер записи)"
+        text += "\n📝 Для просмотра деталей: /req <id>"
 
-        logger_admin.info(f"Админ {user_id} посмотрел список обращений")
-        await bot.send_message(user_id=user_id, text=text)
+        logger_admin.info(f"Админ {admin_id} посмотрел список обращений")
+        await bot.send_message(user_id=admin_id, text=text)
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(Command('ha'))
