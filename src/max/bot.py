@@ -421,14 +421,20 @@ async def view_appointment(event: MessageCreated):
         try:
             app_id = int(parts[1])
         except ValueError:
-            logger_admin.warning(f"Админ {user_id} ввел неверный формат для просмотра информации по консультации")
-            await bot.send_message(user_id=user_id, text="❌ Неверный формат. Используйте: /con <id>(порядковый номер записи)")
+            logger_admin.warning(f"Админ {user_id} ввел неверный формат")
+            await bot.send_message(
+                user_id=user_id,
+                text="❌ Неверный формат. Используйте: /con <id>"
+            )
             return
 
         request = await MaxService.get_request_by_id(app_id)
         if not request:
             logger_admin.warning(f"Консультация с id {app_id} не найдена")
-            await bot.send_message(user_id=user_id, text=f"❌ Заявка с ID {app_id} не найдена")
+            await bot.send_message(
+                user_id=user_id,
+                text=f"❌ Заявка с ID {app_id} не найдена"
+            )
             return
 
         await MaxService.mark_request_viewed(app_id)
@@ -438,7 +444,12 @@ async def view_appointment(event: MessageCreated):
         md_content = f"# 📋 Консультация #{request.id}\n\n"
         md_content += f"Клиент: {client_id}\n"
         md_content += f"Контакт: {request.contact}\n"
-        md_content += f"Запись на: {request.appointment_date.strftime('%d.%m.%Y %H:%M')}\n"
+
+        if request.appointment_date:
+            md_content += f"Запись на: {request.appointment_date.strftime('%d.%m.%Y %H:%M')}\n"
+        else:
+            md_content += f"Запись на: Не указана\n"
+
         md_content += f"Дата подачи заявки: {request.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
         md_content += "---\n\n"
         md_content += "## 💬 Последние сообщения\n\n"
@@ -451,14 +462,10 @@ async def view_appointment(event: MessageCreated):
         await bot.send_message(
             user_id=user_id,
             text=f"📋 Консультация #{request.id}",
-            attachments=[
-                InputMedia(
-                    path=filename,
-                )
-            ]
+            attachments=[InputMedia(path=filename)]
         )
 
-        logger_admin.info(f"Админ посмотрел консультацию с id {app_id}, файл подготовлен: {filename}")
+        logger_admin.info(f"Админ посмотрел консультацию с id {app_id}")
         os.remove(filename)
     else:
         appointments = await MaxService.get_unviewed_request()
@@ -470,11 +477,18 @@ async def view_appointment(event: MessageCreated):
         text = "📋 **Заявки на консультацию:**\n\n"
         for app in appointments:
             status = "✅" if app.viewed else "🆕"
-            text += f"{status} id:{app.id} — {app.appointment_date.strftime('%d.%m.%Y 20:00')} — {app.contact}\n"
 
-        text += "\n📝 Для просмотра деталей: /con <id>(порядковый номер записи)"
+            # ✅ ПРОВЕРКА НА NULL
+            if app.appointment_date:
+                date_str = app.appointment_date.strftime('%d.%m.%Y 20:00')
+            else:
+                date_str = "Дата не указана"
 
-        logger_admin.info(f"Админ посмотрел список консультаций")
+            text += f"{status} id:{app.id} — {date_str} — {app.contact}\n"
+
+        text += "\n📝 Для просмотра деталей: /con <id>"
+
+        logger_admin.info(f"Админ {user_id} посмотрел список консультаций")
         await bot.send_message(user_id=user_id, text=text)
 
 # noinspection PyUnresolvedReferences
