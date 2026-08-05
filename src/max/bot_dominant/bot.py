@@ -25,6 +25,7 @@ TOKEN = settings.MAX_BOT_TOKEN_2
 
 bot = Bot(TOKEN)
 dp = Dispatcher()
+pending_igor_questions = {}
 waiting_for_igor_question = {}
 
 # logic
@@ -123,12 +124,12 @@ async def instruction(event: MessageCreated):
     await bot.send_message(
         user_id=user_id,
         text=(
-            "📋 **Что я умею:**\n\n"
-            "🔁 /new — начать всё заново\n"
-            "❓ /help — частые вопросы и видео про меня\n"
-            "💳 /sub — проверить подписку, продлить или оплатить\n"
+            "🫡  Что я могу❓\n\n"
+            "🔁 /new — вернуться к экрану с видосами\n"
+            "❓ /help — ты уже здесь, можем повторить\n"
+            "💳 /sub —  всё про подписку на меня\n"
             "📅 /igor — задать вопрос Игорю\n"
-            "🤖 /bot — отправить обращение в поддержку\n"
+            "🤖 /bot — напиши, в чём я не прав\n"
         ),
         attachments=[reply_kb.as_markup()]
 
@@ -162,22 +163,43 @@ async def help_bot_command(event: MessageCreated):
             attachments=[reply_kb.as_markup()]
         )
 
+
+async def handle_igor_question_text(event: MessageCreated, user):
+    user_id = event.message.sender.user_id
+    text = event.message.body.text.strip()
+
+    pending_igor_questions[user_id] = text
+
+    waiting_for_igor_question.pop(user_id, None)
+
+    reply_kb = InlineKeyboardBuilder()
+    reply_kb.row(
+        CallbackButton(text="✅ ОТПРАВИТЬ", payload=f"igor_confirm_{user_id}"),
+        CallbackButton(text="❌ ОТМЕНА", payload=f"igor_cancel_{user_id}"),
+    )
+
+    # Показываем вопрос и просим подтвердить
+    await bot.send_message(
+        user_id=user_id,
+        text=(
+            f"📝 Проверь свой вопрос:\n\n"
+            f"\"{text}\"\n\n"
+            f"✅ Всё верно? Нажми «ОТПРАВИТЬ».\n"
+            f"❌ Хочешь изменить? Нажми «ОТМЕНА» и напиши заново."
+        ),
+        attachments=[reply_kb.as_markup()]
+    )
+
 @dp.message_created(Command('igor'))
 async def igor_question(event: MessageCreated):
-    """Команда для отправки вопроса Игорю"""
     user_id = event.message.sender.user_id
     user = await MaxService.get_user(user_id)
 
-    logger.info(f"Пользователь {user_id} начал отправку вопроса Игорю")
-
     if not user:
-        logger.warning(f"Пользователь {user_id} не найден")
-        await bot.send_message(
-            user_id=user_id,
-            text="❌ Пользователь не найден. Напишите /new"
-        )
+        await bot.send_message(user_id=user_id, text="❌ Пользователь не найден")
         return
 
+    # Проверяем, есть ли уже неотвеченный вопрос
     has_question = await MaxService.has_active_request(user_id, "question")
     if has_question:
         await bot.send_message(
@@ -186,6 +208,7 @@ async def igor_question(event: MessageCreated):
         )
         return
 
+    # Переводим пользователя в режим ожидания вопроса
     waiting_for_igor_question[user_id] = True
 
     await bot.send_message(
@@ -288,7 +311,7 @@ async def handle_memory_dialog(callback: MessageCallback):
     user_id = callback.callback.user.user_id
 
     await callback.message.edit(
-        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.",
+        text="Ну, поехали❗️ Расскажи, что тебя беспокоит или бесит в актуальной повестке❓",
         attachments=[]
     )
 
@@ -345,11 +368,20 @@ async def bot_cancel(callback: MessageCallback):
         attachments=[]
     )
 
-async def handle_igor_question_text(event: MessageCreated, user):
-    user_id = event.message.sender.user_id
-    text = event.message.body.text.strip()
 
-    waiting_for_igor_question.pop(user_id, None)
+@dp.message_callback(F.callback.payload.startswith("igor_confirm_"))
+async def igor_confirm(callback: MessageCallback):
+    user_id = callback.callback.user.user_id
+
+    payload_user_id = int(callback.callback.payload.split("_")[2])
+
+    text = pending_igor_questions.pop(user_id, None)
+    if not text:
+        await callback.message.edit(
+            text="❌ Вопрос не найден. Попробуй ещё раз через /igor",
+            attachments=[]
+        )
+        return
 
     await MaxService.add_request(
         client_id=user_id,
@@ -358,14 +390,30 @@ async def handle_igor_question_text(event: MessageCreated, user):
         appointment_date=None
     )
 
-    await bot.send_message(
-        user_id=user_id,
+    await callback.message.edit(
         text=(
             "✅ Вопрос отправлен!\n\n"
-        )
+        ),
+        attachments=[]
     )
 
-    await AdminService.notify_admins("📅 Новый вопрос от доминантного бота")
+    logger.info(f"Пользователь {user_id} отправил вопрос Игорю: {text[:50]}...")
+
+
+@dp.message_callback(F.callback.payload.startswith("igor_cancel_"))
+async def igor_cancel(callback: MessageCallback):
+    user_id = callback.callback.user.user_id
+
+    payload_user_id = int(callback.callback.payload.split("_")[2])
+
+    pending_igor_questions.pop(user_id, None)
+
+    await callback.message.edit(
+        text="❌ Отправка вопроса отменена. Если передумаешь — напиши /igor",
+        attachments=[]
+    )
+
+    logger.info(f"Пользователь {user_id} отменил отправку вопроса")
 
 # text logic
 @dp.message_created(F.message.body.text)
