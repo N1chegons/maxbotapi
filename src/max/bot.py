@@ -493,6 +493,7 @@ async def view_appointment(event: MessageCreated):
 
 # noinspection PyUnresolvedReferences
 # noinspection PyUnresolvedReferences
+# noinspection PyUnresolvedReferences
 @dp.message_created(Command('req'))
 async def view_problem_appointment(event: MessageCreated):
     admin_id = event.message.sender.user_id
@@ -526,21 +527,14 @@ async def view_problem_appointment(event: MessageCreated):
 
         await AdminService.mark_request_viewed(app_id)
 
-        # ✅ БЕРЕМ ДАННЫЕ ИЗ ЗАЯВКИ!
-        client_id = request.client_id  # ✅ ID пользователя, который отправил обращение
+        client_id = request.client_id
 
-        # ✅ Получаем данные пользователя, который отправил обращение
-        client_user = await MaxService.get_user(client_id)
-        client_username = client_user.username if client_user else "Не указан"
-        client_platform = client_user.platform if client_user else "Неизвестно"
-
+        # ✅ УБИРАЕМ username
         md_content = f"# 🐞 Обращение в техподдержку\n\n"
-        md_content += f"**Пользователь:** {client_id}\n"  # ✅ Теперь правильный ID
-        md_content += f"**Username:** {client_username}\n"  # ✅ Теперь правильный username
-        md_content += f"**Мессенджер:** {client_platform}\n"  # ✅ Теперь правильная платформа
+        md_content += f"**ID пользователя:** {client_id}\n"
         md_content += f"**Время:** {request.created_at.strftime('%d.%m.%Y %H:%M:%S')}\n\n"
         md_content += "---\n\n"
-        md_content += "## 💬 Последние сообщения\n\n"
+        md_content += "## 💬 Сообщение пользователя\n\n"
         md_content += request.messages if request.messages else "Нет сообщений"
 
         filename = f"bot_report_{client_id}_{int(datetime.now().timestamp())}.md"
