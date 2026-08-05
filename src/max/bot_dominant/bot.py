@@ -366,12 +366,15 @@ async def bot_cancel(callback: MessageCallback):
         attachments=[]
     )
 
-
-@dp.message_callback(F.callback.payload.startswith("report_confirm_{user_id}"))
+# ✅ ОБРАБОТЧИК ДЛЯ /igor
+@dp.message_callback(F.callback.payload.startswith("igor_confirm_"))
 async def igor_confirm(callback: MessageCallback):
     user_id = callback.callback.user.user_id
 
     payload_user_id = int(callback.callback.payload.split("_")[2])
+    if payload_user_id != user_id:
+        await bot.answer_callback_query(callback.id, text="❌ Это не твой вопрос!")
+        return
 
     text = pending_igor_questions.pop(user_id, None)
     if not text:
@@ -381,13 +384,6 @@ async def igor_confirm(callback: MessageCallback):
         )
         return
 
-    await callback.message.edit(
-        text=(
-            "✅ Вопрос отправлен!\n\n"
-        ),
-        attachments=[]
-    )
-
     await MaxService.add_request(
         client_id=user_id,
         contact="",
@@ -395,10 +391,67 @@ async def igor_confirm(callback: MessageCallback):
         appointment_date=None
     )
 
+    await callback.message.edit(
+        text=f"✅ Вопрос отправлен!\n\n\"{text[:200]}{'...' if len(text) > 200 else ''}\"",
+        attachments=[]
+    )
+
     logger.info(f"Пользователь {user_id} отправил вопрос Игорю: {text[:50]}...")
 
+    # ✅ УВЕДОМЛЕНИЕ АДМИНУ
+    await AdminService.notify_admins(f"📅 Новый вопрос от {user_id}:\n\n{text[:200]}")
 
-@dp.message_callback(F.callback.payload.startswith("report_cancel_{user_id}"))
+
+# ✅ ОБРАБОТЧИК ДЛЯ /bot
+@dp.message_callback(F.callback.payload.startswith("report_confirm_"))
+async def report_confirm(callback: MessageCallback):  # ← ДРУГОЕ ИМЯ!
+    user_id = callback.callback.user.user_id
+
+    payload_user_id = int(callback.callback.payload.split("_")[2])
+
+    report_text = pending_bot_reports.pop(user_id, None)
+    if not report_text:
+        await callback.message.edit(
+            text="❌ Текст обращения не найден. Попробуй ещё раз через /bot",
+            attachments=[]
+        )
+        return
+
+    history = await MaxService.get_last_messages_for_dominant(user_id, limit=20)
+    history_text = "\n".join([
+        f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
+        for msg in history
+    ])
+
+    await AdminService.add_problem_request(
+        client_id=user_id,
+        messages=f"Обращение от доминантного бота:\n{report_text}\n\n--- История диалога ---\n{history_text}"
+    )
+
+    await callback.message.edit(
+        text=f"✅ Обращение отправлено! Богдан разберётся в ближайшее время 😉",
+        attachments=[]
+    )
+
+    logger.info(f"Пользователь {user_id} отправил обращение: {report_text[:50]}...")
+
+
+@dp.message_callback(F.callback.payload.startswith("report_cancel_"))
+async def report_cancel(callback: MessageCallback):  # ← ДРУГОЕ ИМЯ!
+    user_id = callback.callback.user.user_id
+
+    payload_user_id = int(callback.callback.payload.split("_")[2])
+
+    pending_bot_reports.pop(user_id, None)
+
+    await callback.message.edit(
+        text="❌ Отправка обращения отменена. Если передумаешь — напиши /bot",
+        attachments=[]
+    )
+
+    logger.info(f"Пользователь {user_id} отменил отправку обращения")
+
+@dp.message_callback(F.callback.payload.startswith("igor_cancel_"))
 async def igor_cancel(callback: MessageCallback):
     user_id = callback.callback.user.user_id
 
