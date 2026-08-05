@@ -25,9 +25,11 @@ TOKEN = settings.MAX_BOT_TOKEN_2
 
 bot = Bot(TOKEN)
 dp = Dispatcher()
+
 pending_igor_questions = {}
 waiting_for_igor_question = {}
-
+waiting_for_report_text = {}
+pending_bot_reports = {}
 # logic
 @dp.bot_started()
 async def bot_started(event: BotStarted):
@@ -139,29 +141,27 @@ async def instruction(event: MessageCreated):
 async def help_bot_command(event: MessageCreated):
     user_id = event.message.sender.user_id
     session_user = await MaxService.get_session(user_id)
-    logger.info(f"Пользователь {user_id} отправил обращение")
+    logger.info(f"Пользователь {user_id} запросил отправку обращения в поддержку")
 
     if not session_user:
         logger.warning(f"У пользователя {user_id} не найдена сессия")
         await bot.send_message(
             user_id=user_id,
-            text="Данные не найдены.\n\nИспользуйте команду /new"
+            text="❌ Данные не найдены.\n\nИспользуйте команду /new"
         )
+        return
 
-    else:
-        reply_kb = InlineKeyboardBuilder()
-        reply_kb.row(
-            CallbackButton(text="✅ ОТПРАВИТЬ", payload="bot_send_problem"),
-            CallbackButton(text="❌ ОТМЕНА", payload="bot_dsend"),
-        )
+    # ✅ ВКЛЮЧАЕМ РЕЖИМ ОЖИДАНИЯ ТЕКСТА
+    waiting_for_report_text[user_id] = True
 
-        await bot.send_message(
-            user_id=user_id,
-            text=(
-                "Если бот где-то затупил, то жми на кнопку отправить. Богдан разберётся 😉"
-            ),
-            attachments=[reply_kb.as_markup()]
+    await bot.send_message(
+        user_id=user_id,
+        text=(
+            "📝 **Напиши своё обращение в поддержку.**\n\n"
+            "Опиши проблему подробно, чтобы я мог передать её Богдану.\n\n"
+            "❌ Отмена: /cancel"
         )
+    )
 
 
 async def handle_igor_question_text(event: MessageCreated, user):
@@ -415,6 +415,56 @@ async def igor_cancel(callback: MessageCallback):
 
     logger.info(f"Пользователь {user_id} отменил отправку вопроса")
 
+async def handle_report_text(event: MessageCreated, user):
+    """Обработка текста обращения в поддержку"""
+    user_id = event.message.sender.user_id
+    text = event.message.body.text.strip()
+
+    # Отмена
+    if text.lower() == '/cancel':
+        waiting_for_report_text.pop(user_id, None)
+        await bot.send_message(
+            user_id=user_id,
+            text="❌ Отправка обращения отменена."
+        )
+        return
+
+    # Валидация
+    if len(text) < 10:
+        await bot.send_message(
+            user_id=user_id,
+            text="❌ Текст слишком короткий. Минимум 10 символов. Напиши подробнее."
+        )
+        return
+
+    if len(text) > 2000:
+        await bot.send_message(
+            user_id=user_id,
+            text="❌ Текст слишком длинный. Максимум 2000 символов."
+        )
+        return
+
+    # Сохраняем текст и убираем флаг ожидания
+    pending_bot_reports[user_id] = text
+    waiting_for_report_text.pop(user_id, None)
+
+    # Показываем кнопки подтверждения
+    reply_kb = InlineKeyboardBuilder()
+    reply_kb.row(
+        CallbackButton(text="✅ ОТПРАВИТЬ", payload=f"report_confirm_{user_id}"),
+        CallbackButton(text="❌ ОТМЕНА", payload=f"report_cancel_{user_id}"),
+    )
+
+    await bot.send_message(
+        user_id=user_id,
+        text=(
+            f"📝 Проверь текст обращения:\n\n"
+            f"\"{text}\"\n\n"
+            f"✅ Всё верно? Нажми «ОТПРАВИТЬ».\n"
+            f"❌ Хочешь изменить? Нажми «ОТМЕНА» и напиши заново."
+        ),
+        attachments=[reply_kb.as_markup()]
+    )
 # text logic
 @dp.message_created(F.message.body.text)
 async def handle_message(event: MessageCreated):
@@ -426,39 +476,45 @@ async def handle_message(event: MessageCreated):
     if text.startswith('/'):
         return
 
+    # ===== 1️⃣ ПРОВЕРКА: ВОПРОС ИГОРЮ =====
     if waiting_for_igor_question.get(user_id, False):
         await handle_igor_question_text(event, user)
         return
 
+    # ===== 2️⃣ ПРОВЕРКА: ОБРАЩЕНИЕ В ПОДДЕРЖКУ (/bot) =====
+    if waiting_for_report_text.get(user_id, False):
+        await handle_report_text(event, user)  # <-- НОВАЯ ФУНКЦИЯ
+        return
+
+    # ===== 3️⃣ ОБЫЧНАЯ ЛОГИКА (AI) =====
+    logger.info(f"Пользователь {user_id} отправил сообщение: {text[:10]}")
+
+    await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
+
+    if not await MaxService.can_send_message(user_id, "MAX_Dominant"):
+        logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
+        await bot.send_message(
+            user_id=user_id,
+            text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
+        )
+        return
+
+    selected_topic = "Мировоззрение"
+    index_id = THEMES_INDEXES.get(selected_topic)
+    history = await MaxService.get_history(user_id, "MAX_Dominant", limit=200)
+    answer = ask_ai_with_index(index_id, text, selected_topic, history)
+
+    if answer:
+        await MaxService.add_message(user_id, session_user.id, "user", text, "MAX_Dominant")
+        await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Dominant")
+        await bot.send_message(user_id=user_id, text=answer)
+        logger.info(f"Пользователь успешно получил ответ от ассистента")
     else:
-        logger.info(f"Пользователь {user_id} отправил сообщение: {text[:10]}")
-
-        await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
-
-        if not await MaxService.can_send_message(user_id, "MAX_Dominant"):
-            logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
-            await bot.send_message(
-                user_id=user_id,
-                text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
-            )
-
-        else:
-            selected_topic = "Мировоззрение"
-            index_id = THEMES_INDEXES.get(selected_topic)
-            history = await MaxService.get_history(user_id, "MAX_Dominant",  limit=200)
-            answer = ask_ai_with_index(index_id, text, selected_topic, history)
-
-            if answer:
-                await MaxService.add_message(user_id, session_user.id, "user", text, "MAX_Dominant")
-                await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Dominant")
-                await bot.send_message(user_id=user_id, text=answer)
-                logger.info(f"Пользователь успешно получил ответ от ассистента")
-            else:
-                logger.error(f"Пользователь {user_id} не получил ответ")
-                await bot.send_message(
-                    user_id=user_id,
-                    text="⚠️ Не удалось получить ответ. Попробуйте позже."
-                )
+        logger.error(f"Пользователь {user_id} не получил ответ")
+        await bot.send_message(
+            user_id=user_id,
+            text="⚠️ Не удалось получить ответ. Попробуйте позже."
+        )
 
 @dp.message_created(F.message.body.attachments)
 async def handle_voice_message(event: MessageCreated):
