@@ -366,15 +366,11 @@ async def bot_cancel(callback: MessageCallback):
         attachments=[]
     )
 
-# ✅ ОБРАБОТЧИК ДЛЯ /igor
 @dp.message_callback(F.callback.payload.startswith("igor_confirm_"))
 async def igor_confirm(callback: MessageCallback):
     user_id = callback.callback.user.user_id
 
     payload_user_id = int(callback.callback.payload.split("_")[2])
-    if payload_user_id != user_id:
-        await bot.answer_callback_query(callback.id, text="❌ Это не твой вопрос!")
-        return
 
     text = pending_igor_questions.pop(user_id, None)
     if not text:
@@ -398,34 +394,20 @@ async def igor_confirm(callback: MessageCallback):
 
     logger.info(f"Пользователь {user_id} отправил вопрос Игорю: {text[:50]}...")
 
-    # ✅ УВЕДОМЛЕНИЕ АДМИНУ
     await AdminService.notify_admins(f"📅 Новый вопрос от {user_id}:\n\n{text[:200]}")
 
 
-# ✅ ОБРАБОТЧИК ДЛЯ /bot
 @dp.message_callback(F.callback.payload.startswith("report_confirm_"))
-async def report_confirm(callback: MessageCallback):  # ← ДРУГОЕ ИМЯ!
+async def report_confirm(callback: MessageCallback):
     user_id = callback.callback.user.user_id
 
     payload_user_id = int(callback.callback.payload.split("_")[2])
 
     report_text = pending_bot_reports.pop(user_id, None)
-    if not report_text:
-        await callback.message.edit(
-            text="❌ Текст обращения не найден. Попробуй ещё раз через /bot",
-            attachments=[]
-        )
-        return
-
-    history = await MaxService.get_last_messages_for_dominant(user_id, limit=20)
-    history_text = "\n".join([
-        f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
-        for msg in history
-    ])
 
     await AdminService.add_problem_request(
         client_id=user_id,
-        messages=f"Обращение от доминантного бота:\n{report_text}\n\n--- История диалога ---\n{history_text}"
+        messages=f"Обращение от доминантного бота:\n{report_text}"
     )
 
     await callback.message.edit(
