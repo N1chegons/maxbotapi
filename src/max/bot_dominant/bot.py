@@ -382,35 +382,35 @@ async def handle_message(event: MessageCreated):
         await handle_igor_question_text(event, user)
         return
 
-
-    logger.info(f"Пользователь {user_id} отправил сообщение: {text[:10]}")
-
-    await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
-
-    if not await MaxService.can_send_message(user_id, "MAX_Dominant"):
-        logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
-        await bot.send_message(
-            user_id=user_id,
-            text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
-        )
-
     else:
-        selected_topic = "Мировоззрение"
-        index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history(user_id, "MAX_Dominant",  limit=200)
-        answer = ask_ai_with_index(index_id, text, selected_topic, history)
+        logger.info(f"Пользователь {user_id} отправил сообщение: {text[:10]}")
 
-        if answer:
-            await MaxService.add_message(user_id, session_user.id, "user", text, "MAX_Dominant")
-            await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Dominant")
-            await bot.send_message(user_id=user_id, text=answer)
-            logger.info(f"Пользователь успешно получил ответ от ассистента")
-        else:
-            logger.error(f"Пользователь {user_id} не получил ответ")
+        await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
+
+        if not await MaxService.can_send_message(user_id, "MAX_Dominant"):
+            logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
             await bot.send_message(
                 user_id=user_id,
-                text="⚠️ Не удалось получить ответ. Попробуйте позже."
+                text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
             )
+
+        else:
+            selected_topic = "Мировоззрение"
+            index_id = THEMES_INDEXES.get(selected_topic)
+            history = await MaxService.get_history(user_id, "MAX_Dominant",  limit=200)
+            answer = ask_ai_with_index(index_id, text, selected_topic, history)
+
+            if answer:
+                await MaxService.add_message(user_id, session_user.id, "user", text, "MAX_Dominant")
+                await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Dominant")
+                await bot.send_message(user_id=user_id, text=answer)
+                logger.info(f"Пользователь успешно получил ответ от ассистента")
+            else:
+                logger.error(f"Пользователь {user_id} не получил ответ")
+                await bot.send_message(
+                    user_id=user_id,
+                    text="⚠️ Не удалось получить ответ. Попробуйте позже."
+                )
 
 @dp.message_created(F.message.body.attachments)
 async def handle_voice_message(event: MessageCreated):
