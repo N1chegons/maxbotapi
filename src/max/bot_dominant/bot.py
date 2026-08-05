@@ -367,7 +367,7 @@ async def bot_cancel(callback: MessageCallback):
     )
 
 
-@dp.message_callback(F.callback.payload.startswith("report_confirm_{user_id}"))
+@dp.message_callback(F.callback.payload.startswith("report_confirm_"))
 async def igor_confirm(callback: MessageCallback):
     user_id = callback.callback.user.user_id
 
@@ -398,7 +398,7 @@ async def igor_confirm(callback: MessageCallback):
     logger.info(f"Пользователь {user_id} отправил вопрос Игорю: {text[:50]}...")
 
 
-@dp.message_callback(F.callback.payload.startswith("report_cancel_{user_id}"))
+@dp.message_callback(F.callback.payload.startswith("report_cancel_"))
 async def igor_cancel(callback: MessageCallback):
     user_id = callback.callback.user.user_id
 
