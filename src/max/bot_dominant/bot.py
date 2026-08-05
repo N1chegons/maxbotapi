@@ -25,6 +25,7 @@ TOKEN = settings.MAX_BOT_TOKEN_2
 
 bot = Bot(TOKEN)
 dp = Dispatcher()
+waiting_for_igor_question = {}
 
 # logic
 @dp.bot_started()
@@ -126,7 +127,7 @@ async def instruction(event: MessageCreated):
             "🔁 /new — начать всё заново\n"
             "❓ /help — частые вопросы и видео про меня\n"
             "💳 /sub — проверить подписку, продлить или оплатить\n"
-            "📅 /igor — записаться на живую консультацию с Игорем + видео\n"
+            "📅 /igor — задать вопрос Игорю\n"
             "🤖 /bot — отправить обращение в поддержку\n"
         ),
         attachments=[reply_kb.as_markup()]
@@ -160,6 +161,41 @@ async def help_bot_command(event: MessageCreated):
             ),
             attachments=[reply_kb.as_markup()]
         )
+
+@dp.message_created(Command('igor'))
+async def igor_question(event: MessageCreated):
+    """Команда для отправки вопроса Игорю"""
+    user_id = event.message.sender.user_id
+    user = await MaxService.get_user(user_id)
+
+    logger.info(f"Пользователь {user_id} начал отправку вопроса Игорю")
+
+    if not user:
+        logger.warning(f"Пользователь {user_id} не найден")
+        await bot.send_message(
+            user_id=user_id,
+            text="❌ Пользователь не найден. Напишите /new"
+        )
+        return
+
+    has_question = await MaxService.has_active_request(user_id, "question")
+    if has_question:
+        await bot.send_message(
+            user_id=user_id,
+            text="❌ Вы уже отправили вопрос! Я передал его Игорю. Ожидайте ответа в видео 🎥"
+        )
+        return
+
+    waiting_for_igor_question[user_id] = True
+
+    await bot.send_message(
+        user_id=user_id,
+        text=(
+            "Ты задаёшь вопрос Игорю, он на него отвечает. Всё просто. "
+            "Тематика вопросов: социология, устройство общества, конфликты людей и мировые войны, включая наступающую Третью 🔥 "
+            "Просьба: перечитать вопрос перед отправкой и скорректировать, чтобы я его понял 🤝"
+        )
+    )
 
 async def create_payment_link_dominator(amount: float, user_id: int) :
     await asyncio.sleep(1)
@@ -247,6 +283,15 @@ async def cmd_sub_dominator(event: MessageCreated):
     await bot.send_message(user_id=user_id, text=text)
     await send_sub_buttons_dominator(user_id, user)
 
+@dp.message_callback(F.callback.payload == "continue")
+async def handle_memory_dialog(callback: MessageCallback):
+    user_id = callback.callback.user.user_id
+
+    await callback.message.edit(
+        text="Расскажи (текст или аудио), что тебя беспокоит прямо сейчас.",
+        attachments=[]
+    )
+
 @dp.message_callback(F.callback.payload == "cancel_subscription_dominator")
 async def cancel_subscription_callback(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -300,28 +345,47 @@ async def bot_cancel(callback: MessageCallback):
         attachments=[]
     )
 
+async def handle_igor_question_text(event: MessageCreated, user):
+    user_id = event.message.sender.user_id
+    text = event.message.body.text.strip()
+
+    waiting_for_igor_question.pop(user_id, None)
+
+    await MaxService.add_request(
+        client_id=user_id,
+        contact="",
+        messages=f"Обращение от доминантного бота: {text}",
+        appointment_date=None
+    )
+
+    await bot.send_message(
+        user_id=user_id,
+        text=(
+            "✅ Вопрос отправлен!\n\n"
+        )
+    )
+
+    await AdminService.notify_admins("📅 Новый вопрос от доминантного бота")
 
 # text logic
 @dp.message_created(F.message.body.text)
 async def handle_message(event: MessageCreated):
     text = event.message.body.text
-    if text.startswith('/'):
-        return
-
     user_id = event.message.sender.user_id
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
+    if text.startswith('/'):
+        return
+
+    if waiting_for_igor_question.get(user_id, False):
+        await handle_igor_question_text(event, user)
+        return
+
+
     logger.info(f"Пользователь {user_id} отправил сообщение: {text[:10]}")
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
-
-    # if not session_user:
-    #     logger.warning(f"У пользователя {user_id} не найдена сессия")
-    #     await bot.send_message(
-    #         user_id=user_id,
-    #         text="Данные не найдены.\n\nИспользуйте команду /new"
-    #     )
 
     if not await MaxService.can_send_message(user_id, "MAX_Dominant"):
         logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")

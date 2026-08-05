@@ -272,6 +272,25 @@ class MaxService:
             await session.commit()
 
     @classmethod
+    async def has_active_request(cls, user_id: int, request_type: str = "consultation"):
+        async with async_session() as session:
+            query = select(Request).where(Request.client_id == user_id)
+
+            if request_type == "consultation":
+                query = query.where(
+                    Request.appointment_date.isnot(None),
+                    Request.viewed == False
+                )
+            else:
+                query = query.where(
+                    Request.appointment_date.is_(None),
+                    Request.viewed == False
+                )
+
+            result = await session.execute(query.order_by(Request.created_at.desc()).limit(1))
+            return result.scalar_one_or_none() is not None
+
+    @classmethod
     async def get_last_messages(cls, client_id: int, limit: int = 20) -> list:
         logger.debug(f"Получение последних {limit} сообщений для клиента {client_id}")
         async with async_session() as session:
