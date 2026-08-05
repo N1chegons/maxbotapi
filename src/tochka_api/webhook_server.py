@@ -33,21 +33,17 @@ async def handle_webhook(request):
         webhook_type = decoded.get('webhookType')
         status = decoded.get('status')
         operation_id = decoded.get('operationId')
-        amount = decoded.get('amount')
-
-        logger.info(f"Тип: {webhook_type}, Статус: {status}, operationId: {operation_id}")
 
         if webhook_type != 'acquiringInternetPayment':
             return web.Response(status=200, text="OK")
 
-        # 1. Находим платеж в БД
         payment = await TochkaApiService.find_operation(operation_id)
         if not payment:
             logger.warning(f"⚠️ Платеж {operation_id} не найден в БД")
             return web.Response(status=200, text="OK")
 
         user_id = payment.user_id
-        bot_name = payment.bot_name or "MAX_Empathetic"  # Для обратной совместимости
+        bot_name = payment.bot_name or "MAX_Empathetic"
         logger.info(f"📌 Платеж для бота: {bot_name}, пользователь: {user_id}")
 
         user = await MaxService.get_user(user_id)
@@ -56,40 +52,34 @@ async def handle_webhook(request):
             return web.Response(status=200, text="OK")
 
         if status == 'APPROVED':
-            # 2. Обновляем статус платежа
+            # ✅ ПРОВЕРКА НА ДУБЛИКАТ
+            if payment.status == PaymentStatus.succeeded:
+                logger.info(f"⚠️ Платеж {operation_id} уже обработан, пропускаем")
+                return web.Response(status=200, text="OK")
+
+            # Обновляем статус платежа
             await TochkaApiService.update_status_payment(operation_id, PaymentStatus.succeeded)
 
-            # 3. Активируем подписку для нужного бота
+            # ✅ СОХРАНЯЕМ МЕТОД ОПЛАТЫ ДЛЯ ОБОИХ БОТОВ
+            await MaxService.save_payment_method(user_id, operation_id)
+            logger.info(f"💳 Сохранён токен карты для {user_id}")
+
             if bot_name == "MAX_Dominator":
-                # --- Активация подписки ДОМИНАНТ-бота ---
                 logger.info(f"👑 Активация подписки ДОМИНАНТ-бота для {user_id}")
 
-                # Обновляем дату окончания
                 if user.subscription_status_dominator == SubsStatus.active and user.subscription_ends_at_dominator:
                     new_end_date = user.subscription_ends_at_dominator + timedelta(days=31)
                 else:
                     new_end_date = datetime.utcnow() + timedelta(days=31)
 
-                # Активируем подписку доминант-бота
-                await MaxService.activate_subscription_dominator(
-                    user_id=user_id,
-                    tier=SubsTier.basic,
-                    days=31  # или использовать new_end_date
-                )
-                # Обновляем статус
+                await MaxService.activate_subscription_dominator(user_id, SubsTier.basic, 31)
                 await MaxService.change_subscription_status_dominator(user_id, SubsStatus.active)
 
                 logger.info(f"✅ Подписка ДОМИНАНТ-бота активна для {user_id} до {new_end_date}")
 
             else:
-                # --- Активация подписки ОБЫЧНОГО бота ---
                 logger.info(f"🤖 Активация подписки ОБЫЧНОГО бота для {user_id}")
 
-                # Сохраняем метод оплаты
-                await MaxService.save_payment_method(user_id, operation_id)
-                logger.info(f"💳 Сохранён токен карты (operationId) для {user_id}")
-
-                # Обновляем дату окончания
                 if user.subscription_status == SubsStatus.active and user.subscription_ends_at:
                     new_end_date = user.subscription_ends_at + timedelta(days=31)
                 else:
