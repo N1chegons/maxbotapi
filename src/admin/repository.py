@@ -53,7 +53,6 @@ class AdminService:
             except Exception as e:
                 logger.error(f"❌ Ошибка Telegram для {admin_id}: {e}")
 
-            # Отправляем в MAX
         for admin_id in MAX_ADMIN_IDS:
             try:
                 await send_notification_max(admin_id, text)
