@@ -359,8 +359,6 @@ async def igor_confirm(callback: MessageCallback):
         appointment_date=None
     )
 
-
-
     logger.info(f"Пользователь {user_id} отправил вопрос Игорю: {text[:50]}...")
 
     await AdminService.notify_admins(f"📅 Новый вопрос от {user_id}:\n\n{text[:200]}")
