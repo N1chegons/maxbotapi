@@ -157,9 +157,7 @@ async def help_bot_command(event: MessageCreated):
     await bot.send_message(
         user_id=user_id,
         text=(
-            "📝 **Напиши своё обращение в поддержку.**\n\n"
-            "Опиши проблему подробно, чтобы я мог передать её Богдану.\n\n"
-            "❌ Отмена: /cancel"
+            "📝 Напиши своё обращение в поддержку.\n\n"
         )
     )
 
@@ -369,7 +367,7 @@ async def bot_cancel(callback: MessageCallback):
     )
 
 
-@dp.message_callback(F.callback.payload.startswith("igor_confirm_"))
+@dp.message_callback(F.callback.payload.startswith("report_confirm_{user_id}"))
 async def igor_confirm(callback: MessageCallback):
     user_id = callback.callback.user.user_id
 
@@ -400,7 +398,7 @@ async def igor_confirm(callback: MessageCallback):
     logger.info(f"Пользователь {user_id} отправил вопрос Игорю: {text[:50]}...")
 
 
-@dp.message_callback(F.callback.payload.startswith("igor_cancel_"))
+@dp.message_callback(F.callback.payload.startswith("report_cancel_{user_id}"))
 async def igor_cancel(callback: MessageCallback):
     user_id = callback.callback.user.user_id
 
@@ -420,30 +418,6 @@ async def handle_report_text(event: MessageCreated, user):
     user_id = event.message.sender.user_id
     text = event.message.body.text.strip()
 
-    # Отмена
-    if text.lower() == '/cancel':
-        waiting_for_report_text.pop(user_id, None)
-        await bot.send_message(
-            user_id=user_id,
-            text="❌ Отправка обращения отменена."
-        )
-        return
-
-    # Валидация
-    if len(text) < 10:
-        await bot.send_message(
-            user_id=user_id,
-            text="❌ Текст слишком короткий. Минимум 10 символов. Напиши подробнее."
-        )
-        return
-
-    if len(text) > 2000:
-        await bot.send_message(
-            user_id=user_id,
-            text="❌ Текст слишком длинный. Максимум 2000 символов."
-        )
-        return
-
     # Сохраняем текст и убираем флаг ожидания
     pending_bot_reports[user_id] = text
     waiting_for_report_text.pop(user_id, None)
@@ -460,8 +434,7 @@ async def handle_report_text(event: MessageCreated, user):
         text=(
             f"📝 Проверь текст обращения:\n\n"
             f"\"{text}\"\n\n"
-            f"✅ Всё верно? Нажми «ОТПРАВИТЬ».\n"
-            f"❌ Хочешь изменить? Нажми «ОТМЕНА» и напиши заново."
+            f"✅ Всё верно?"
         ),
         attachments=[reply_kb.as_markup()]
     )
