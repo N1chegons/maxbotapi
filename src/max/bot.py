@@ -337,22 +337,18 @@ async def cmd_sub(event: MessageCreated):
         await bot.send_message(user_id=user_id, text="❌ Пользователь не найден. Напишите /start")
         return
 
-    # Проверяем статус и формируем текст
     status_text, next_date = await get_subscription_status(user)
 
     text = f"💳 **Подписка**\n"
     text += f"📌 Статус: {status_text}\n"
-    text += f"💰 Тариф: Базовый (1111 ₽/мес)\n"
     if next_date:
         # noinspection PyDeprecation
         days_left = (next_date - datetime.utcnow()).days
         text += f"📅 Следующее списание: {next_date.strftime('%d.%m.%Y')}\n"
         text += f"⏰ Осталось дней: {days_left}\n"
 
-    # Отправляем текст (без кнопок, чтобы не перегружать)
     await bot.send_message(user_id=user_id, text=text)
 
-    # Отправляем кнопки отдельным сообщением
     await send_sub_buttons(user_id, user)
 
 # admin
@@ -492,8 +488,6 @@ async def view_appointment(event: MessageCreated):
         await bot.send_message(user_id=user_id, text=text)
 
 # noinspection PyUnresolvedReferences
-# noinspection PyUnresolvedReferences
-# noinspection PyUnresolvedReferences
 @dp.message_created(Command('req'))
 async def view_problem_appointment(event: MessageCreated):
     admin_id = event.message.sender.user_id
@@ -529,7 +523,6 @@ async def view_problem_appointment(event: MessageCreated):
 
         client_id = request.client_id
 
-        # ✅ УБИРАЕМ username
         md_content = f"# 🐞 Обращение в техподдержку\n\n"
         md_content += f"**ID пользователя:** {client_id}\n"
         md_content += f"**Время:** {request.created_at.strftime('%d.%m.%Y %H:%M:%S')}\n\n"
