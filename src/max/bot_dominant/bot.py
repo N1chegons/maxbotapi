@@ -294,7 +294,6 @@ async def cmd_sub_dominator(event: MessageCreated):
 
     text = f"💳  Подписка\n"
     text += f"📌 Статус: {status_text}\n"
-    text += f"💰 Тариф: Базовый (333 ₽/мес)\n"
     if next_date:
         days_left = (next_date - datetime.utcnow()).days
         text += f"📅 Следующее списание: {next_date.strftime('%d.%m.%Y')}\n"
@@ -363,7 +362,6 @@ async def igor_confirm(callback: MessageCallback):
 
     await AdminService.notify_admins(f"📅 Новый вопрос от {user_id}:\n\n{text[:200]}")
 
-
 @dp.message_callback(F.callback.payload.startswith("report_confirm_"))
 async def report_confirm(callback: MessageCallback):
     user_id = callback.callback.user.user_id
@@ -383,7 +381,6 @@ async def report_confirm(callback: MessageCallback):
     )
 
     logger.info(f"Пользователь {user_id} отправил обращение: {report_text[:50]}...")
-
 
 @dp.message_callback(F.callback.payload.startswith("report_cancel_"))
 async def report_cancel(callback: MessageCallback):
