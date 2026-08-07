@@ -413,7 +413,7 @@ class MaxService:
             message_count = user.message_count_dominator
             free_limit = user.free_messages_limit_for_dominant
             subscription_status = user.subscription_status_dominator
-            subscription_ends_at = user.subscription_dominator_ends_at
+            subscription_ends_at = user.subscription_ends_at_dominator
 
             if user.trial_dominator_ends_at and user.trial_dominator_ends_at > now:
                 trial_messages_left = user.messages_count_trial_dominator
