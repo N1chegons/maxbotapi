@@ -6,9 +6,6 @@ from aiohttp import web
 import jwt
 from jwt import exceptions
 
-from src.max.manager_sending import send_notification_max_2, send_notification_max
-from src.telegram.manager_sending import send_notification_telegram
-
 project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
@@ -16,6 +13,8 @@ from src.max.repository import MaxService
 from src.tochka_api.service import TochkaApiService
 from src.max.models import SubsTier, SubsStatus, UserState, PaymentStatus
 from src.logger_config import setup_logger
+from src.max.manager_sending import send_notification_max_2, send_notification_max
+from src.telegram.manager_sending import send_notification_telegram
 
 logger = setup_logger('webhook_tochka', 'tochka_api', 'webhook_server.log')
 
