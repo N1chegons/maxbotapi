@@ -46,7 +46,7 @@ async def handle_webhook(request):
             return web.Response(status=200, text="OK")
 
         user_id = payment.user_id
-        bot_name = payment.bot_name or "MAX_Empathetic"
+        bot_name = payment.bot_name
         logger.info(f"📌 Платеж для бота: {bot_name}, пользователь: {user_id}")
 
         user = await MaxService.get_user(user_id)
@@ -66,6 +66,7 @@ async def handle_webhook(request):
             logger.info(f"💳 Сохранён токен карты для {user_id}")
 
             if bot_name == "MAX_Dominant":
+                bot_name = "MAX_Dominant"
                 logger.info(f"👑 Активация подписки ДОМИНАНТ-бота для {user_id}")
 
                 if user.subscription_status_dominator == SubsStatus.active and user.subscription_ends_at_dominator:
