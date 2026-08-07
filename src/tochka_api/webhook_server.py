@@ -75,7 +75,7 @@ async def handle_webhook(request):
 
                 await MaxService.activate_subscription_dominator(user_id, SubsTier.basic, 31)
                 await MaxService.change_subscription_status_dominator(user_id, SubsStatus.active)
-                await send_notification_max_2(user_id, "✅ Платеж прошел успешно")
+                await send_notification_max_2(user_id, "✅ Платеж прошел успешно. Можете продолжить диалог")
                 logger.info(f"✅ Подписка ДОМИНАНТ-бота активна для {user_id} до {new_end_date}")
 
             else:
@@ -90,9 +90,9 @@ async def handle_webhook(request):
                 await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.PAID)
                 await MaxService.change_subscription_status(user_id, SubsStatus.active)
                 if bot_name == "MAX_Empathetic":
-                    await send_notification_max(user_id, "✅ Платеж прошел успешно")
+                    await send_notification_max(user_id, "✅ Платеж прошел успешно. Можете продолжить диалог")
                 else:
-                    await send_notification_telegram(user_id, "✅ Платеж прошел успешно")
+                    await send_notification_telegram(user_id, "✅ Платеж прошел успешно. Можете продолжить диалог")
 
                 logger.info(f"✅ Подписка ОБЫЧНОГО бота активна для {user_id} до {new_end_date}")
 
