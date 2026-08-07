@@ -409,7 +409,7 @@ class MaxService:
 
         now = datetime.utcnow()
 
-        if bot_name == "MAX_Dominator":
+        if bot_name == "MAX_Dominant":
             message_count = user.message_count_dominator
             free_limit = user.free_messages_limit_dominator
             subscription_status = user.subscription_status_dominator
