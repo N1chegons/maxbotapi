@@ -248,7 +248,7 @@ async def send_sub_buttons_dominator(user_id: int, user):
     else:
         info_text = "🔒 Бесплатные сообщения закончились"
 
-    payment_link = await create_payment_link_dominator(333.00, user_id)
+    payment_link = await create_payment_link_dominator(1.00, user_id)
     kb.row(LinkButton(text="💳 Оплатить 333 ₽", url=payment_link))
 
     await bot.send_message(
