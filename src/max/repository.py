@@ -411,7 +411,7 @@ class MaxService:
 
         if bot_name == "MAX_Dominant":
             message_count = user.message_count_dominator
-            free_limit = user.free_messages_limit_dominator
+            free_limit = user.free_messages_limit_for_dominant
             subscription_status = user.subscription_status_dominator
             subscription_ends_at = user.subscription_dominator_ends_at
 
