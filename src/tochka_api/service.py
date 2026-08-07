@@ -27,7 +27,7 @@ class TochkaApiService:
             result = await session.execute(
                 select(Payment).where(Payment.payment_id == operation_id)
             )
-            return result
+            return result.scalar_one_or_none()
 
     @classmethod
     async def find_user_by_operation_id(cls, operation_id: str) -> int:
