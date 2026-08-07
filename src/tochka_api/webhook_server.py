@@ -6,6 +6,9 @@ from aiohttp import web
 import jwt
 from jwt import exceptions
 
+from src.max.manager_sending import send_notification_max_2, send_notification_max
+from src.telegram.manager_sending import send_notification_telegram
+
 project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
@@ -52,7 +55,6 @@ async def handle_webhook(request):
             return web.Response(status=200, text="OK")
 
         if status == 'APPROVED':
-            # ✅ ПРОВЕРКА НА ДУБЛИКАТ
             if payment.status == PaymentStatus.succeeded:
                 logger.info(f"⚠️ Платеж {operation_id} уже обработан, пропускаем")
                 return web.Response(status=200, text="OK")
@@ -60,11 +62,10 @@ async def handle_webhook(request):
             # Обновляем статус платежа
             await TochkaApiService.update_status_payment(operation_id, PaymentStatus.succeeded)
 
-            # ✅ СОХРАНЯЕМ МЕТОД ОПЛАТЫ ДЛЯ ОБОИХ БОТОВ
             await MaxService.save_payment_method(user_id, operation_id)
             logger.info(f"💳 Сохранён токен карты для {user_id}")
 
-            if bot_name == "MAX_Dominator":
+            if bot_name == "MAX_Dominant":
                 logger.info(f"👑 Активация подписки ДОМИНАНТ-бота для {user_id}")
 
                 if user.subscription_status_dominator == SubsStatus.active and user.subscription_ends_at_dominator:
@@ -74,7 +75,7 @@ async def handle_webhook(request):
 
                 await MaxService.activate_subscription_dominator(user_id, SubsTier.basic, 31)
                 await MaxService.change_subscription_status_dominator(user_id, SubsStatus.active)
-
+                await send_notification_max_2(user_id, "✅ Платеж прошел успешно")
                 logger.info(f"✅ Подписка ДОМИНАНТ-бота активна для {user_id} до {new_end_date}")
 
             else:
@@ -88,6 +89,10 @@ async def handle_webhook(request):
                 await MaxService.update_subscription_end_date(user_id, new_end_date)
                 await MaxService.activate_subscription(user_id, SubsTier.basic, UserState.PAID)
                 await MaxService.change_subscription_status(user_id, SubsStatus.active)
+                if bot_name == "MAX_Empathetic":
+                    await send_notification_max(user_id, "✅ Платеж прошел успешно")
+                else:
+                    await send_notification_telegram(user_id, "✅ Платеж прошел успешно")
 
                 logger.info(f"✅ Подписка ОБЫЧНОГО бота активна для {user_id} до {new_end_date}")
 
