@@ -406,7 +406,7 @@ class MaxService:
             result = await session.execute(
                 select(User)
                 .where(
-                    User.subscription_status.in_([SubsStatus.active, SubsStatus.grace_period]),
+                    User.subscription_status.in_([SubsStatus.active.value, SubsStatus.grace_period.value]),
                     User.payment_method_id.isnot(None),
                     User.subscription_ends_at <= now,
                     or_(
