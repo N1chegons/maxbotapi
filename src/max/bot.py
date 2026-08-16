@@ -200,36 +200,27 @@ async def igor_command(event: MessageCreated):
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
 
-    already_request = await MaxService.get_request(user_id)
-    if already_request:
-        logger.info(f"Пользователь {user_id} уже записан на консультацию")
-        await bot.send_message(
-            user_id=user_id,
-            text="✔️ Вы уже отправили заявку на консультацию!\n\nВы можете продолжить задавать вопросы."
-        )
-
-    else:
-        reply_kb = InlineKeyboardBuilder()
-        reply_kb.row(
-            LinkButton(
-                text="про Эксперта >",
-                url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"
-            ),
-            CallbackButton(text="✅ ДА", payload="consult_agree"),
-            CallbackButton(text="❌ НЕТ", payload="consult_disagree"),
-        )
-
-        await bot.send_message(
-        user_id=user_id,
-        text=(
-            "Подумай ещё раз...\n"
-            "Игорь берёт не всех и не каждого.\n"
-            "Я сохраню последние двадцать сообщений: передам их Игорю.\n"
-            "Он оценит качество гипотезы и напишет тебе.\n\n"
-            "Ты уверен?(Выбери ДА/НЕТ)"
+    reply_kb = InlineKeyboardBuilder()
+    reply_kb.row(
+        LinkButton(
+            text="про Эксперта >",
+            url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"
         ),
-        attachments=[reply_kb.as_markup()]
+        CallbackButton(text="✅ ДА", payload="consult_agree"),
+        CallbackButton(text="❌ НЕТ", payload="consult_disagree"),
     )
+
+    await bot.send_message(
+    user_id=user_id,
+    text=(
+        "Подумай ещё раз...\n"
+        "Игорь берёт не всех и не каждого.\n"
+        "Я сохраню последние двадцать сообщений: передам их Игорю.\n"
+        "Он оценит качество гипотезы и напишет тебе.\n\n"
+        "Ты уверен?(Выбери ДА/НЕТ)"
+    ),
+    attachments=[reply_kb.as_markup()]
+)
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(Command('bot'))
@@ -811,17 +802,42 @@ async def handle_consult_agree(callback: MessageCallback):
     user_id = callback.callback.user.user_id
     logger.info(f"Пользователь {user_id} продолжил запись на консультацию")
 
-    reply_kb = InlineKeyboardBuilder()
-    reply_kb.row(
-        RequestContactButton(
-            text="📱 Поделиться номером"
+    already_request = await MaxService.get_request(user_id)
+    if already_request:
+        logger.info(f"Пользователь {user_id} повторно записывается на консультацию")
+        
+        appointment_date = await MaxService.get_next_free_date()
+        history = await MaxService.get_last_messages(user_id, limit=20)
+        
+        history_text = "\n".join([
+            f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
+            for msg in history
+        ])
+        
+        await MaxService.add_request(
+            client_id=user_id,
+            contact=already_request.contact,
+            messages=history_text,
+            appointment_date=appointment_date
         )
-    )
-
-    await callback.message.edit(
-        text="Пожалуйста, поделись своим номером телефона, чтобы я мог записать тебя на консультацию.",
-        attachments=[reply_kb.as_markup()]
-    )
+        
+        await callback.message.edit(
+            text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
+             "Вы можете продолжить вести диалог.",
+            attachments=[]
+        )
+    else:
+        reply_kb = InlineKeyboardBuilder()
+        reply_kb.row(
+            RequestContactButton(
+                text="📱 Поделиться номером"
+            )
+        )
+        
+        await callback.message.edit(
+            text="Пожалуйста, поделись своим номером телефона, чтобы я мог записать тебя на консультацию.",
+            attachments=[reply_kb.as_markup()]
+        )
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "consult_disagree")
