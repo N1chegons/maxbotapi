@@ -827,6 +827,11 @@ async def handle_consult_agree(callback: MessageCallback):
             f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
             for msg in history
         ])
+        await callback.message.edit(
+            text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
+             "Вы можете продолжить вести диалог.",
+            attachments=[]
+        )
         
         await MaxService.add_request(
             client_id=user_id,
@@ -835,11 +840,6 @@ async def handle_consult_agree(callback: MessageCallback):
             appointment_date=appointment_date
         )
         
-        await callback.message.edit(
-            text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
-             "Вы можете продолжить вести диалог.",
-            attachments=[]
-        )
     else:
         reply_kb = InlineKeyboardBuilder()
         reply_kb.row(
@@ -985,6 +985,12 @@ async def handle_contact(event: MessageCreated):
         for msg in history
     ])
 
+    await bot.send_message(
+        user_id=event.from_user.user_id,
+        text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
+             "Вы можете продолжить вести диалог.",
+    )
+    
     appointment_date = await MaxService.get_next_free_date()
 
     await MaxService.add_request(
@@ -995,11 +1001,7 @@ async def handle_contact(event: MessageCreated):
     )
     logger.info(f"Пользователь {user_id} успешно поделился своим контактом")
 
-    await bot.send_message(
-        user_id=event.from_user.user_id,
-        text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
-             "Вы можете продолжить вести диалог.",
-    )
+    
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(F.message.body.attachments)
