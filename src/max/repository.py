@@ -232,7 +232,7 @@ class MaxService:
         async with async_session() as session:
             query = select(Request).filter_by(client_id=client_id)
             result = await session.execute(query)
-            res = result.scalars().all()
+            res = result.scalars().first()
             return res
 
     @classmethod
