@@ -837,6 +837,9 @@ async def handle_contact(message):
         reply_markup=telebot.types.ReplyKeyboardRemove()
     )
 
+    await AdminService.notify_admins("📅 Новая запись на консультацию")
+
+
 @bot.message_handler(content_types=['voice'])
 async def handle_voice(message):
     user_id = message.from_user.id

@@ -1003,6 +1003,9 @@ async def handle_contact(event: MessageCreated):
 
     
 
+    await AdminService.notify_admins("📅 Новая запись на консультацию")
+
+
 # noinspection PyUnresolvedReferences
 @dp.message_created(F.message.body.attachments)
 async def handle_voice_message(event: MessageCreated):

@@ -258,11 +258,6 @@ class MaxService:
             await session.commit()
             logger.info(f"Заявка для пользователя {client_id} добавлена")
 
-            if messages and messages.startswith("Обращение от доминантного бота:"):
-                await AdminService.notify_admins("📅 Новый вопрос от доминантного бота")
-            else:
-                await AdminService.notify_admins("📅 Новая запись на консультацию")
-
     @classmethod
     async def mark_request_viewed(cls, appointment_id: int):
         logger.debug(f"Отметка заявки {appointment_id} как просмотренной")

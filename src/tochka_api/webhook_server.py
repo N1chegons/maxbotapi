@@ -6,6 +6,8 @@ from aiohttp import web
 import jwt
 from jwt import exceptions
 
+from src.admin.repository import AdminService
+
 project_root = '/home/psylogic/maxapibotnew'
 sys.path.insert(0, project_root)
 
@@ -123,6 +125,8 @@ async def handle_consult_form(request: web.Request):
             appointment_date=appointment_date
         )
 
+        await AdminService.notify_admins("📅 Новая запись на консультацию (сайт)")
+
         return web.json_response(
             {"status": "ok"},
             headers={
@@ -131,6 +135,7 @@ async def handle_consult_form(request: web.Request):
                 'Access-Control-Allow-Headers': 'Content-Type',
             }
         )
+
     except Exception as e:
         print(f"Ошибка: {e}")
         return web.json_response(
@@ -141,7 +146,6 @@ async def handle_consult_form(request: web.Request):
             }
         )
 
-
 async def handle_options(request: web.Request):
     return web.Response(
         status=200,
@@ -151,7 +155,6 @@ async def handle_options(request: web.Request):
             'Access-Control-Allow-Headers': 'Content-Type',
         }
     )
-
 
 app = web.Application()
 app.router.add_post('/tochka_api/webhook', handle_webhook)
