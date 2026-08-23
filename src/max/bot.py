@@ -993,15 +993,24 @@ async def handle_contact(event: MessageCreated):
     
     appointment_date = await MaxService.get_next_free_date()
 
-    await MaxService.add_request(
-        client_id=user_id,
-        contact=phone,
-        messages=history_text,
-        appointment_date=appointment_date
-    )
     logger.info(f"Пользователь {user_id} успешно поделился своим контактом")
 
+<<<<<<< HEAD
     
+=======
+    await MaxService.add_request(
+            client_id=user_id,
+            contact=phone,
+            messages=history_text,
+            appointment_date=appointment_date
+        )
+
+    await bot.send_message(
+        user_id=event.from_user.user_id,
+        text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
+             "Вы можете продолжить вести диалог.",
+    )
+>>>>>>> 541afebc06c27ad3932900bd0a690e525e999cb7
 
     await AdminService.notify_admins("📅 Новая запись на консультацию")
 

@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta
 
 from sqlalchemy import select, func, insert, update
@@ -48,6 +49,7 @@ class AdminService:
 
         for admin_id in TG_ADMIN_IDS:
             try:
+                await asyncio.sleep(0.5)
                 await send_notification_telegram(admin_id, text)
                 logger.info(f"✅ Уведомление в Telegram для {admin_id}")
             except Exception as e:
@@ -55,6 +57,7 @@ class AdminService:
 
         for admin_id in MAX_ADMIN_IDS:
             try:
+                await asyncio.sleep(0.5)
                 await send_notification_max(admin_id, text)
                 logger.info(f"✅ Уведомление в MAX для {admin_id}")
             except Exception as e:
