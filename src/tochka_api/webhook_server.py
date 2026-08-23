@@ -146,7 +146,6 @@ async def handle_consult_form(request: web.Request):
             }
         )
 
-
 async def handle_options(request: web.Request):
     return web.Response(
         status=200,
@@ -156,7 +155,6 @@ async def handle_options(request: web.Request):
             'Access-Control-Allow-Headers': 'Content-Type',
         }
     )
-
 
 app = web.Application()
 app.router.add_post('/tochka_api/webhook', handle_webhook)
