@@ -815,17 +815,42 @@ async def handle_consult_agree(callback: MessageCallback):
     user_id = callback.callback.user.user_id
     logger.info(f"Пользователь {user_id} продолжил запись на консультацию")
 
-    reply_kb = InlineKeyboardBuilder()
-    reply_kb.row(
-        RequestContactButton(
-            text="📱 Поделиться номером"
+    already_request = await MaxService.get_request(user_id)
+    if already_request:
+        logger.info(f"Пользователь {user_id} повторно записывается на консультацию")
+        
+        appointment_date = await MaxService.get_next_free_date()
+        history = await MaxService.get_last_messages(user_id, limit=20)
+        
+        history_text = "\n".join([
+            f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
+            for msg in history
+        ])
+        await callback.message.edit(
+            text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
+             "Вы можете продолжить вести диалог.",
+            attachments=[]
         )
-    )
-
-    await callback.message.edit(
-        text="Пожалуйста, поделись своим номером телефона, чтобы я мог записать тебя на консультацию.",
-        attachments=[reply_kb.as_markup()]
-    )
+        
+        await MaxService.add_request(
+            client_id=user_id,
+            contact=already_request.contact,
+            messages=history_text,
+            appointment_date=appointment_date
+        )
+        
+    else:
+        reply_kb = InlineKeyboardBuilder()
+        reply_kb.row(
+            RequestContactButton(
+                text="📱 Поделиться номером"
+            )
+        )
+        
+        await callback.message.edit(
+            text="Пожалуйста, поделись своим номером телефона, чтобы я мог записать тебя на консультацию.",
+            attachments=[reply_kb.as_markup()]
+        )
 
 # noinspection PyUnresolvedReferences
 @dp.message_callback(F.callback.payload == "consult_disagree")
@@ -959,6 +984,12 @@ async def handle_contact(event: MessageCreated):
         for msg in history
     ])
 
+    await bot.send_message(
+        user_id=event.from_user.user_id,
+        text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
+             "Вы можете продолжить вести диалог.",
+    )
+    
     appointment_date = await MaxService.get_next_free_date()
 
     success, msg = await MaxService.add_request(
