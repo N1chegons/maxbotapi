@@ -248,6 +248,18 @@ class MaxService:
     async def add_request(cls, client_id: int, contact: str, messages: str, appointment_date: datetime):
         logger.info(f"Добавление заявки для пользователя {client_id}")
         async with async_session() as session:
+            result = await session.execute(
+                select(Request)
+                .where(
+                    Request.client_id == client_id,
+                    Request.created_at > datetime.utcnow() - timedelta(seconds=5)
+                )
+                .limit(1)
+            )
+            if result.scalar_one_or_none():
+                logger.warning(f"⚠️ Дубль записи для {client_id} (меньше 5 сек), пропускаем")
+                return
+
             stmt = insert(Request).values(
                 client_id=client_id,
                 contact=contact,

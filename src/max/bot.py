@@ -200,36 +200,27 @@ async def igor_command(event: MessageCreated):
             text="Данные не найдены.\n\nИспользуйте команду /new"
         )
 
-    already_request = await MaxService.get_request(user_id)
-    if already_request:
-        logger.info(f"Пользователь {user_id} уже записан на консультацию")
-        await bot.send_message(
-            user_id=user_id,
-            text="✔️ Вы уже отправили заявку на консультацию!\n\nВы можете продолжить задавать вопросы."
-        )
-
-    else:
-        reply_kb = InlineKeyboardBuilder()
-        reply_kb.row(
-            LinkButton(
-                text="про Эксперта >",
-                url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"
-            ),
-            CallbackButton(text="✅ ДА", payload="consult_agree"),
-            CallbackButton(text="❌ НЕТ", payload="consult_disagree"),
-        )
-
-        await bot.send_message(
-        user_id=user_id,
-        text=(
-            "Подумай ещё раз...\n"
-            "Игорь берёт не всех и не каждого.\n"
-            "Я сохраню последние двадцать сообщений: передам их Игорю.\n"
-            "Он оценит качество гипотезы и напишет тебе.\n\n"
-            "Ты уверен?(Выбери ДА/НЕТ)"
+    reply_kb = InlineKeyboardBuilder()
+    reply_kb.row(
+        LinkButton(
+            text="про Эксперта >",
+            url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"
         ),
-        attachments=[reply_kb.as_markup()]
+        CallbackButton(text="✅ ДА", payload="consult_agree"),
+        CallbackButton(text="❌ НЕТ", payload="consult_disagree"),
     )
+
+    await bot.send_message(
+    user_id=user_id,
+    text=(
+        "Подумай ещё раз...\n"
+        "Игорь берёт не всех и не каждого.\n"
+        "Я сохраню последние двадцать сообщений: передам их Игорю.\n"
+        "Он оценит качество гипотезы и напишет тебе.\n\n"
+        "Ты уверен?(Выбери ДА/НЕТ)"
+    ),
+    attachments=[reply_kb.as_markup()]
+)
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(Command('bot'))
@@ -970,22 +961,22 @@ async def handle_contact(event: MessageCreated):
 
     appointment_date = await MaxService.get_next_free_date()
 
-    logger.info(f"Пользователь {user_id} успешно поделился своим контактом")
-
     await MaxService.add_request(
-            client_id=user_id,
-            contact=phone,
-            messages=history_text,
-            appointment_date=appointment_date
-        )
+        client_id=user_id,
+        contact=phone,
+        messages=history_text,
+        appointment_date=appointment_date
+    )
+
+    logger.info(f"Пользователь {user_id} успешно записался на консультацию")
+
+    await AdminService.notify_admins(f"📅 Новая запись на консультацию от {user_id}, контакт: {phone}")
 
     await bot.send_message(
         user_id=event.from_user.user_id,
         text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
              "Вы можете продолжить вести диалог.",
     )
-
-    await AdminService.notify_admins("📅 Новая запись на консультацию")
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(F.message.body.attachments)
