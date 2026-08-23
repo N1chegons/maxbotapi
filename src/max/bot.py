@@ -1004,17 +1004,20 @@ async def handle_contact(event: MessageCreated):
             user_id=user_id,
             text=f"❌ Вы уже подали заявку на консультацию. Попробуйте позже."
         )
+        logger.warning(f"Пользователь уже подал запись на консультацию")
         return
 
-    logger.info(f"Пользователь {user_id} успешно записался на консультацию")
+    else:
 
-    await AdminService.notify_admins("📅 Новая запись на консультацию")
+        logger.info(f"Пользователь {user_id} успешно записался на консультацию")
 
-    await bot.send_message(
-        user_id=event.from_user.user_id,
-        text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
-             "Вы можете продолжить вести диалог.",
-    )
+        await AdminService.notify_admins("📅 Новая запись на консультацию")
+
+        await bot.send_message(
+            user_id=event.from_user.user_id,
+            text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
+                 "Вы можете продолжить вести диалог.",
+        )
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(F.message.body.attachments)

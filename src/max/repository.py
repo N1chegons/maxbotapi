@@ -249,7 +249,6 @@ class MaxService:
         logger.info(f"Добавление заявки для пользователя {client_id}")
 
         async with async_session() as session:
-            # ✅ ПРОВЕРКА НА ДУБЛЬ
             result = await session.execute(
                 select(Request)
                 .where(
@@ -265,19 +264,19 @@ class MaxService:
                 hours_left = int(seconds_left // 3600)
                 minutes_left = int((seconds_left % 3600) // 60)
                 logger.warning(f"⚠️ Повторная запись для {client_id} через {hours_left}ч {minutes_left}м")
-                return False, f"⏳ Повторная запись доступна через {hours_left}ч {minutes_left}м"
+                return False
 
-            # ✅ СОХРАНЯЕМ
-            stmt = insert(Request).values(
-                client_id=client_id,
-                contact=contact,
-                messages=messages,
-                appointment_date=appointment_date
-            )
-            await session.execute(stmt)
-            await session.commit()
-            logger.info(f"✅ Заявка для пользователя {client_id} добавлена")
-            return True, "Запись создана"
+            else:
+                stmt = insert(Request).values(
+                    client_id=client_id,
+                    contact=contact,
+                    messages=messages,
+                    appointment_date=appointment_date
+                )
+                await session.execute(stmt)
+                await session.commit()
+                logger.info(f"✅ Заявка для пользователя {client_id} добавлена")
+                return True
 
     @classmethod
     async def mark_request_viewed(cls, appointment_id: int):
