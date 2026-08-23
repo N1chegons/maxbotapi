@@ -362,6 +362,8 @@ async def igor_confirm(callback: MessageCallback):
 
     await AdminService.notify_admins(f"📅 Новый вопрос от {user_id}:\n\n{text[:200]}")
 
+
+
 @dp.message_callback(F.callback.payload.startswith("report_confirm_"))
 async def report_confirm(callback: MessageCallback):
     user_id = callback.callback.user.user_id
