@@ -1,21 +1,16 @@
 import asyncio
 import subprocess
-from datetime import datetime
 
 import aiohttp
 import magic
 from maxapi import Bot, Dispatcher, F
-from maxapi.filters.command import Command
-from maxapi.types import MessageCreated, BotStarted, CallbackButton, LinkButton, MessageCallback
-from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
+from maxapi.types import MessageCreated, BotStarted
 
-from src.admin.repository import AdminService
 from src.config import settings
 from src.logger_config import setup_logger
-from src.max.models import UserState, SubsStatus
+from src.max.models import UserState
 from src.max.repository import MaxService, AudioService
 from src.max.utils import upload_to_s3
-from src.tochka_api.service import TochkaApiService
 from src.yandexai.config import THEMES_INDEXES
 from src.yandexai.orchestrator import ask_ai_with_index
 
@@ -26,10 +21,6 @@ TOKEN = settings.MAX_BOT_TOKEN_2
 bot = Bot(TOKEN)
 dp = Dispatcher()
 
-pending_igor_questions = {}
-waiting_for_igor_question = {}
-waiting_for_report_text = {}
-pending_bot_reports = {}
 # logic
 @dp.bot_started()
 async def bot_started(event: BotStarted):
@@ -42,122 +33,12 @@ async def bot_started(event: BotStarted):
         await MaxService.create_session(user_id)
         logger.info(f"Пользователь {user_id} успешно зарегестрировался")
 
-    reply_kb = InlineKeyboardBuilder()
-    reply_kb = InlineKeyboardBuilder()
-    reply_kb.row(
-        CallbackButton(
-            text="Поехали >",
-            payload="continue"
-        ),
-        LinkButton(
-            text="про Бота >",
-            url="https://disk.yandex.ru/i/Y1qvubfy9EwyOQ"
-        ),
-        LinkButton(
-            text="про Эксперта >",
-            url="https://disk.yandex.ru/i/RoQ3RiuyUyRYDA"
-        ),
-    )
 
     await bot.send_message(
         user_id=user_id,
         text=(
-            "Привет 👋 "
-            "Ты попал к доминантному боту, который тренируется говорить на острые темы 🤬 "
-            "и тренирует тебя мыслить конструктивно 😉  Времена нынче опасные, на мозг давят капитально. Важно сохранять спокойствие при понимании, что происходит 🫡 \n\n"
-            "Каждый разговор с ботом как урок истории: ты открываешь тему, он продавливает вывод 🤯 "
-            "Победить бота не получится: он заставит тебя мыслить верно. Пробуй, разрушай сомнения."
-        ),
-        attachments=[reply_kb.as_markup()]
-    )
-
-@dp.message_created(Command('new'))
-async def new_session(event: MessageCreated):
-    user_id = event.message.sender.user_id
-    user = await MaxService.get_user(user_id)
-    logger.info(f"Пользователь {user_id} запустил бота-2 с помощью /new")
-
-    if not user:
-        await MaxService.create_user(user_id, "MAX")
-        await MaxService.create_session(user_id)
-        logger.info(f"Пользователь {user_id} успешно зарегестрировался")
-
-    reply_kb = InlineKeyboardBuilder()
-    reply_kb = InlineKeyboardBuilder()
-    reply_kb.row(
-        CallbackButton(
-            text="Поехали >",
-            payload="continue"
-        ),
-        LinkButton(
-            text="про Бота >",
-            url="https://disk.yandex.ru/i/Y1qvubfy9EwyOQ"
-        ),
-        LinkButton(
-            text="про Эксперта >",
-            url="https://disk.yandex.ru/i/RoQ3RiuyUyRYDA"
-        ),
-    )
-
-    await bot.send_message(
-        user_id=user_id,
-        text=(
-            "Привет 👋 "
-            "Ты попал к доминантному боту, который тренируется говорить на острые темы 🤬 "
-            "и тренирует тебя мыслить конструктивно 😉  Времена нынче опасные, на мозг давят капитально. Важно сохранять спокойствие при понимании, что происходит 🫡 \n\n"
-            "Каждый разговор с ботом как урок истории: ты открываешь тему, он продавливает вывод 🤯 "
-            "Победить бота не получится: он заставит тебя мыслить верно. Пробуй, разрушай сомнения."
-        ),
-        attachments=[reply_kb.as_markup()]
-    )
-
-@dp.message_created(Command('help'))
-async def instruction(event: MessageCreated):
-    user_id = event.message.sender.user_id
-
-    reply_kb = InlineKeyboardBuilder()
-    reply_kb.row(
-        LinkButton(
-            text="про Бота >",
-            url="https://disk.yandex.ru/i/Y1qvubfy9EwyOQ"
-        )
-    )
-
-    await bot.send_message(
-        user_id=user_id,
-        text=(
-            "🫡  Что я могу❓\n\n"
-            "🔁 /new — вернуться к экрану с видосами\n"
-            "❓ /help — ты уже здесь, можем повторить\n"
-            "💳 /sub —  всё про подписку на меня\n"
-            "📅 /igor — задать вопрос Игорю\n"
-            "🤖 /bot — напиши, в чём я не прав\n"
-        ),
-        attachments=[reply_kb.as_markup()]
-
-    )
-
-@dp.message_created(Command('bot'))
-async def help_bot_command(event: MessageCreated):
-    user_id = event.message.sender.user_id
-    session_user = await MaxService.get_session(user_id)
-    logger.info(f"Пользователь {user_id} запросил отправку обращения в поддержку")
-
-    if not session_user:
-        logger.warning(f"У пользователя {user_id} не найдена сессия")
-        await bot.send_message(
-            user_id=user_id,
-            text="❌ Данные не найдены.\n\nИспользуйте команду /new"
-        )
-        return
-
-    # ✅ ВКЛЮЧАЕМ РЕЖИМ ОЖИДАНИЯ ТЕКСТА
-    waiting_for_report_text[user_id] = True
-
-    await bot.send_message(
-        user_id=user_id,
-        text=(
-            "📝 Напиши своё обращение в поддержку.\n\n"
+            "Привет! Можешь задавать любые вопросы по истории и политической ситуации."
+            "Я задоминирую❗"
         )
     )
 
@@ -441,39 +322,36 @@ async def handle_report_text(event: MessageCreated, user):
 @dp.message_created(F.message.body.text)
 async def handle_message(event: MessageCreated):
     text = event.message.body.text
+    if text.startswith('/'):
+        return
+
     user_id = event.message.sender.user_id
     user = await MaxService.get_user(user_id)
     session_user = await MaxService.get_session(user_id)
 
-    if text.startswith('/'):
-        return
-
-    # ===== 1️⃣ ПРОВЕРКА: ВОПРОС ИГОРЮ =====
-    if waiting_for_igor_question.get(user_id, False):
-        await handle_igor_question_text(event, user)
-        return
-
-    # ===== 2️⃣ ПРОВЕРКА: ОБРАЩЕНИЕ В ПОДДЕРЖКУ (/bot) =====
-    if waiting_for_report_text.get(user_id, False):
-        await handle_report_text(event, user)  # <-- НОВАЯ ФУНКЦИЯ
-        return
-
-    # ===== 3️⃣ ОБЫЧНАЯ ЛОГИКА (AI) =====
     logger.info(f"Пользователь {user_id} отправил сообщение: {text[:10]}")
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
-    if not await MaxService.can_send_message(user_id, "MAX_Dominant"):
-        logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
-        await bot.send_message(
-            user_id=user_id,
-            text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
-        )
-        return
+    # if not session_user:
+    #     logger.warning(f"У пользователя {user_id} не найдена сессия")
+    #     await bot.send_message(
+    #         user_id=user_id,
+    #         text="Данные не найдены.\n\nИспользуйте команду /new"
+    #     )
 
+    # elif not await MaxService.can_send_message(user_id):
+    #     logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
+    #     await bot.send_message(
+    #         user_id=user_id,
+    #         text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
+    #     )
+
+    # else:
     selected_topic = "Мировоззрение"
     index_id = THEMES_INDEXES.get(selected_topic)
-    history = await MaxService.get_history(user_id, "MAX_Dominant", limit=200)
+    history = await MaxService.get_history(user_id, "MAX_Dominant",  limit=200)
+    # noinspection PyTypeChecker
     answer = ask_ai_with_index(index_id, text, selected_topic, history)
 
     if answer:
@@ -498,70 +376,77 @@ async def handle_voice_message(event: MessageCreated):
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
-    if not await MaxService.can_send_message(user_id, "MAX_Dominant"):
-        logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
-        await bot.send_message(
-            user_id=user_id,
-            text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
-        )
+    # if not session_user:
+    #     logger.warning(f"У пользователя {user_id} не найдена сессия")
+    #     await bot.send_message(
+    #         user_id=user_id,
+    #         text="Данные не найдены.\n\nИспользуйте команду /new"
+    #     )
 
-    else:
-        selected_topic = "Мировоззрение"
-        index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history(user_id, "MAX_Dominant", limit=200)
+    # elif not await MaxService.can_send_message(user_id):
+    #     logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
+    #     await bot.send_message(
+    #         user_id=user_id,
+    #         text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
+    #     )
+
+    # else:
+    selected_topic = "Мировоззрение"
+    index_id = THEMES_INDEXES.get(selected_topic)
+    history = await MaxService.get_history(user_id, "MAX_Dominant", limit=200)
 
 
-        audio_attachment = None
-        # noinspection PyTypeChecker
-        for att in event.message.body.attachments:
-            if att.type == "audio":
-                audio_attachment = att
-                break
-        if not audio_attachment:
-            return
-        audio_url = audio_attachment.payload.url
-        print(audio_url)
+    audio_attachment = None
+    # noinspection PyTypeChecker
+    for att in event.message.body.attachments:
+        if att.type == "audio":
+            audio_attachment = att
+            break
+    if not audio_attachment:
+        return
+    audio_url = audio_attachment.payload.url
+    print(audio_url)
 
-        try:
-            headers = {"User-Agent": "MAX/1.0", "Referer": "https://max.ru/"}
+    try:
+        headers = {"User-Agent": "MAX/1.0", "Referer": "https://max.ru/"}
 
-            async with aiohttp.ClientSession() as session_audio:
-                async with session_audio.get(audio_url, headers=headers) as resp:
-                    audio_data = await resp.read()
+        async with aiohttp.ClientSession() as session_audio:
+            async with session_audio.get(audio_url, headers=headers) as resp:
+                audio_data = await resp.read()
 
-            mime = magic.from_buffer(audio_data, mime=True)
-            if mime != 'audio/ogg':
-                process = subprocess.run(
-                    ['ffmpeg', '-i', 'pipe:0', '-c:a', 'libopus', '-ar', '48000', '-b:a', '64k', '-f', 'ogg', 'pipe:1'],
-                    input=audio_data,
-                    capture_output=True
-                )
-                if process.returncode != 0:
-                    raise Exception(process.stderr.decode())
-                audio_data = process.stdout
+        mime = magic.from_buffer(audio_data, mime=True)
+        if mime != 'audio/ogg':
+            process = subprocess.run(
+                ['ffmpeg', '-i', 'pipe:0', '-c:a', 'libopus', '-ar', '48000', '-b:a', '64k', '-f', 'ogg', 'pipe:1'],
+                input=audio_data,
+                capture_output=True
+            )
+            if process.returncode != 0:
+                raise Exception(process.stderr.decode())
+            audio_data = process.stdout
 
-            s3_url = await upload_to_s3(audio_data)
+        s3_url = await upload_to_s3(audio_data)
 
-            recognized_text = AudioService.recognize_from_s3(s3_url, settings.YC_API_KEY)
+        recognized_text = AudioService.recognize_from_s3(s3_url, settings.YC_API_KEY)
 
-            answer = ask_ai_with_index(index_id, recognized_text, selected_topic, history)
+        answer = ask_ai_with_index(index_id, recognized_text, selected_topic, history)
 
-            if answer:
-                # if user.memory_mode != MemoryMode.none:
-                await MaxService.add_message(user_id, session_user.id, "user", recognized_text, "MAX_Dominant")
-                await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Dominant")
-                await bot.send_message(user_id=user_id, text=answer)
-                logger.info(f"Пользователь {user_id} успешно получил ответ от ассистента")
-            else:
-                logger.error(f"Пользователь {user_id} не получил ответ")
-                await bot.send_message(
-                    user_id=user_id,
-                    text="⚠️ Не удалось получить ответ. Попробуйте позже."
-                )
+        if answer:
+            # if user.memory_mode != MemoryMode.none:
+            await MaxService.add_message(user_id, session_user.id, "user", recognized_text, "MAX_Dominant")
+            await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Dominant")
+            await bot.send_message(user_id=user_id, text=answer)
+            logger.info(f"Пользователь {user_id} успешно получил ответ от ассистента")
+        else:
+            logger.error(f"Пользователь {user_id} не получил ответ")
+            await bot.send_message(
+                user_id=user_id,
+                text="⚠️ Не удалось получить ответ. Попробуйте позже."
+            )
 
-        except Exception as e:
-            logger.exception(f"Ошибка обработки голосового сообщения от пользователя {user_id}, ошибка: {e}")
-            await bot.send_message(user_id=user_id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
+    except Exception as e:
+        logger.exception(f"Ошибка обработки голосового сообщения от пользователя {user_id}, ошибка: {e}")
+        await bot.send_message(user_id=user_id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
 
 async def main():
     webhook_url = "https://bot.nepovinnyh.ru/webhook2"
