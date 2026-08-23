@@ -995,9 +995,7 @@ async def handle_contact(event: MessageCreated):
 
     logger.info(f"Пользователь {user_id} успешно поделился своим контактом")
 
-<<<<<<< HEAD
     
-=======
     await MaxService.add_request(
             client_id=user_id,
             contact=phone,
@@ -1010,7 +1008,6 @@ async def handle_contact(event: MessageCreated):
         text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
              "Вы можете продолжить вести диалог.",
     )
->>>>>>> 541afebc06c27ad3932900bd0a690e525e999cb7
 
     await AdminService.notify_admins("📅 Новая запись на консультацию")
 
