@@ -252,12 +252,12 @@ class MaxService:
                 select(Request)
                 .where(
                     Request.client_id == client_id,
-                    Request.created_at > datetime.utcnow() - timedelta(seconds=300)
+                    Request.created_at > datetime.utcnow() - timedelta(seconds=10)
                 )
                 .limit(1)
             )
             if result.scalar_one_or_none():
-                logger.warning(f"⚠️ Дубль записи для {client_id} (меньше 300 сек), пропускаем")
+                logger.warning(f"⚠️ Дубль записи для {client_id} (меньше 10 сек), пропускаем")
                 return
 
             stmt = insert(Request).values(
