@@ -19,3 +19,21 @@ build/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+# Логи
+logs/
+*.log
+
+# Кеши
+*.cache
+*.json
+book_slugs_cache.json
+
+# Временные файлы
+.env.save*
+*.save
+*.swp
+*.swo
+*~
+
+# Миграции (если не хочешь хранить)
+# migrations/

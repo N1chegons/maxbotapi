@@ -196,15 +196,6 @@ async def igor_question(event: MessageCreated):
         await bot.send_message(user_id=user_id, text="❌ Пользователь не найден")
         return
 
-    # Проверяем, есть ли уже неотвеченный вопрос
-    has_question = await MaxService.has_active_request(user_id, "question")
-    if has_question:
-        await bot.send_message(
-            user_id=user_id,
-            text="❌ Вы уже отправили вопрос! Я передал его Игорю. Ожидайте ответа в видео 🎥"
-        )
-        return
-
     # Переводим пользователя в режим ожидания вопроса
     waiting_for_igor_question[user_id] = True
 
@@ -359,8 +350,6 @@ async def igor_confirm(callback: MessageCallback):
     )
 
     logger.info(f"Пользователь {user_id} отправил вопрос Игорю: {text[:50]}...")
-
-    await AdminService.notify_admins(f"📅 Новый вопрос от {user_id}:\n\n{text[:200]}")
 
 @dp.message_callback(F.callback.payload.startswith("report_confirm_"))
 async def report_confirm(callback: MessageCallback):
