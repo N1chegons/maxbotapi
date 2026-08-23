@@ -961,7 +961,7 @@ async def handle_contact(event: MessageCreated):
 
     appointment_date = await MaxService.get_next_free_date()
 
-    success, msg = await MaxService.add_request(
+    success = await MaxService.add_request(
         client_id=user_id,
         contact=phone,
         messages=history_text,
@@ -971,13 +971,13 @@ async def handle_contact(event: MessageCreated):
     if not success:
         await bot.send_message(
             user_id=user_id,
-            text=f"❌ {msg}"
+            text=f"❌ Вы уже подали заявку на консультацию. Попробуйте позже."
         )
         return
 
     logger.info(f"Пользователь {user_id} успешно записался на консультацию")
 
-    await AdminService.notify_admins(f"📅 Новая запись на консультацию от {user_id}, контакт: {phone}")
+    await AdminService.notify_admins("📅 Новая запись на консультацию")
 
     await bot.send_message(
         user_id=event.from_user.user_id,

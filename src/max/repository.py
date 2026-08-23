@@ -259,7 +259,7 @@ class MaxService:
             )
             if result.scalar_one_or_none():
                 logger.warning(f"⚠️ Дубль записи для {client_id}, пропускаем")
-                return False, "Дубль, пропускаем"
+                return False
 
             result = await session.execute(
                 select(Request)
@@ -287,7 +287,7 @@ class MaxService:
             await session.execute(stmt)
             await session.commit()
             logger.info(f"✅ Заявка для пользователя {client_id} добавлена")
-            return True, "Запись создана"
+            return True
 
     @classmethod
     async def mark_request_viewed(cls, appointment_id: int):
