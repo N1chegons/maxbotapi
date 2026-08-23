@@ -984,12 +984,6 @@ async def handle_contact(event: MessageCreated):
         for msg in history
     ])
 
-    await bot.send_message(
-        user_id=event.from_user.user_id,
-        text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
-             "Вы можете продолжить вести диалог.",
-    )
-    
     appointment_date = await MaxService.get_next_free_date()
 
     success = await MaxService.add_request(
@@ -1000,24 +994,22 @@ async def handle_contact(event: MessageCreated):
     )
 
     if not success:
+        logger.warning(f"Пользователь {user_id} уже подавал заявку")
         await bot.send_message(
             user_id=user_id,
-            text=f"❌ Вы уже подали заявку на консультацию. Попробуйте позже."
+            text="❌ Вы уже подали заявку на консультацию. Ожидайте ответа."
         )
-        logger.warning(f"Пользователь уже подал запись на консультацию")
         return
 
-    else:
+    logger.info(f"Пользователь {user_id} успешно записался на консультацию")
 
-        logger.info(f"Пользователь {user_id} успешно записался на консультацию")
+    await AdminService.notify_admins(f"📅 Новая запись на консультацию от {user_id}, контакт: {phone}")
 
-        await AdminService.notify_admins("📅 Новая запись на консультацию")
-
-        await bot.send_message(
-            user_id=event.from_user.user_id,
-            text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
-                 "Вы можете продолжить вести диалог.",
-        )
+    await bot.send_message(
+        user_id=event.from_user.user_id,
+        text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
+             "Вы можете продолжить вести диалог.",
+    )
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(F.message.body.attachments)
