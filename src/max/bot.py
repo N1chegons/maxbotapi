@@ -974,16 +974,17 @@ async def handle_contact(event: MessageCreated):
             text=f"❌ {msg}"
         )
         return
+    else:
 
-    logger.info(f"Пользователь {user_id} успешно записался на консультацию")
+        logger.info(f"Пользователь {user_id} успешно записался на консультацию")
 
-    await AdminService.notify_admins(f"📅 Новая запись на консультацию от {user_id}, контакт: {phone}")
+        await AdminService.notify_admins(f"📅 Новая запись на консультацию от {user_id}, контакт: {phone}")
 
-    await bot.send_message(
-        user_id=event.from_user.user_id,
-        text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
-             "Вы можете продолжить вести диалог.",
-    )
+        await bot.send_message(
+            user_id=event.from_user.user_id,
+            text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
+                 "Вы можете продолжить вести диалог.",
+        )
 
 # noinspection PyUnresolvedReferences
 @dp.message_created(F.message.body.attachments)
