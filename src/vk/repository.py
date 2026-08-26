@@ -624,6 +624,24 @@ class VkIntegration:
         self.send_to_channel(message)
         logger.info(f"✅ Опубликована случайная книга")
 
+    def publish_specific_video(self, playlist_name: str):
+        """Публикует видео из конкретного плейлиста (без ротации)"""
+        video_url = self.get_random_video_from_playlist(playlist_name)
+        if not video_url:
+            logger.error(f"❌ Нет видео для {playlist_name}")
+            return
+
+        description = self.get_video_description(video_url)
+        prefix = self.video_prefixes.get(playlist_name, "")
+
+        if description:
+            message = f"{prefix}\n\n{description}\n\n🎬 Смотреть: {video_url}"
+        else:
+            message = f"{prefix}\n\n🎬 Смотреть: {video_url}"
+
+        self.send_to_channel(message)
+        logger.info(f"✅ Опубликовано видео: {playlist_name}")
+
     def publish_random_video(self, playlist1: str, playlist2: str = None):
         """
         Публикует случайное видео из двух плейлистов
