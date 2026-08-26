@@ -624,6 +624,28 @@ class VkIntegration:
         self.send_to_channel(message)
         logger.info(f"✅ Опубликована случайная книга")
 
+    def publish_random_video(self, playlist1: str, playlist2: str = None):
+        """
+        Публикует случайное видео из двух плейлистов
+        - playlist1: основной (всегда в ротации)
+        - playlist2: дополнительный (50% шанс)
+        """
+        # Если плейлист2 не указан — публикуем только первый
+        if not playlist2:
+            return self.publish_video(playlist1)
+
+        # 50% шанс на каждый плейлист
+        chosen = random.choice([playlist1, playlist2])
+
+        logger.info(f"🎲 Рандомный выбор: {chosen}")
+
+        # Публикуем выбранный плейлист
+        if chosen == playlist1:
+            return self.publish_video(playlist1)
+        else:
+            return self.publish_specific_video(playlist2)
+
+
 
 # ========== ЗАПУСК ПО РАСПИСАНИЮ ==========
 
@@ -636,6 +658,9 @@ async def publish_video_async(playlist_name: str):
 async def publish_pdf_async(pdf_prefix: str):
     return await publisher.publish_pdf(pdf_prefix)  # publish_pdf теперь async
 
+async def publish_random_video_async(playlist1: str, playlist2: str = None):
+    return publisher.publish_random_video(playlist1, playlist2)
+
 async def publish_article_async():
     # noinspection PyNoneFunctionAssignment
     return publisher.publish_article()
@@ -644,8 +669,14 @@ async def publish_article_async():
 schedule_map = {
     9: lambda: publish_video_async(publisher.get_next_playlist_type1()),
     10: lambda: publish_pdf_async("mod"),
-    11: lambda: publish_video_async(publisher.get_next_playlist_type1()),
-    12: lambda: publish_video_async(publisher.get_next_playlist_type1()),
+    11: lambda: publish_random_video_async(
+        publisher.get_next_playlist_type1(),  # основной
+        "Здоровье"  # 50% шанс
+    ),
+    12: lambda: publish_random_video_async(
+        publisher.get_next_playlist_type1(),  # основной
+        "Питание"  # 50% шанс
+    ),
     13: lambda: publish_pdf_async("fa"),
     14: lambda: publish_pdf_async("zh"),
     15: lambda: publish_article_async(),
