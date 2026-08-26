@@ -253,41 +253,30 @@ class MaxService:
                 select(Request)
                 .where(
                     Request.client_id == client_id,
-                    Request.created_at > datetime.utcnow() - timedelta(seconds=5)
-                )
-                .limit(1)
-            )
-            if result.scalar_one_or_none():
-                logger.warning(f"⚠️ Дубль записи для {client_id}, пропускаем")
-                return False
-
-            result = await session.execute(
-                select(Request)
-                .where(
-                    Request.client_id == client_id,
                     Request.created_at > datetime.utcnow() - timedelta(hours=24)
                 )
                 .limit(1)
             )
+            last = result.scalar_one_or_none()
 
-            if result.scalar_one_or_none():
-                last = result.scalar_one_or_none()
+            if last:
                 seconds_left = (last.created_at + timedelta(hours=24) - datetime.utcnow()).total_seconds()
                 hours_left = int(seconds_left // 3600)
                 minutes_left = int((seconds_left % 3600) // 60)
                 logger.warning(f"⚠️ Повторная запись для {client_id} через {hours_left}ч {minutes_left}м")
-                return False, f"⏳ Повторная запись доступна через {hours_left}ч {minutes_left}м"
+                return False
 
-            stmt = insert(Request).values(
-                client_id=client_id,
-                contact=contact,
-                messages=messages,
-                appointment_date=appointment_date
-            )
-            await session.execute(stmt)
-            await session.commit()
-            logger.info(f"✅ Заявка для пользователя {client_id} добавлена")
-            return True
+            else:
+                stmt = insert(Request).values(
+                    client_id=client_id,
+                    contact=contact,
+                    messages=messages,
+                    appointment_date=appointment_date
+                )
+                await session.execute(stmt)
+                await session.commit()
+                logger.info(f"✅ Заявка для пользователя {client_id} добавлена")
+                return True
 
     @classmethod
     async def mark_request_viewed(cls, appointment_id: int):
