@@ -222,6 +222,7 @@ class VkIntegration:
 
         # Префиксы для видео (заголовки)
         self.video_prefixes = {
+            "Красота": "Красота России❤️",
             "Здоровье": "Красота России❤️",
             "Машиностроение": "⚙️ Машиностроение России",
             "Педагогика": "📚 А ты знал?",
@@ -230,9 +231,10 @@ class VkIntegration:
             "Логистика": "🚂 Прокатимся по России",
             "Сила": "Время социологии😎",
             "Специалисты": "Время социологии😎",
+            "Авторское": "Авторские видео",
         }
 
-        # Первый лист (тематические плейлисты)
+        # Первый лист (тематические плейлисты) - НЕ ИСПОЛЬЗУЕТСЯ В НОВОМ РАСПИСАНИИ
         self.playlist_type1 = [
             "Здоровье",
             "Машиностроение",
@@ -242,29 +244,32 @@ class VkIntegration:
             "Логистика"
         ]
 
-        # Второй лист (общие плейлисты)
+        # Второй лист (общие плейлисты) - НЕ ИСПОЛЬЗУЕТСЯ В НОВОМ РАСПИСАНИИ
         self.playlist_type2 = [
             "Сила",
-            "Специалисты"
+            "Специалисты",
+            "Авторское"
         ]
 
         # Ссылки на плейлисты VK
         self.playlist_urls = {
+            "Красота": "https://vkvideo.ru/playlist/-216257056_9",
             "Здоровье": "https://vkvideo.ru/playlist/-216257056_9",
             "Машиностроение": "https://vkvideo.ru/playlist/-216257056_1",
             "Педагогика": "https://vkvideo.ru/playlist/-216257056_2",
-            "Питание": "https://vkvideo.ru/playlist/-216257056_9",
+            "Питание": "https://vkvideo.ru/playlist/-216257056_3",
             "Строительство": "https://vkvideo.ru/playlist/-216257056_4",
             "Логистика": "https://vkvideo.ru/playlist/-216257056_5",
-            "Сила": "https://vkvideo.ru/playlist/-216257056_10",
-            "Специалисты": "https://vkvideo.ru/playlist/-216257056_10",
+            "Сила": "https://vkvideo.ru/playlist/-216257056_7",
+            "Специалисты": "https://vkvideo.ru/playlist/-216257056_6",
+            "Авторское": "https://vkvideo.ru/playlist/-216257056_10",
         }
 
         # Файлы для хранения состояния (чтобы помнить, что публиковать по кругу)
         self.state_files = {
             "type1_index": "/home/psylogic/type1_index.txt",
             "type2_index": "/home/psylogic/type2_index.txt",
-            "book_index": "/home/psylogic/book_index.txt",  # ← новый для книг
+            "book_index": "/home/psylogic/book_index.txt",
         }
 
         self.video_cache_file = "/home/psylogic/video_cache.json"
@@ -321,7 +326,7 @@ class VkIntegration:
         index = self._get_next_index(self.state_files["type2_index"], len(self.playlist_type2))
         return self.playlist_type2[index]
 
-    # ==================== КНИГИ (НОВЫЙ МЕТОД) ====================
+    # ==================== КНИГИ ====================
 
     def _get_current_book_number(self) -> int:
         try:
@@ -615,7 +620,7 @@ class VkIntegration:
 
     def publish_article(self):
         """Опубликовать случайную книгу"""
-        book = self.get_random_book()  # ← вместо get_next_book
+        book = self.get_random_book()
         if not book:
             logger.error("Нет книги для публикации")
             return
@@ -642,67 +647,43 @@ class VkIntegration:
         self.send_to_channel(message)
         logger.info(f"✅ Опубликовано видео: {playlist_name}")
 
-    def publish_random_video(self, playlist1: str, playlist2: str = None):
-        """
-        Публикует случайное видео из двух плейлистов
-        - playlist1: основной (всегда в ротации)
-        - playlist2: дополнительный (50% шанс)
-        """
-        # Если плейлист2 не указан — публикуем только первый
-        if not playlist2:
-            return self.publish_video(playlist1)
-
-        # 50% шанс на каждый плейлист
-        chosen = random.choice([playlist1, playlist2])
-
-        logger.info(f"🎲 Рандомный выбор: {chosen}")
-
-        # Публикуем выбранный плейлист
-        if chosen == playlist1:
-            return self.publish_video(playlist1)
-        else:
-            return self.publish_specific_video(playlist2)
-
-
 
 # ========== ЗАПУСК ПО РАСПИСАНИЮ ==========
 
 publisher = VkIntegration()
 
 async def publish_video_async(playlist_name: str):
-    # noinspection PyNoneFunctionAssignment
-    return publisher.publish_video(playlist_name)  # если publish_video синхронная
+    return publisher.publish_video(playlist_name)
 
 async def publish_pdf_async(pdf_prefix: str):
-    return await publisher.publish_pdf(pdf_prefix)  # publish_pdf теперь async
+    return await publisher.publish_pdf(pdf_prefix)
 
-async def publish_random_video_async(playlist1: str, playlist2: str = None):
-    return publisher.publish_random_video(playlist1, playlist2)
+async def publish_specific_video_async(playlist_name: str):
+    return publisher.publish_specific_video(playlist_name)
 
 async def publish_article_async():
-    # noinspection PyNoneFunctionAssignment
     return publisher.publish_article()
 
-# schedule_map с async функциями
+# ========== НОВОЕ РАСПИСАНИЕ ==========
+
 schedule_map = {
-    9: lambda: publish_video_async(publisher.get_next_playlist_type1()),
-    10: lambda: publish_pdf_async("mod"),
-    11: lambda: publish_random_video_async(
-        publisher.get_next_playlist_type1(),  # основной
-        "Здоровье"  # 50% шанс
+    9: lambda: publish_specific_video_async("Красота"),          # фиксированно
+    10: lambda: publish_pdf_async("mod"),                        # без изменений
+    11: lambda: publish_specific_video_async("Педагогика"),      # фиксированно
+    12: lambda: publish_specific_video_async(                   # рандом из трех
+        random.choice(["Питание", "Логистика", "Здоровье"])
     ),
-    12: lambda: publish_random_video_async(
-        publisher.get_next_playlist_type1(),  # основной
-        "Питание"  # 50% шанс
+    13: lambda: publish_pdf_async("fa"),                         # без изменений
+    14: lambda: publish_pdf_async("zh"),                         # без изменений
+    15: lambda: publish_article_async(),                         # без изменений
+    16: lambda: publish_specific_video_async("Специалисты"),     # фиксированно
+    17: lambda: publish_pdf_async("soc"),                        # без изменений
+    18: lambda: publish_specific_video_async(                   # рандом из трех
+        random.choice(["Сила", "Машиностроение", "Строительство"])
     ),
-    13: lambda: publish_pdf_async("fa"),
-    14: lambda: publish_pdf_async("zh"),
-    15: lambda: publish_article_async(),
-    16: lambda: publish_video_async(publisher.get_next_playlist_type2()),
-    17: lambda: publish_pdf_async("soc"),
-    18: lambda: publish_video_async(publisher.get_next_playlist_type2()),
-    19: lambda: publish_pdf_async("pt"),
-    20: lambda: publish_video_async(publisher.get_next_playlist_type2()),}
+    19: lambda: publish_pdf_async("pt"),                         # без изменений
+    20: lambda: publish_specific_video_async("Авторское"),       # фиксированно
+}
 
 def run_by_hour(hour: int):
     if hour in schedule_map:
