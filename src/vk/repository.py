@@ -254,7 +254,7 @@ class VkIntegration:
         # Ссылки на плейлисты VK
         self.playlist_urls = {
             "Красота": "https://vkvideo.ru/playlist/-216257056_9",
-            "Здоровье": "https://vkvideo.ru/playlist/-216257056_9",
+            "Здоровье": "https://vkvideo.ru/playlist/-216257056_8",
             "Машиностроение": "https://vkvideo.ru/playlist/-216257056_1",
             "Педагогика": "https://vkvideo.ru/playlist/-216257056_2",
             "Питание": "https://vkvideo.ru/playlist/-216257056_3",
