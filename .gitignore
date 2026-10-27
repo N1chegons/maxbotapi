@@ -1,6 +1,7 @@
 # Виртуальное окружение
 venv/
 .venv/
+config.secret
 
 # IDE
 .idea/

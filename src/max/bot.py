@@ -1116,17 +1116,24 @@
 #
 
 import asyncio
+import os
 import subprocess
+from datetime import datetime
 
+import aiofiles
 import aiohttp
 import magic
 
 from src.logger_config import setup_logger
 from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import Command
-from maxapi.types import MessageCreated, BotStarted
+from maxapi.types import (
+    MessageCreated, BotStarted, CallbackButton, InputMedia,
+    LinkButton, RequestContactButton, MessageCallback
+)
+from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
-
+from src.admin.repository import AdminService
 from src.config import settings
 from src.max.ending_sender import ending_session
 from src.max.models import UserState, MemoryMode
@@ -1135,6 +1142,7 @@ from src.yandexai.config import THEMES_INDEXES
 from src.yandexai.orchestrator import ask_ai_with_index
 
 logger = setup_logger('max_bot', 'max', 'MAX_bot.log')
+logger_admin = setup_logger('admin', 'admin', 'max_admin.log')
 
 TOKEN = settings.MAX_BOT_TOKEN
 bot = Bot(TOKEN)
@@ -1216,6 +1224,9 @@ async def instruction(event: MessageCreated):
             "🔁 /new — начать всё заново, очистить текущую сессию\n"
             "💀 /del — полностью удалить все твои данные\n"
             "❓ /help — это сообщение\n"
+            "📊 /end — подвести итоги диалога\n"
+            "📅 /igor — записаться на консультацию\n"
+            "🤖 /bot — отправить обращение в поддержку\n"
         )
     )
 
@@ -1233,6 +1244,382 @@ async def closed_session(event: MessageCreated):
             text="Память отключена или данные не найдены."
         )
 
+
+@dp.message_created(Command('igor'))
+async def igor_command(event: MessageCreated):
+    user_id = event.message.sender.user_id
+    session_user = await MaxService.get_session(user_id)
+    logger.info(f"Запись на консультацию для пользователя {user_id}")
+
+    if not session_user:
+        logger.warning(f"У пользователя {user_id} не найдена сессия")
+        await bot.send_message(
+            user_id=user_id,
+            text="Данные не найдены.\n\nИспользуйте команду /new"
+        )
+        return
+
+    reply_kb = InlineKeyboardBuilder()
+    reply_kb.row(
+        LinkButton(
+            text="про Эксперта >",
+            url="https://disk.yandex.ru/i/b0q0Vt9a3M7cMg"
+        ),
+        CallbackButton(text="✅ ДА", payload="consult_agree"),
+        CallbackButton(text="❌ НЕТ", payload="consult_disagree"),
+    )
+
+    await bot.send_message(
+        user_id=user_id,
+        text=(
+            "Подумай ещё раз...\n"
+            "Игорь берёт не всех и не каждого.\n"
+            "Я сохраню последние двадцать сообщений: передам их Игорю.\n"
+            "Он оценит качество гипотезы и напишет тебе.\n\n"
+            "Ты уверен?(Выбери ДА/НЕТ)"
+        ),
+        attachments=[reply_kb.as_markup()]
+    )
+
+
+@dp.message_created(Command('bot'))
+async def help_bot_command(event: MessageCreated):
+    user_id = event.message.sender.user_id
+    session_user = await MaxService.get_session(user_id)
+    logger.info(f"Пользователь {user_id} отправил обращение")
+
+    if not session_user:
+        logger.warning(f"У пользователя {user_id} не найдена сессия")
+        await bot.send_message(
+            user_id=user_id,
+            text="Данные не найдены.\n\nИспользуйте команду /new"
+        )
+    else:
+        reply_kb = InlineKeyboardBuilder()
+        reply_kb.row(
+            CallbackButton(text="✅ ОТПРАВИТЬ", payload="bot_send_problem"),
+            CallbackButton(text="❌ ОТМЕНА", payload="bot_dsend"),
+        )
+
+        await bot.send_message(
+            user_id=user_id,
+            text="Если бот где-то затупил, то жми на кнопку отправить. Богдан разберётся 😉",
+            attachments=[reply_kb.as_markup()]
+        )
+
+@dp.message_created(Command('admin'))
+async def admin_panel(event: MessageCreated):
+    user_id = event.message.sender.user_id
+    if not AdminService.is_admin(user_id):
+        logger_admin.warning(f"Пользователь {user_id} не является админом")
+        await bot.send_message(user_id=user_id, text="⛔ Нет доступа")
+        return
+
+    text = (
+        "👋 **Добро пожаловать в админ-панель!**\n\n"
+        "📊 **Доступные команды:**\n\n"
+        "🔹 /st [дни] - просмотр статистики за кол-во дней (по умолчанию 1)\n"
+        "🔹 /con — посмотреть заявки на консультацию\n"
+        "🔹 /req — посмотреть обращения пользователей\n"
+        "🔹 /ha — помощь по командам\n\n"
+    )
+
+    await bot.send_message(user_id=user_id, text=text)
+
+
+@dp.message_created(Command('st'))
+async def stats_command(event: MessageCreated):
+    user_id = event.message.sender.user_id
+    if not AdminService.is_admin(user_id):
+        logger_admin.warning(f"Пользователь {user_id} не является админом")
+        await bot.send_message(user_id=user_id, text="⛔ Нет доступа")
+        return
+
+    parts = event.message.body.text.split()
+    days = 1
+
+    if len(parts) > 1:
+        try:
+            days = int(parts[1])
+            if days < 1:
+                days = 1
+            if days > 365:
+                days = 365
+        except ValueError:
+            await bot.send_message(user_id=user_id, text="❌ Неверный формат. Используйте: `/st [дни]`")
+            return
+
+    count_message = await AdminService.get_total_messages_last_days_admin()
+
+    report = f"📊 **Всего сообщений за {days} дн.: {count_message}**\n"
+
+    logger_admin.info(f"Админ {user_id} просмотрел статистику по сообщениям за {days} дней")
+    await bot.send_message(user_id=user_id, text=report)
+
+
+@dp.message_created(Command('con'))
+async def view_appointment(event: MessageCreated):
+    user_id = event.message.sender.user_id
+    if not AdminService.is_admin(user_id):
+        logger_admin.warning(f"Пользователь {user_id} не является админом")
+        await bot.send_message(user_id=user_id, text="⛔ Нет доступа")
+        return
+
+    parts = event.message.body.text.split()
+
+    if len(parts) >= 2:
+        try:
+            app_id = int(parts[1])
+        except ValueError:
+            logger_admin.warning(f"Админ {user_id} ввел неверный формат")
+            await bot.send_message(
+                user_id=user_id,
+                text="❌ Неверный формат. Используйте: /con <id>"
+            )
+            return
+
+        request = await MaxService.get_request_by_id(app_id)
+        if not request:
+            logger_admin.warning(f"Консультация с id {app_id} не найдена")
+            await bot.send_message(
+                user_id=user_id,
+                text=f"❌ Заявка с ID {app_id} не найдена"
+            )
+            return
+
+        await MaxService.mark_request_viewed(app_id)
+
+        client_id = request.client_id or "Запрос с сайта"
+
+        md_content = f"# 📋 Консультация #{request.id}\n\n"
+        md_content += f"Клиент: {client_id}\n"
+        md_content += f"Контакт: {request.contact}\n"
+
+        if request.appointment_date:
+            md_content += f"Запись на: {request.appointment_date.strftime('%d.%m.%Y %H:%M')}\n"
+        else:
+            md_content += f"Запись на: Не указана\n"
+
+        md_content += f"Дата подачи заявки: {request.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
+        md_content += "---\n\n"
+        md_content += "## 💬 Последние сообщения\n\n"
+        md_content += request.messages if request.messages else "Нет сохранённых сообщений"
+
+        filename = f"consultation_{request.client_id}.md" if request.client_id else f"consultation_{request.created_at.strftime('%d_%m_%Y')}.md"
+        async with aiofiles.open(filename, "w", encoding='utf-8') as f:
+            await f.write(md_content)
+
+        await bot.send_message(
+            user_id=user_id,
+            text=f"📋 Консультация #{request.id}",
+            attachments=[InputMedia(path=filename)]
+        )
+
+        logger_admin.info(f"Админ посмотрел консультацию с id {app_id}")
+        os.remove(filename)
+    else:
+        appointments = await MaxService.get_unviewed_request()
+
+        if not appointments:
+            await bot.send_message(user_id=user_id, text="Нет новых заявок на консультацию")
+            return
+
+        text = "📋 **Заявки на консультацию:**\n\n"
+        for app in appointments:
+            status = "✅" if app.viewed else "🆕"
+
+            if app.appointment_date:
+                date_str = app.appointment_date.strftime('%d.%m.%Y 20:00')
+            else:
+                date_str = "Дата не указана"
+
+            text += f"{status} id:{app.id} — {date_str} — {app.contact}\n"
+
+        text += "\n📝 Для просмотра деталей: /con <id>"
+
+        logger_admin.info(f"Админ {user_id} посмотрел список консультаций")
+        await bot.send_message(user_id=user_id, text=text)
+
+
+@dp.message_created(Command('req'))
+async def view_problem_appointment(event: MessageCreated):
+    admin_id = event.message.sender.user_id
+
+    if not AdminService.is_admin(admin_id):
+        logger_admin.warning(f"Пользователь {admin_id} не является админом")
+        await bot.send_message(user_id=admin_id, text="⛔ Нет доступа")
+        return
+
+    parts = event.message.body.text.split()
+
+    if len(parts) >= 2:
+        try:
+            app_id = int(parts[1])
+        except ValueError:
+            logger_admin.warning(f"Админ {admin_id} ввел неверный формат")
+            await bot.send_message(
+                user_id=admin_id,
+                text="❌ Неверный формат. Используйте: /req <id>"
+            )
+            return
+
+        request = await AdminService.get_problem_request_by_id(app_id)
+        if not request:
+            logger_admin.warning(f"Обращение с id {app_id} не найдено")
+            await bot.send_message(
+                user_id=admin_id,
+                text=f"❌ Обращение с ID {app_id} не найдено"
+            )
+            return
+
+        await AdminService.mark_request_viewed(app_id)
+
+        client_id = request.client_id
+
+        md_content = f"# 🐞 Обращение в техподдержку\n\n"
+        md_content += f"**ID пользователя:** {client_id}\n"
+        md_content += f"**Время:** {request.created_at.strftime('%d.%m.%Y %H:%M:%S')}\n\n"
+        md_content += "---\n\n"
+        md_content += "## 💬 Сообщение пользователя\n\n"
+        md_content += request.messages if request.messages else "Нет сообщений"
+
+        filename = f"bot_report_{client_id}_{int(datetime.now().timestamp())}.md"
+        async with aiofiles.open(filename, "w", encoding='utf-8') as f:
+            await f.write(md_content)
+
+        await bot.send_message(
+            user_id=admin_id,
+            text=f"📋 Обращение #{request.id} от пользователя {client_id}",
+            attachments=[InputMedia(path=filename)]
+        )
+
+        logger_admin.info(f"Админ {admin_id} посмотрел обращение с id {app_id}")
+        os.remove(filename)
+
+    else:
+        appointments = await AdminService.get_unviewed_problem_request()
+
+        if not appointments:
+            await bot.send_message(user_id=admin_id, text="📭 Нет новых обращений")
+            return
+
+        text = "📋 **Обращения в поддержку:**\n\n"
+        for app in appointments:
+            status = "✅" if app.viewed else "🆕"
+            text += f"{status} id:{app.id} — от пользователя {app.client_id}\n"
+            text += f"   📅 {app.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
+
+        text += "\n📝 Для просмотра деталей: /req <id>"
+
+        logger_admin.info(f"Админ {admin_id} посмотрел список обращений")
+        await bot.send_message(user_id=admin_id, text=text)
+
+
+@dp.message_created(Command('ha'))
+async def admin_help_command(event: MessageCreated):
+    user_id = event.message.sender.user_id
+
+    if not AdminService.is_admin(user_id):
+        await bot.send_message(user_id=user_id, text="⛔ Нет доступа")
+        return
+
+    text = (
+        "👋 **Добро пожаловать в админ-панель!**\n\n"
+        "📊 **Доступные команды:**\n\n"
+        "🔹 /st [дни] - просмотр статистики за кол-во дней (по умолчанию 1)\n"
+        "🔹 /con — посмотреть заявки на консультацию\n"
+        "🔹 /req — посмотреть обращения пользователей\n"
+        "🔹 /ha — помощь по командам\n\n"
+    )
+
+    await bot.send_message(user_id=user_id, text=text)
+
+
+@dp.message_callback(F.callback.payload == "consult_agree")
+async def handle_consult_agree(callback: MessageCallback):
+    user_id = callback.callback.user.user_id
+    logger.info(f"Пользователь {user_id} продолжил запись на консультацию")
+
+    already_request = await MaxService.get_request(user_id)
+    if already_request:
+        logger.info(f"Пользователь {user_id} повторно записывается на консультацию")
+
+        appointment_date = await MaxService.get_next_free_date()
+        history = await MaxService.get_last_messages(user_id, limit=20)
+
+        history_text = "\n".join([
+            f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
+            for msg in history
+        ])
+        await callback.message.edit(
+            text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
+                 "Вы можете продолжить вести диалог.",
+            attachments=[]
+        )
+
+        await MaxService.add_request(
+            client_id=user_id,
+            contact=already_request.contact,
+            messages=history_text,
+            appointment_date=appointment_date
+        )
+
+    else:
+        reply_kb = InlineKeyboardBuilder()
+        reply_kb.row(
+            RequestContactButton(
+                text="📱 Поделиться номером"
+            )
+        )
+
+        await callback.message.edit(
+            text="Пожалуйста, поделись своим номером телефона, чтобы я мог записать тебя на консультацию.",
+            attachments=[reply_kb.as_markup()]
+        )
+
+
+@dp.message_callback(F.callback.payload == "consult_disagree")
+async def handle_consult_disagree(callback: MessageCallback):
+    user_id = callback.callback.user.user_id
+    logger.info(f"Пользователь {user_id} отменил запись на консультацию")
+
+    await callback.message.edit(
+        text="Ты отменил заявку на консультацию. Если хочешь записаться на консультацию - /igor",
+        attachments=[]
+    )
+
+
+@dp.message_callback(F.callback.payload == "bot_send_problem")
+async def bot_report(callback: MessageCallback):
+    user_id = callback.callback.user.user_id
+    history = await MaxService.get_last_messages(user_id, limit=20)
+
+    history_text = "\n".join([
+        f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
+        for msg in history
+    ])
+
+    await AdminService.add_problem_request(
+        client_id=user_id,
+        messages=history_text
+    )
+
+    logger.info(f"Пользователь {user_id} отправил обращение")
+    await callback.message.edit(
+        text="✅ Обращение отправлено! Богдан разберётся в ближайшее время 😉",
+        attachments=[]
+    )
+
+
+@dp.message_callback(F.callback.payload == "bot_dsend")
+async def bot_cancel(callback: MessageCallback):
+    user_id = callback.callback.user.user_id
+    logger.info(f"Пользователь {user_id} остановил отправку обращения")
+
+    await callback.message.edit(
+        text="❌ Обращение отменено. Если передумаешь — напиши /bot",
+        attachments=[]
+    )
 
 @dp.message_created(F.message.body.text)
 async def handle_message(event: MessageCreated):
@@ -1277,6 +1664,48 @@ async def handle_message(event: MessageCreated):
             user_id=user_id,
             text="⚠️ Не удалось получить ответ. Попробуйте позже."
         )
+
+
+@dp.message_created(F.message.body.attachments[0].type == 'contact')
+async def handle_contact(event: MessageCreated):
+    user_id = event.message.sender.user_id
+
+    contact = event.message.body.attachments[0].payload
+    vcf = contact.vcf_info
+    phone = vcf.split('TEL;TYPE=cell:')[1].split('\n')[0]
+
+    history = await MaxService.get_last_messages(user_id, limit=20)
+    history_text = "\n".join([
+        f"{'🧑 Клиент' if msg.role == 'user' else '🤖 Бот'}: {msg.content}"
+        for msg in history
+    ])
+
+    appointment_date = await MaxService.get_next_free_date()
+
+    success = await MaxService.add_request(
+        client_id=user_id,
+        contact=phone,
+        messages=history_text,
+        appointment_date=appointment_date
+    )
+
+    if not success:
+        logger.warning(f"Пользователь {user_id} уже подавал заявку")
+        await bot.send_message(
+            user_id=user_id,
+            text="❌ Вы уже подали заявку на консультацию. Ожидайте ответа."
+        )
+        return
+
+    logger.info(f"Пользователь {user_id} успешно записался на консультацию")
+
+    await AdminService.notify_admins(f"📅 Новая запись на консультацию от {user_id}, контакт: {phone}")
+
+    await bot.send_message(
+        user_id=event.from_user.user_id,
+        text="✅ Спасибо! Игорь свяжется с вами для подтверждения консультации.\n\n"
+             "Вы можете продолжить вести диалог.",
+    )
 
 
 @dp.message_created(F.message.body.attachments)
@@ -1350,26 +1779,10 @@ async def handle_voice_message(event: MessageCreated):
 
 
 async def main():
-    # webhook_url = "https://bot.nepovinnyh.ru/webhook"
-    # webhook_secret = settings.SECRET_WEBHOOK_KEY
-    # logging.info(f"Вебхук зарегистрирован: {webhook_url}")
-    #
-    # await bot.subscribe_webhook(url=webhook_url, secret=webhook_secret)
-    #
-    # await dp.handle_webhook(
-    #     bot=bot,
-    #     host='0.0.0.0',
-    #     port=8080,
-    #     secret=webhook_secret,
-    #     path='/webhook'
-    # )
-    # logger.info("Бот успешно запущен")
-    await bot.delete_webhook()
-
-    await dp.start_polling(bot)
-
-    logger.info("Бот запущен в режиме Long Polling (локально)")
-
+    webhook_url = "https://bot.nepovinnyh.ru/webhook"
+    webhook_secret = settings.SECRET_WEBHOOK_KEY
+    await bot.subscribe_webhook(url=webhook_url, secret=webhook_secret)
+    await dp.handle_webhook(bot=bot, host='0.0.0.0', port=8080, secret=webhook_secret, path='/webhook')
 
 if __name__ == '__main__':
     asyncio.run(main())
