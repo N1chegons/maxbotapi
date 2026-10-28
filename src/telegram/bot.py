@@ -1005,6 +1005,10 @@ WEBHOOK_URL = f"https://bot.nepovinnyh.ru{WEBHOOK_PATH}"
 app = web.Application()
 bot = AsyncTeleBot(BOT_TOKEN)
 
+from telebot import apihelper
+
+apihelper.proxy = {'https': 'http://127.0.0.1:8090'}
+
 from src.max.repository import MaxService, AudioService
 
 
