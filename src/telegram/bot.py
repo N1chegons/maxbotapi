@@ -1588,9 +1588,8 @@ app.router.add_post(WEBHOOK_PATH, handle_webhook)
 
 
 async def main():
-    await bot.delete_webhook()
-    await bot.set_webhook(url=WEBHOOK_URL)
-
+    # await bot.delete_webhook()
+    # await bot.set_webhook(url=WEBHOOK_URL)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host='127.0.0.1', port=8081)
