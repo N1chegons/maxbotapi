@@ -8,8 +8,6 @@ class Settings(BaseSettings):
     DB_PASS: str
     DB_NAME: str
 
-    SEARCH_INDEX_2010: str
-    SEARCH_INDEX_2015: str
     SEARCH_INDEX_2027: str
 
     MAX_BOT_TOKEN: str
