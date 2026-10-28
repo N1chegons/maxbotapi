@@ -140,15 +140,22 @@ def ask_ai_with_index(index_id: str, query: str, selected_topic: str, history: l
             model = f"gpt://{settings.YC_FOLDER_ID}/yandexgpt"
             logger.debug(f"Выбрана модель yandexgpt для темы {selected_topic}")
 
-        response = yandex_client.responses.create(
-            model=model,
-            input=messages_yandex,
-            tools=[{
+        request_kwargs = {
+            "model": model,
+            "input": messages_yandex,
+            "temperature": 0.7,
+        }
+
+        if index_id:
+            request_kwargs["tools"] = [{
                 "type": "file_search",
                 "vector_store_ids": [index_id],
-            }],
-            temperature=0.7,
-        )
+            }]
+            logger.debug(f"Поиск по файлам включен (индекс: {index_id})")
+        else:
+            logger.debug("Поиск по файлам отключен (работаем только на промпте)")
+
+        response = yandex_client.responses.create(**request_kwargs)
 
         logger.info(f"Ответ от AI получен, длина ответа: {len(response.output_text)} символов")
         logger.debug(f"Ответ AI: {response.output_text[:100]}...")
