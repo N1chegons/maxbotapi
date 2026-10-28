@@ -994,6 +994,9 @@ from src.max.utils import upload_to_s3
 from src.yandexai.config import THEMES_INDEXES
 from src.yandexai.orchestrator import ask_ai_with_index
 from src.config import settings
+from telebot import apihelper
+
+apihelper.proxy = {'https': 'http://127.0.0.1:8090'}
 
 logger = setup_logger('telegram_bot', 'telegram', 'TELEGRAM_bot.log')
 logger_admin = setup_logger('admin', 'admin', 'telegram_admin.log')
@@ -1005,9 +1008,6 @@ WEBHOOK_URL = f"https://bot.nepovinnyh.ru{WEBHOOK_PATH}"
 app = web.Application()
 bot = AsyncTeleBot(BOT_TOKEN)
 
-from telebot import apihelper
-
-apihelper.proxy = {'https': 'http://127.0.0.1:8090'}
 
 from src.max.repository import MaxService, AudioService
 
