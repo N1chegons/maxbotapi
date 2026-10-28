@@ -996,7 +996,7 @@ from src.yandexai.orchestrator import ask_ai_with_index
 from src.config import settings
 from telebot import apihelper
 
-apihelper.proxy = {'https': 'http://127.0.0.1:8090'}
+apihelper.proxy = {'https': 'http://127.0.0.1:1080'}
 
 logger = setup_logger('telegram_bot', 'telegram', 'TELEGRAM_bot.log')
 logger_admin = setup_logger('admin', 'admin', 'telegram_admin.log')
