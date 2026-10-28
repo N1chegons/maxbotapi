@@ -156,7 +156,6 @@ def ask_ai_with_index(index_id: str, query: str, selected_topic: str, history: l
             logger.debug("Поиск по файлам отключен (работаем только на промпте)")
 
         response = yandex_client.responses.create(**request_kwargs)
-
         logger.info(f"Ответ от AI получен, длина ответа: {len(response.output_text)} символов")
         logger.debug(f"Ответ AI: {response.output_text[:100]}...")
 
