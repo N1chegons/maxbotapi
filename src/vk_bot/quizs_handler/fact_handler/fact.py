@@ -82,7 +82,7 @@ async def get_fact_text(message: MessageEvent):
 
 @fact_labeler.message(state=AdminStates.WAITING_FOR_FACT_VIDEO)
 async def save_fact(message: Message):
-    user_id = message.user_id
+    user_id = message.from_id
 
     try:
         payload = message.state_peer.payload
