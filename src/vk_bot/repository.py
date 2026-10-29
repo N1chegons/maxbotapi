@@ -37,7 +37,7 @@ class VkUserRepository:
     async def update_last_fact_date(cls, user_id: int):
         logger.debug(f"Обновления поля 'послдений просмотр факта дня', id = {user_id}")
         async with async_session() as session:
-            stmt = update(VKUser).filter_by(user_id=user_id).values(last_fact_date=datetime.now())
+            stmt = update(VKUser).filter_by(vk_id=user_id).values(last_fact_date=datetime.now())
             await session.execute(stmt)
             await session.commit()
             logger.debug(f"VK Пользователь {user_id} успешно создан")
