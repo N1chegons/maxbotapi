@@ -12,7 +12,7 @@ logger = setup_logger('admin_handler_vk', 'vk', 'admin_handler_vk.log')
 async def admin_panel(message: Message):
     try:
         user_id = message.from_id
-        exists_admin = await VkAdminRepository.is_admin(user_id)
+        exists_admin = VkAdminRepository.is_admin(user_id)
         logger.info(f"Получение админа VK {user_id}")
 
         if not exists_admin:
