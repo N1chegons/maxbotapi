@@ -50,7 +50,7 @@ async def start_create_fact(message: MessageEvent):
 
 @fact_labeler.message(state=AdminStates.WAITING_FOR_FACT_TEXT)
 async def get_fact_text(message: Message):
-    user_id = message.user_id
+    user_id = message.from_id
 
     if message.text.lower() == 'отмена':
         await bot.state_dispenser.delete(message.from_id)
