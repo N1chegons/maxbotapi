@@ -18,7 +18,7 @@ async def admin_panel(message: Message):
         if not exists_admin:
             logger.info(f"Пользователь {user_id} не является админом")
             await message.answer(
-                "Вы не являетесь администратором. Доступ запрещен"
+                "⛔ Вы не являетесь администратором. Доступ запрещен"
             )
 
         await message.answer(
@@ -29,3 +29,4 @@ async def admin_panel(message: Message):
     except Exception as e:
         logger.error(f"Неизвестная ошибка: {e}")
         pass
+

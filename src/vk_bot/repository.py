@@ -1,8 +1,10 @@
+from typing import Optional
+
 from sqlalchemy import select, insert
 
 from src.db import async_session
 from src.logger_config import setup_logger
-from src.vk_bot.models import VKUser
+from src.vk_bot.models import VKUser, Question, ContentType
 
 logger = setup_logger('repository', 'vk', 'repository_vk_work.log')
 
@@ -22,9 +24,18 @@ class VkUserRepository:
 
     @classmethod
     async def create_user(cls, user_id: int, first_name: str):
-        logger.info(f"Создание VK пользователя {user_id}-{first_name}")
+        logger.debug(f"Создание VK пользователя {user_id}-{first_name}")
         async with async_session() as session:
             stmt = insert(VKUser).values(vk_id=user_id, first_name=first_name)
             await session.execute(stmt)
             await session.commit()
-            logger.info(f"VK Пользователь {user_id} успешно создан")
+            logger.debug(f"VK Пользователь {user_id} успешно создан")
+
+class VkFactRepository:
+    @classmethod
+    async def create_fact(cls, text: str, video_url: Optional[str] = None):
+        async with async_session() as session:
+            logger.debug(f"Создание Факта")
+            stmt = insert(Question).values(type=ContentType.FACT, title=text, video_url=video_url)
+            await session.execute(stmt)
+            await session.commit()

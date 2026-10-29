@@ -2,6 +2,8 @@ import datetime
 import enum
 from sqlalchemy import text, BigInteger, JSON, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from vkbottle import BaseStateGroup
+
 from src.db import Base
 
 
@@ -60,3 +62,8 @@ class VKQuizResult(Base):
     answered_at: Mapped[datetime.datetime] = mapped_column(
         server_default=text("TIMEZONE('utc', now())")
     )
+
+
+class AdminStates(BaseStateGroup):
+    WAITING_FOR_FACT_TEXT = "waiting_for_fact_text"
+    WAITING_FOR_FACT_VIDEO = "waiting_for_fact_video"
