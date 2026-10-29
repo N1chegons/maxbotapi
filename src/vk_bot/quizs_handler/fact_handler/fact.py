@@ -53,7 +53,7 @@ async def send_fact(message: Message):
 
     except Exception as e:
         logger.info(f"Пользователь {user_id} получил неизвестную ошибку: {e}")
-        await message.send_message(f"Неизвестная ошибка")
+        await message.answer(f"Неизвестная ошибка")
 
 @fact_labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
 async def start_create_fact(message: MessageEvent):
@@ -75,7 +75,6 @@ async def start_create_fact(message: MessageEvent):
     except Exception as e:
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
         await message.send_message(f"Неизвестная ошибка")
-
 
 @fact_labeler.message(state=AdminStates.WAITING_FOR_FACT_TEXT)
 async def get_fact_text(message: Message):
@@ -107,7 +106,6 @@ async def get_fact_text(message: Message):
     except Exception as e:
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
         await message.send_message(f"Неизвестная ошибка")
-
 
 @fact_labeler.message(state=AdminStates.WAITING_FOR_FACT_VIDEO)
 async def save_fact(message: Message):
