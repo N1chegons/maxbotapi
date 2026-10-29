@@ -77,7 +77,7 @@ async def get_fact_text(message: Message):
             keyboard=admin_back())
 
     except Exception as e:
-        await message.send_message(f"Неизвестная ошибка: {e}")
+        await message.answer(f"Неизвестная ошибка: {e}")
 
 
 @fact_labeler.message(state=AdminStates.WAITING_FOR_FACT_VIDEO)
@@ -104,4 +104,4 @@ async def save_fact(message: Message):
             keyboard=admin_back())
 
     except Exception as e:
-        await message.send_message(f"Неизвестная ошибка: {e}")
+        await message.answer(f"Неизвестная ошибка: {e}")
