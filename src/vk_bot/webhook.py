@@ -1,19 +1,22 @@
+from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, Request, Response
 
 from src.config import settings
 from src.vk_bot.bot import bot
 
-app = FastAPI()
-
 confirmation_code = "fcd13d3b"
 secret_key = settings.VK_SECRET
 
-@app.on_event("startup")
-async def startup_event():
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     global confirmation_code, secret_key
     confirmation_code, secret_key = await bot.setup_webhook()
+    yield
 
+
+app = FastAPI(lifespan=lifespan)
 
 @app.post("/vk_webhook")
 async def vk_handler(req: Request, background_task: BackgroundTasks):
