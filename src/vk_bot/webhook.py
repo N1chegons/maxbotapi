@@ -1,12 +1,13 @@
 
 from fastapi import BackgroundTasks, FastAPI, Request, Response
 
+from src.config import settings
 from src.vk_bot.bot import bot
 
 app = FastAPI()
 
-confirmation_code: str
-secret_key: str
+confirmation_code = "fcd13d3b"
+secret_key = settings.VK_SECRET
 
 @app.on_event("startup")
 async def startup_event():
