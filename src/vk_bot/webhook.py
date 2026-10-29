@@ -1,5 +1,7 @@
-from bot import bot
+
 from fastapi import BackgroundTasks, FastAPI, Request, Response
+
+from src.vk_bot.bot import bot
 
 app = FastAPI()
 
