@@ -15,7 +15,7 @@ def get_main_menu():
 
 def get_video_and_back_keyboard(video_url: str):
     keyboard = Keyboard(inline=True)
-    keyboard.add(OpenLink(video_url, "🎬 Смотреть видео"), color=KeyboardButtonColor.PRIMARY)
+    keyboard.add(OpenLink(video_url, "🎬 Смотреть видео"), color=KeyboardButtonColor.POSITIVE)
     keyboard.row()
     keyboard.add(Text("↩️ В меню", payload={"action": "back_to_menu"}), color=KeyboardButtonColor.SECONDARY)
 

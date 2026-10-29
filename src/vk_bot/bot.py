@@ -3,6 +3,7 @@ from vkbottle import Bot
 from vkbottle.callback import BotCallback
 
 from src.config import settings
+from src.vk_bot.admin_handler.admin import admin_labeler
 from src.vk_bot.quizs_handler.fact_handler.fact import fact_labeler
 from src.vk_bot.quizs_handler.menu_handler import menu_labeler
 
@@ -19,3 +20,4 @@ callback = BotCallback(
 bot = Bot(token=VK_TOKEN, callback=callback)
 bot.labeler.load(menu_labeler)
 bot.labeler.load(fact_labeler)
+bot.labeler.load(admin_labeler)
