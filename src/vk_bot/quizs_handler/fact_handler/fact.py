@@ -45,7 +45,7 @@ async def start_create_fact(message: MessageEvent):
         await message.send_message("Введите название факта (Если хотите отменить начатое действие напишите - 'отмена'):")
 
     except Exception as e:
-        await message.send_message(f"Неизвестная ошибка")
+        await message.send_message(f"Неизвестная ошибка: {e}")
 
 
 @fact_labeler.message(state=AdminStates.WAITING_FOR_FACT_TEXT)
@@ -77,7 +77,7 @@ async def get_fact_text(message: MessageEvent):
             keyboard=admin_back())
 
     except Exception as e:
-        await message.answer(f"Неизвестная ошибка")
+        await message.send_message(f"Неизвестная ошибка: {e}")
 
 
 @fact_labeler.message(state=AdminStates.WAITING_FOR_FACT_VIDEO)
@@ -104,4 +104,4 @@ async def save_fact(message: MessageEvent):
             keyboard=admin_back())
 
     except Exception as e:
-        await message.answer(f"Неизвестная ошибка")
+        await message.send_message(f"Неизвестная ошибка: {e}")
