@@ -38,3 +38,23 @@ book_slugs_cache.json
 
 # Миграции (если не хочешь хранить)
 # migrations/
+/site/archive/01.html
+/site/archive/01.png
+/site/archive/02.html
+/site/archive/02.png
+/site/archive/03.html
+/site/archive/favicon.ico
+/site/archive/index.html
+/site/archive/index.png
+/site/archive/m.png
+/site/archive/n01.png
+/site/archive/n02.png
+/site/archive/p01.png
+/site/archive/p02.png
+/site/archive/pl.png
+/site/archive/r01.png
+/site/archive/r02.png
+/site/archive/s.png
+/ssh-key-1775284598671
+/site/archive/t.png
+/site/archive/vk.png
