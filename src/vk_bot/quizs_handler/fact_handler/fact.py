@@ -31,13 +31,14 @@ async def send_fact(message: Message):
 @fact_labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
 async def start_create_fact(message: MessageEvent):
     user_id = message.user_id
+    logger.info(f"Админ {user_id} начал создание факта.")
 
     try:
         exists_admin = VkAdminRepository.is_admin(user_id)
         if not exists_admin:
             logger.info(f"Пользователь {user_id} не является админом")
             await message.answer(
-                "⛔ Вы не являетесь администратором. Доступ запрещен"
+                "⛔ Вы не являетесь администратором. Доступ запрещен."
             )
 
 
@@ -45,7 +46,8 @@ async def start_create_fact(message: MessageEvent):
         await message.send_message("Введите название факта (Если хотите отменить начатое действие напишите - 'отмена'):")
 
     except Exception as e:
-        await message.send_message(f"Неизвестная ошибка: {e}")
+        logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+        await message.send_message(f"Неизвестная ошибка")
 
 
 @fact_labeler.message(state=AdminStates.WAITING_FOR_FACT_TEXT)
@@ -63,7 +65,7 @@ async def get_fact_text(message: Message):
         if not exists_admin:
             logger.info(f"Пользователь {user_id} не является админом")
             await message.answer(
-                "⛔ Вы не являетесь администратором. Доступ запрещен"
+                "⛔ Вы не являетесь администратором. Доступ запрещен."
             )
 
         await bot.state_dispenser.set(
@@ -73,11 +75,11 @@ async def get_fact_text(message: Message):
         )
 
         await message.answer(
-            f"Введите ссылку для просмотра материала: ",
-            keyboard=admin_back())
+            f"Введите ссылку для просмотра материала: ")
 
     except Exception as e:
-        await message.answer(f"Неизвестная ошибка: {e}")
+        logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+        await message.send_message(f"Неизвестная ошибка")
 
 
 @fact_labeler.message(state=AdminStates.WAITING_FOR_FACT_VIDEO)
@@ -93,15 +95,17 @@ async def save_fact(message: Message):
         if not exists_admin:
             logger.info(f"Пользователь {user_id} не является админом")
             await message.answer(
-                "⛔ Вы не являетесь администратором. Доступ запрещен"
+                "⛔ Вы не являетесь администратором. Доступ запрещен."
             )
 
         await VkFactRepository.create_fact(fact_title, url)
+        logger.info(f"Админ {user_id} успешно создал факт: {fact_title} - {url}")
         await bot.state_dispenser.delete(message.from_id)
 
         await message.answer(
-            f"Факт {fact_title} с ссылкой {url} - создан.",
+            f"Факт успешно создан:\n Название факта: {fact_title}\n Ссылка: {url}",
             keyboard=admin_back())
 
     except Exception as e:
-        await message.answer(f"Неизвестная ошибка: {e}")
+        logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+        await message.send_message(f"Неизвестная ошибка")
