@@ -12,7 +12,7 @@ VK_URL = "https://bot.nepovinnyh.ru/vk_webhook"
 callback = BotCallback(
     url=VK_URL,
     title="vk_bot",
-    secret_key=settings.VK,
+    secret_key=settings.VK_SECRET,
 )
 
 bot = Bot(token=VK_TOKEN, callback=callback)
