@@ -73,7 +73,7 @@ async def get_fact_text(message: Message):
         )
 
         await message.answer(
-            f"",
+            f"Введите ссылку для просмотра материала: ",
             keyboard=admin_back())
 
     except Exception as e:
