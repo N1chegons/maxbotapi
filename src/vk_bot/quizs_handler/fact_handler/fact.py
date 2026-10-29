@@ -1,5 +1,7 @@
 import datetime
+from urllib.parse import urlparse
 
+from vkbottle import Formatter
 from vkbottle.bot import Message, BotLabeler, MessageEvent
 from vkbottle_types import GroupEventType
 
@@ -47,7 +49,7 @@ async def send_fact(message: Message):
         logger.info(f"Обновление статуса - последний прсомотр факта дня у пользоватея {user_id}")
 
         await message.answer(
-            f"💡 Факт дня:\n\n{random_fact.title}",
+            Formatter("{:bold}:\n\n{}").format("💡 Факт дня", random_fact.title),
             keyboard=get_video_and_back_keyboard(random_fact.video_url)
         )
 
@@ -115,6 +117,12 @@ async def save_fact(message: Message):
         payload = message.state_peer.payload
         fact_title = payload.get("fact_title")
         url = message.text
+
+        parsed_url = urlparse(url)
+        if not parsed_url.netloc:
+            return await message.answer(
+                "❌ Ошибка: неверный формат ссылки. Проверьте, что вы отправили полный адрес."
+            )
 
         exists_admin = VkAdminRepository.is_admin(user_id)
         if not exists_admin:
