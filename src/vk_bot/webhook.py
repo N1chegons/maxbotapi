@@ -5,8 +5,8 @@ from fastapi import BackgroundTasks, FastAPI, Request, Response
 from src.config import settings
 from src.vk_bot.bot import bot
 
-confirmation_code = "fcd13d3b"
-secret_key = settings.VK_SECRET
+confirmation_code: str
+secret_key: str
 
 
 @asynccontextmanager
