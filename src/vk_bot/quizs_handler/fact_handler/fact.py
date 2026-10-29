@@ -49,7 +49,7 @@ async def start_create_fact(message: MessageEvent):
 
 
 @fact_labeler.message(state=AdminStates.WAITING_FOR_FACT_TEXT)
-async def get_fact_text(message: MessageEvent):
+async def get_fact_text(message: Message):
     user_id = message.user_id
 
     if message.text.lower() == 'отмена':
@@ -89,7 +89,7 @@ async def save_fact(message: Message):
         fact_title = payload.get("name")
         url = message.text
 
-        exists_admin =VkAdminRepository.is_admin(user_id)
+        exists_admin = VkAdminRepository.is_admin(user_id)
         if not exists_admin:
             logger.info(f"Пользователь {user_id} не является админом")
             await message.answer(
