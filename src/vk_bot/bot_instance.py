@@ -12,7 +12,7 @@ callback = BotCallback(
 
 # Создаем бота
 bot = Bot(
-    token=settings.VK_TOKEN,
+    token=settings.VK_TOKEN_COMMUNITY,
     callback=callback,
     state_dispenser=state_dispenser
 )
