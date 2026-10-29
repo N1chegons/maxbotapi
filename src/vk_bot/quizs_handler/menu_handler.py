@@ -13,6 +13,7 @@ async def start_handler(message: Message):
         user_id = message.from_id
         exists_user = await VkUserRepository.get_user(user_id)
         logger.info(f"Получение пользователя VK {user_id}")
+
         if not exists_user:
             logger.warning(f"Пользователь не {user_id} не создан. Создание")
             user_info = await message.get_user()
