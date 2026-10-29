@@ -38,6 +38,9 @@ class Settings(BaseSettings):
 
     SECRET_WEBHOOK_KEY: str
 
+    VK_TOKEN_COMMUNITY: str
+    VK_SECRET: str
+
     @property
     def DB_URL(self):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
