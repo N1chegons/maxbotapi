@@ -5,7 +5,7 @@ from vkbottle_types import GroupEventType
 from src.logger_config import setup_logger
 from src.vk_bot.admin_handler.repository import VkAdminRepository
 from src.vk_bot.bot_instance import bot
-from src.vk_bot.keyboards import get_video_and_back_keyboard, admin_back
+from src.vk_bot.keyboards import admin_back
 from src.vk_bot.models import AdminStates
 from src.vk_bot.repository import VkFactRepository
 
@@ -33,7 +33,7 @@ async def start_create_fact(message: MessageEvent):
     user_id = message.user_id
 
     try:
-        exists_admin = await VkAdminRepository.is_admin(user_id)
+        exists_admin = VkAdminRepository.is_admin(user_id)
         if not exists_admin:
             logger.info(f"Пользователь {user_id} не является админом")
             await message.answer(
@@ -59,7 +59,7 @@ async def get_fact_text(message: MessageEvent):
     try:
         payload = message.state_peer.payload.get("fact_title")
 
-        exists_admin = await VkAdminRepository.is_admin(user_id)
+        exists_admin = VkAdminRepository.is_admin(user_id)
         if not exists_admin:
             logger.info(f"Пользователь {user_id} не является админом")
             await message.answer(
@@ -89,7 +89,7 @@ async def save_fact(message: MessageEvent):
         fact_title = payload.get("name")
         url = message.text
 
-        exists_admin = await VkAdminRepository.is_admin(user_id)
+        exists_admin =VkAdminRepository.is_admin(user_id)
         if not exists_admin:
             logger.info(f"Пользователь {user_id} не является админом")
             await message.answer(
