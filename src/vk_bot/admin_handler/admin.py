@@ -22,7 +22,7 @@ async def admin_panel(message: Message):
             )
 
         await message.answer(
-            "Привет! Я бот-помощник. Выбирай, что хочешь узнать сегодня.",
+            "Вы в панели администратора.\nВыберите действия на кнпоках.",
             keyboard=get_admin_menu()
         )
 
