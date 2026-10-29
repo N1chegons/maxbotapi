@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, Request, Response
 
-from src.config import settings
 from src.vk_bot.bot import bot
 
 confirmation_code: str

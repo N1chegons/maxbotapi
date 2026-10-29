@@ -2,11 +2,11 @@ from vkbottle import Keyboard, KeyboardButtonColor, Text, OpenLink
 
 
 def get_main_menu():
-    keyboard = Keyboard(one_time=False, inline=False)
+    keyboard = Keyboard(one_time=False, inline=True)
 
     keyboard.add(Text("💡 Факт дня", payload={"action": "fact"}), color=KeyboardButtonColor.PRIMARY)
     keyboard.add(Text("🧩 Загадка", payload={"action": "riddle"}), color=KeyboardButtonColor.SECONDARY)
-
+    keyboard.row()
     keyboard.add(Text("📝 Тест", payload={"action": "test"}), color=KeyboardButtonColor.SECONDARY)
     keyboard.add(Text("📚 Термин дня", payload={"action": "term"}), color=KeyboardButtonColor.SECONDARY)
 
