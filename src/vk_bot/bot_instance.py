@@ -1,0 +1,18 @@
+from vkbottle import Bot, BuiltinStateDispenser
+from vkbottle.callback import BotCallback
+from src.config import settings
+
+state_dispenser = BuiltinStateDispenser()
+
+callback = BotCallback(
+    url="https://bot.nepovinnyh.ru/vk_webhook",
+    title="vk_bot",
+    secret_key=settings.VK_SECRET
+)
+
+# Создаем бота
+bot = Bot(
+    token=settings.VK_TOKEN,
+    callback=callback,
+    state_dispenser=state_dispenser
+)

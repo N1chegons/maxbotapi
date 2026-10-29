@@ -4,7 +4,7 @@ from vkbottle_types import GroupEventType
 
 from src.logger_config import setup_logger
 from src.vk_bot.admin_handler.repository import VkAdminRepository
-from src.vk_bot.bot import bot
+from src.vk_bot.bot_instance import bot
 from src.vk_bot.keyboards import get_video_and_back_keyboard, admin_back
 from src.vk_bot.models import AdminStates
 from src.vk_bot.repository import VkFactRepository
