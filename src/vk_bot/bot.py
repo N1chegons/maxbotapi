@@ -28,7 +28,6 @@ async def vk_webhook_handler(request: web.Request):
     event_data = dict(data)
 
     await bot.process_event(event_data)
-    return web.Response(text="fcd13d3b")
 
 # Регистрируем путь для вебхука
 app.router.add_post("/vk_webhook", vk_webhook_handler)
