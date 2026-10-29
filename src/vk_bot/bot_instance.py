@@ -10,7 +10,6 @@ callback = BotCallback(
     secret_key=settings.VK_SECRET
 )
 
-# Создаем бота
 bot = Bot(
     token=settings.VK_TOKEN_COMMUNITY,
     callback=callback,

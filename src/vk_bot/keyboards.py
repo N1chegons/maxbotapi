@@ -1,4 +1,4 @@
-from vkbottle import Keyboard, KeyboardButtonColor, Text, OpenLink
+from vkbottle import Keyboard, KeyboardButtonColor, Text, OpenLink, Callback
 
 
 def get_main_menu():
@@ -23,10 +23,10 @@ def get_video_and_back_keyboard(video_url: str):
 def get_admin_menu():
     keyboard = Keyboard(one_time=False, inline=True)
 
-    keyboard.add(Text("➕ Созадть факт", payload={"action": "create_fact"}), color=KeyboardButtonColor.POSITIVE)
-    keyboard.add(Text("➕ Создать згадку", payload={"action": "create_riddle"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Созадть факт", payload={"action": "create_fact"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Создать загадку", payload={"action": "create_riddle"}), color=KeyboardButtonColor.POSITIVE)
     keyboard.row()
-    keyboard.add(Text("➕ Создать Тест", payload={"action": "create_test"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Создать Тест", payload={"action": "create_test"}), color=KeyboardButtonColor.POSITIVE)
 
     return keyboard.get_json()
 
