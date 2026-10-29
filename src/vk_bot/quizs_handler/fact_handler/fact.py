@@ -86,7 +86,7 @@ async def save_fact(message: Message):
 
     try:
         payload = message.state_peer.payload
-        fact_title = payload.get("name")
+        fact_title = payload.get("fact_title")
         url = message.text
 
         exists_admin = VkAdminRepository.is_admin(user_id)
