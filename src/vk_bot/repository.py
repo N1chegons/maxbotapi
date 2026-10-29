@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, update, func
 
 from src.db import async_session
 from src.logger_config import setup_logger
@@ -31,7 +32,26 @@ class VkUserRepository:
             await session.commit()
             logger.debug(f"VK Пользователь {user_id} успешно создан")
 
+
+    @classmethod
+    async def update_last_fact_date(cls, user_id: int):
+        logger.debug(f"Обновления поля 'послдений просмотр факта дня', id = {user_id}")
+        async with async_session() as session:
+            stmt = update(VKUser).filter_by(user_id=user_id).values(last_fact_date=datetime.now())
+            await session.execute(stmt)
+            await session.commit()
+            logger.debug(f"VK Пользователь {user_id} успешно создан")
+
 class VkFactRepository:
+    @classmethod
+    async def get_random_fact(cls):
+        logger.debug(f"Получение рандомного факта")
+        async with async_session() as session:
+            stmt = select(Question).where(Question.type == ContentType.FACT).order_by(func.random()).limit(1)
+            fact = await session.execute(stmt)
+            logger.debug(f"Получен рандомный факт")
+            return fact.scalar_one_or_none()
+
     @classmethod
     async def create_fact(cls, text: str, video_url: Optional[str] = None):
         async with async_session() as session:

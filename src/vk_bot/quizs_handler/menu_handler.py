@@ -1,7 +1,7 @@
 from vkbottle.bot import Message, BotLabeler
 
 from src.logger_config import setup_logger
-from src.vk_bot.keyboards import get_main_menu
+from src.vk_bot.keyboards import get_main_menu, get_admin_menu
 from src.vk_bot.repository import VkUserRepository
 
 menu_labeler = BotLabeler()
@@ -35,4 +35,11 @@ async def back_to_menu_handler(message: Message):
     await message.answer(
         "Вы в главном меню.",
         keyboard=get_main_menu()
+    )
+
+@menu_labeler.message(payload={"action": "back_to_admin_menu"})
+async def back_to_admin_menu_handler(message: Message):
+    await message.answer(
+        "Вы в панели администратора.",
+        keyboard=get_admin_menu()
     )
