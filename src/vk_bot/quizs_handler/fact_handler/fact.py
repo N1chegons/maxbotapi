@@ -1,8 +1,7 @@
 import datetime
 from urllib.parse import urlparse
 
-from vkbottle.bot import Message, BotLabeler, MessageEvent
-from vkbottle_types import GroupEventType
+from vkbottle.bot import Message
 
 from src.logger_config import setup_logger
 from src.vk_bot.admin_handler.repository import VkAdminRepository
@@ -53,48 +52,6 @@ logger = setup_logger('fact_handler_vk', 'vk', 'fact_handler_vk.log')
 #         logger.info(f"Пользователь {user_id} получил неизвестную ошибку: {e}")
 #         await message.answer(f"Неизвестная ошибка")
 
-@labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
-async def start_create_fact(message: MessageEvent):
-    payload = message.object.payload
-    if payload["action"] == "create_fact":
-        user_id = message.user_id
-        logger.info(f"Админ {user_id} начал создание факта.")
-
-        try:
-            exists_admin = VkAdminRepository.is_admin(user_id)
-            if not exists_admin:
-                logger.info(f"Пользователь {user_id} не является админом")
-                await message.answer(
-                    "⛔ Вы не являетесь администратором. Доступ запрещен."
-                )
-
-
-            await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_FACT_TEXT)
-            await message.send_message("Введите название факта (Если хотите отменить начатое действие напишите - 'отмена'):")
-
-        except Exception as e:
-            logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
-            await message.send_message(f"Неизвестная ошибка")
-
-    if payload["action"] == "create_opinion":
-        user_id = message.user_id
-        logger.info(f"Админ {user_id} начал создание сбора мнений.")
-
-        try:
-            exists_admin = VkAdminRepository.is_admin(user_id)
-            if not exists_admin:
-                logger.info(f"Пользователь {user_id} не является админом")
-                await message.answer(
-                    "⛔ Вы не являетесь администратором. Доступ запрещен."
-                )
-
-            await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_OPINION_TEXT)
-            await message.send_message("Введите заголовок сбора мнения (Если хотите отменить начатое действие напишите - 'отмена'):")
-
-        except Exception as e:
-            logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
-            await message.send_message(f"Неизвестная ошибка")
-
 @labeler.message(state=AdminStates.WAITING_FOR_FACT_TEXT)
 async def get_fact_text(message: Message):
     user_id = message.from_id
@@ -129,6 +86,10 @@ async def get_fact_text(message: Message):
 @labeler.message(state=AdminStates.WAITING_FOR_FACT_VIDEO)
 async def save_fact(message: Message):
     user_id = message.from_id
+
+    if message.text.lower() == 'отмена':
+        await bot.state_dispenser.delete(message.from_id)
+        return await message.answer("Создание отменено.")
 
     try:
         payload = message.state_peer.payload

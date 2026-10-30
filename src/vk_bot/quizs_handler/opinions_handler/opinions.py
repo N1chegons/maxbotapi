@@ -1,7 +1,6 @@
 from urllib.parse import urlparse
 
-from vkbottle.bot import Message, MessageEvent
-from vkbottle_types import GroupEventType
+from vkbottle.bot import Message
 
 from src.logger_config import setup_logger
 from src.vk_bot.admin_handler.repository import VkAdminRepository
@@ -11,28 +10,6 @@ from src.vk_bot.models import AdminStates
 from src.vk_bot.repository import VkOpinionRepository
 
 logger = setup_logger('opinions_handler_vk', 'vk', 'opinions_handler_vk.log')
-
-@labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
-async def start_create_opinion(message: MessageEvent):
-    payload = message.object.payload
-    if payload["action"] == "create_opinion":
-        user_id = message.user_id
-        logger.info(f"Админ {user_id} начал создание сбора мнений.")
-
-        try:
-            exists_admin = VkAdminRepository.is_admin(user_id)
-            if not exists_admin:
-                logger.info(f"Пользователь {user_id} не является админом")
-                await message.answer(
-                    "⛔ Вы не являетесь администратором. Доступ запрещен."
-                )
-
-            await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_OPINION_TEXT)
-            await message.send_message("Введите заголовок сбора мнения (Если хотите отменить начатое действие напишите - 'отмена'):")
-
-        except Exception as e:
-            logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
-            await message.send_message(f"Неизвестная ошибка")
 
 @labeler.message(state=AdminStates.WAITING_FOR_OPINION_TEXT)
 async def get_opinion_text(message: Message):
@@ -67,6 +44,10 @@ async def get_opinion_text(message: Message):
 @labeler.message(state=AdminStates.WAITING_FOR_OPINION_VIDEO)
 async def save_opinion(message: Message):
     user_id = message.from_id
+
+    if message.text.lower() == 'отмена':
+        await bot.state_dispenser.delete(message.from_id)
+        return await message.answer("Создание отменено.")
 
     try:
         payload = message.state_peer.payload
