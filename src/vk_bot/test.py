@@ -13,6 +13,7 @@ GROUP_ID = 216257056
 # Тестовые данные (потом они будут браться из БД)
 TEST_FACT_TEXT = "В 1915 году химик Зелинский создал противогаз, в основе которого был активированный уголь."
 TEST_VIDEO_URL = "https://vkvideo.ru/video-216257056_456240746?pl=-216257056_2"
+TEST_VIDEO_ATTACHMENT = "video-216257056_456240746"
 
 async def main():
     print("1. Инициализация API...")
@@ -21,8 +22,9 @@ async def main():
     # Сначала проверим, чей это токен и есть ли права
     try:
         print("2. Проверка токена...")
-        me = await api.users.get()
-        print(f"✅ Токен валиден. Владелец токена: {me[0].first_name} {me[0].last_name}")
+        # Проверяем информацию о сообществе (это работает для токенов сообществ)
+        group_info = await api.groups.get_by_id(group_id=GROUP_ID)
+        print(f"✅ Токен валиден. Сообщество: {group_info.name}")
     except Exception as e:
         print(f"❌ Ошибка токена: {e}")
         return
@@ -37,7 +39,7 @@ async def main():
             owner_id=-GROUP_ID, # Внимание: для сообществ ID пишется с минусом
             from_group=1,       # Публикуем от имени сообщества
             message=post_text,
-            attachments=TEST_VIDEO_URL
+            attachments=TEST_VIDEO_ATTACHMENT
         )
         print(f"✅ ПОБЕДА! Пост успешно опубликован.")
         print(f"ID записи: {response}")
