@@ -59,7 +59,7 @@ class FactSenderService:
         post_text = mailing.title
         full_url = mailing.video_url if hasattr(mailing, 'video_url') else mailing.url
         chat_link = "https://vk.me/club216257056?ref=opinion"
-        post_text = f"{mailing.title}\n\n👉 [Высказать мнение]({chat_link})"
+        post_text = f"{mailing.title}\n\n👉 Высказать мнение: {chat_link}"
 
         attachment = None
         if full_url:
