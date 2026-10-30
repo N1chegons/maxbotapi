@@ -15,10 +15,16 @@ async def main():
 
     try:
         print("2. Проверка токена...")
-        # В vkbottle 4.x groups.get_by_id возвращает объект, а не список.
-        # Название группы лежит в поле 'title', а не 'name'.
         group_info = await api.groups.get_by_id(group_id=GROUP_ID)
-        print(f"✅ Токен валиден. Сообщество: {group_info.title}")
+
+        # Выводим все поля, которые есть в ответе
+        print(f"✅ Токен валиден. Ответ от ВК: {group_info}")
+        # Если группа есть, выводим её поля
+        if isinstance(group_info, list):
+            print(f"Поля группы: {group_info[0].__dict__}")
+        else:
+            print(f"Поля группы: {group_info.__dict__}")
+
     except Exception as e:
         print(f"❌ Ошибка токена: {e}")
         return
