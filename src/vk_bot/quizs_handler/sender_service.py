@@ -37,14 +37,16 @@ class FactSenderService:
                 owner_id=cls.GROUP_ID,
                 from_group=1,
                 message=post_text,
-                attachments=full_url
+                attachments=attachment
             )
 
             post_id = response.post_id
+
             logger.info(f"✅ Пост опубликован. ID:{post_id}.\nСсылка на пост: https://vk.com/wall{cls.GROUP_ID}_{post_id}")
 
+
         except Exception as e:
-            logger.error("❌ Ошибка публикации: {e}")
+            logger.error(f"❌ Ошибка публикации: {e}")
 
 
 async def main():
