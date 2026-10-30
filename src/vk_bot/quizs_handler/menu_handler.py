@@ -1,13 +1,13 @@
 from vkbottle.bot import Message, BotLabeler
 
 from src.logger_config import setup_logger
+from src.vk_bot.bot_instance import labeler
 from src.vk_bot.keyboards import get_admin_menu
 from src.vk_bot.repository import VkUserRepository
 
-menu_labeler = BotLabeler()
 logger = setup_logger('menu_handler', 'vk', 'menu_handler_work.log')
 
-@menu_labeler.message(text=["/start", "Начать", "start"])
+@labeler.message(text=["/start", "Начать", "start"])
 async def start_handler(message: Message):
     try:
         user_id = message.from_id
