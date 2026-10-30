@@ -9,8 +9,10 @@ yandex_client = OpenAI(
 )
 
 THEMES_INDEXES = {
+        "Консультации": settings.SEARCH_INDEX_1987,
         "Мировоззрение": settings.SEARCH_INDEX_2027
     }
 THEMES_DESCRIPTIONS = {
+        "Консультации": "диалоговая поддержка, поиск решений, работа с запросом",
         "Мировоззрение": "актуальные взгляды и позиции эксперта"
     }

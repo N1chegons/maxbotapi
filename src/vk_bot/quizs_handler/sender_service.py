@@ -47,11 +47,3 @@ class FactSenderService:
 
         except Exception as e:
             logger.error(f"❌ Ошибка публикации: {e}")
-
-
-async def main():
-    await FactSenderService.send_fact()
-
-
-if __name__ == '__main__':
-    asyncio.run(main())
