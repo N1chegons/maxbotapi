@@ -39,7 +39,7 @@ async def get_opinion_text(message: Message):
 
     except Exception as e:
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
-        await message.send_message(f"Неизвестная ошибка")
+        await message.answer(f"Неизвестная ошибка")
 
 @labeler.message(state=AdminStates.WAITING_FOR_OPINION_VIDEO)
 async def save_opinion(message: Message):
@@ -78,4 +78,4 @@ async def save_opinion(message: Message):
 
     except Exception as e:
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
-        await message.send_message(f"Неизвестная ошибка")
+        await message.answer(f"Неизвестная ошибка")
