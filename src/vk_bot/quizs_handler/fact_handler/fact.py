@@ -76,6 +76,25 @@ async def start_create_fact(message: MessageEvent):
             logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
             await message.send_message(f"Неизвестная ошибка")
 
+    if payload["action"] == "create_opinion":
+        user_id = message.user_id
+        logger.info(f"Админ {user_id} начал создание сбора мнений.")
+
+        try:
+            exists_admin = VkAdminRepository.is_admin(user_id)
+            if not exists_admin:
+                logger.info(f"Пользователь {user_id} не является админом")
+                await message.answer(
+                    "⛔ Вы не являетесь администратором. Доступ запрещен."
+                )
+
+            await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_OPINION_TEXT)
+            await message.send_message("Введите заголовок сбора мнения (Если хотите отменить начатое действие напишите - 'отмена'):")
+
+        except Exception as e:
+            logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+            await message.send_message(f"Неизвестная ошибка")
+
 @labeler.message(state=AdminStates.WAITING_FOR_FACT_TEXT)
 async def get_fact_text(message: Message):
     user_id = message.from_id
