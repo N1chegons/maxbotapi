@@ -2,29 +2,25 @@ import re
 import asyncio
 from vkbottle import API
 from src.config import settings
+from src.logger_config import setup_logger
 from src.vk_bot.repository import VkFactRepository
 
+logger = setup_logger('sender_service_vk', 'vk', 'sender_service_vk.log')
 
 class FactSenderService:
     VK_TOKEN = settings.VK_TOKEN_COMMUNITY
-    # Внимание: ID сообщества с минусом
     GROUP_ID = -216257056
     api = API(VK_TOKEN)
 
     @classmethod
     async def send_fact(cls):
-        # 1. Получаем факт
         fact = await VkFactRepository.get_random_fact()
 
         if not fact:
-            print("❌ Фактов в базе нет.")
+            logger.warning("Фактов не найдено. База пуста")
             return
 
-        # 2. Формируем текст (исправлена опечатка tiitle -> title)
         post_text = fact.title
-
-        # 3. Парсим ссылку (исправлено url -> video_url, если в модели так)
-        # Если в модели поле называется url, то оставь fact.url
         full_url = fact.video_url if hasattr(fact, 'video_url') else fact.url
 
         attachment = None
@@ -36,22 +32,21 @@ class FactSenderService:
                 attachment = full_url
 
         try:
+            logger.info(f"Попытка отправки поста из БД. Название факта - {post_text}\nСсылка на факт - {full_url}")
             response = await cls.api.wall.post(
-                owner_id=cls.GROUP_ID,  # Тут минус уже есть
+                owner_id=cls.GROUP_ID,
                 from_group=1,
                 message=post_text,
-                attachments=attachment
+                attachments=full_url
             )
 
-            # Достаем ID поста из ответа
             post_id = response.post_id
 
-            print(f"✅ ПОБЕДА! Пост успешно опубликован.")
-            # Добавил нижнее подчеркивание _ перед ID
-            print(f"Ссылка на пост: https://vk.com/wall{cls.GROUP_ID}_{post_id}")
+            logger.info(f"✅ Пост опубликован. ID:{post_id}.\nСсылка на пост: https://vk.com/wall{cls.GROUP_ID}_{post_id}")
+
 
         except Exception as e:
-            print(f"❌ Ошибка публикации: {e}")
+            logger.error("❌ Ошибка публикации: {e}")
 
 
 async def main():
