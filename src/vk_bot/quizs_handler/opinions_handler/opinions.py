@@ -16,7 +16,7 @@ opinion_labeler = BotLabeler()
 
 logger = setup_logger('opinions_handler_vk', 'vk', 'opinions_handler_vk.log')
 
-@opinion_labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
+@opinion_labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent, payload={"action": "create_opinion"})
 async def start_create_opinion(message: MessageEvent):
     if message.payload.get("action") != "create_opinion":
         return
