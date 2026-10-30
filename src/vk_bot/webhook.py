@@ -35,3 +35,4 @@ import src.vk_bot.quizs_handler.menu_handler
 import src.vk_bot.quizs_handler.fact_handler.fact
 import src.vk_bot.quizs_handler.opinions_handler.opinions
 import src.vk_bot.admin_handler.admin
+import src.vk_bot.quizs_handler.create_message_event
