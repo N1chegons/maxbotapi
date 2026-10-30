@@ -35,7 +35,7 @@ async def get_opinion_text(message: Message):
             opinion_title=message.text
         )
 
-        await message.answer(f"Введите ссылку для просмотра материала: ")
+        await message.answer(f"Введите ссылку для просмотра материала  (Введите 'нет' - если нет ссылки): ")
 
     except Exception as e:
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
@@ -52,7 +52,7 @@ async def save_opinion(message: Message):
     try:
         payload = message.state_peer.payload
         opinion_title = payload.get("opinion_title")
-        url = message.text
+        url = message.text if message.text.lower() != 'нет' else None
 
         parsed_url = urlparse(url)
         if not parsed_url.netloc:

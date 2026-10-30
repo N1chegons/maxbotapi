@@ -3,7 +3,7 @@ import asyncio
 from vkbottle import API
 from src.config import settings
 from src.logger_config import setup_logger
-from src.vk_bot.repository import VkFactRepository, VkOpinionRepository
+from src.vk_bot.repository import VkFactRepository, VkOpinionRepository, VkTestRepository
 
 logger = setup_logger('sender_service_vk', 'vk', 'sender_service_vk.log')
 
@@ -83,6 +83,41 @@ class FactSenderService:
             logger.info(
                 f"✅ Пост опубликован. ID:{post_id}.\nСсылка на пост: https://vk.com/wall{cls.GROUP_ID}_{post_id}")
 
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка публикации: {e}")
+
+    @classmethod
+    async def send_test(cls):
+        test = await VkTestRepository.get_random_test()
+
+        if not test:
+            logger.warning("Тестов не найдено. База пуста")
+            return
+
+        try:
+
+            import json
+            answers_json = json.dumps(test.options)
+
+            poll_response = await cls.api.polls.create(
+                owner_id=cls.GROUP_ID,
+                question=test.title,
+                add_answers=answers_json,
+                is_anonymous=1
+            )
+            poll_id = poll_response.id
+
+            video_link = test.video_url
+            post_text = f"👉 Посмотри видео, чтобы правильно ответить: {video_link}\n\n{test.title}"
+
+            response = await cls.api.wall.post(
+                owner_id=cls.GROUP_ID,
+                from_group=1,
+                message=post_text,
+                attachments=f"poll{cls.GROUP_ID}_{poll_id}"
+            )
+            logger.info(f"✅ Тест-опрос опубликован. Ссылка: https://vk.com/wall{cls.GROUP_ID}_{response.post_id}")
 
         except Exception as e:
             logger.error(f"❌ Ошибка публикации: {e}")

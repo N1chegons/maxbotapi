@@ -77,3 +77,23 @@ class VkOpinionRepository:
             stmt = insert(Question).values(type=ContentType.OPINION, title=text, video_url=video_url)
             await session.execute(stmt)
             await session.commit()
+
+
+class VkTestRepository:
+    @classmethod
+    async def get_random_test(cls):
+        logger.debug(f"Получение рандомного теста")
+        async with async_session() as session:
+            stmt = select(Question).where(Question.type == ContentType.TEST).order_by(func.random()).limit(1)
+            fact = await session.execute(stmt)
+            logger.debug(f"Получен рандомный тест")
+            return fact.scalar_one_or_none()
+
+    @classmethod
+    async def create_test(cls, title: str, options: list, video_url: Optional[str] = None):
+        async with async_session() as session:
+            logger.debug(f"Создание теста")
+            stmt = insert(Question).values(type=ContentType.TEST, title=title, options=options, video_url=video_url)
+            await session.execute(stmt)
+            await session.commit()
+

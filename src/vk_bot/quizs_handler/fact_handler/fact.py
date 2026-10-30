@@ -77,7 +77,7 @@ async def get_fact_text(message: Message):
         )
 
         await message.answer(
-            f"Введите ссылку для просмотра материала: ")
+            f"Введите ссылку для просмотра материала  (Введите 'нет' - если нет ссылки): ")
 
     except Exception as e:
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
@@ -94,7 +94,7 @@ async def save_fact(message: Message):
     try:
         payload = message.state_peer.payload
         fact_title = payload.get("fact_title")
-        url = message.text
+        url = message.text if message.text.lower() != 'нет' else None
 
         parsed_url = urlparse(url)
         if not parsed_url.netloc:

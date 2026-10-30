@@ -69,3 +69,7 @@ class AdminStates(BaseStateGroup):
 
     WAITING_FOR_OPINION_TEXT = "waiting_for_opinion_text"
     WAITING_FOR_OPINION_VIDEO = "waiting_for_opinion_video"
+
+    WAITING_FOR_TEST_QUESTION = "waiting_for_test_question"
+    WAITING_FOR_TEST_OPTIONS = "waiting_for_test_options"
+    WAITING_FOR_TEST_VIDEO = "waiting_for_test_video"

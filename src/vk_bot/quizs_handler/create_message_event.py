@@ -49,3 +49,22 @@ async def start_create(message: MessageEvent):
         except Exception as e:
             logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
             await message.send_message(f"Неизвестная ошибка")
+
+    if payload["action"] == "create_test":
+        user_id = message.user_id
+        logger.info(f"Админ {user_id} начал создание теста.")
+
+        try:
+            exists_admin = VkAdminRepository.is_admin(user_id)
+            if not exists_admin:
+                logger.info(f"Пользователь {user_id} не является админом")
+                await message.answer(
+                    "⛔ Вы не являетесь администратором. Доступ запрещен."
+                )
+
+            await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_TEST_QUESTION)
+            await message.send_message("Введите вопрос теста (Если хотите отменить начатое действие напишите - 'отмена'):")
+
+        except Exception as e:
+            logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+            await message.send_message(f"Неизвестная ошибка")
