@@ -20,9 +20,9 @@ async def main():
 
     # Сначала проверим, чей это токен и есть ли права
     try:
-        print("2. Проверка токена (getMe)...")
-        me = await api.groups.get_by_id(group_id=GROUP_ID)
-        print(f"✅ Токен валиден. Сообщество: {me[0].name}")
+        print("2. Проверка токена...")
+        me = await api.users.get()
+        print(f"✅ Токен валиден. Владелец токена: {me[0].first_name} {me[0].last_name}")
     except Exception as e:
         print(f"❌ Ошибка токена: {e}")
         return
