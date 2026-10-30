@@ -12,7 +12,7 @@ from src.vk_bot.repository import VkOpinionRepository
 
 logger = setup_logger('opinions_handler_vk', 'vk', 'opinions_handler_vk.log')
 
-@labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent, payload={"action": "create_opinion"})
+@labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
 async def start_create_opinion(message: MessageEvent):
     if message.payload.get("action") != "create_opinion":
         return
