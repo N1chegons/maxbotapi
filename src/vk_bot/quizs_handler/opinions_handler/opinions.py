@@ -7,16 +7,14 @@ from vkbottle_types import GroupEventType
 
 from src.logger_config import setup_logger
 from src.vk_bot.admin_handler.repository import VkAdminRepository
-from src.vk_bot.bot_instance import bot
+from src.vk_bot.bot_instance import bot, labeler
 from src.vk_bot.keyboards import admin_back
 from src.vk_bot.models import AdminStates
 from src.vk_bot.repository import VkFactRepository, VkOpinionRepository
 
-opinion_labeler = BotLabeler()
-
 logger = setup_logger('opinions_handler_vk', 'vk', 'opinions_handler_vk.log')
 
-@opinion_labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent, payload={"action": "create_opinion"})
+@labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent, payload={"action": "create_opinion"})
 async def start_create_opinion(message: MessageEvent):
     if message.payload.get("action") != "create_opinion":
         return
@@ -39,7 +37,7 @@ async def start_create_opinion(message: MessageEvent):
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
         await message.send_message(f"Неизвестная ошибка")
 
-@opinion_labeler.message(state=AdminStates.WAITING_FOR_OPINION_TEXT)
+@labeler.message(state=AdminStates.WAITING_FOR_OPINION_TEXT)
 async def get_opinion_text(message: Message):
     user_id = message.from_id
 
@@ -69,7 +67,7 @@ async def get_opinion_text(message: Message):
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
         await message.send_message(f"Неизвестная ошибка")
 
-@opinion_labeler.message(state=AdminStates.WAITING_FOR_OPINION_VIDEO)
+@labeler.message(state=AdminStates.WAITING_FOR_OPINION_VIDEO)
 async def save_opinion(message: Message):
     user_id = message.from_id
 

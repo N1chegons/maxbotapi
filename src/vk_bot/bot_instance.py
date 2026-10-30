@@ -1,7 +1,16 @@
-from vkbottle import Bot, BuiltinStateDispenser
+from vkbottle import API, BuiltinStateDispenser, Bot
+from vkbottle.bot import BotLabeler
 from vkbottle.callback import BotCallback
 from src.config import settings
 
+import src.vk_bot.quizs_handler.menu_handler
+import src.vk_bot.quizs_handler.fact_handler.fact
+import src.vk_bot.quizs_handler.opinions_handler.opinions
+import src.vk_bot.admin_handler.admin
+
+labeler = BotLabeler()
+
+api = API(settings.VK_TOKEN_COMMUNITY)
 state_dispenser = BuiltinStateDispenser()
 
 callback = BotCallback(
@@ -11,7 +20,8 @@ callback = BotCallback(
 )
 
 bot = Bot(
-    token=settings.VK_TOKEN_COMMUNITY,
-    callback=callback,
-    state_dispenser=state_dispenser
+    api=api,
+    labeler=labeler,
+    state_dispenser=state_dispenser,
+    callback=callback
 )

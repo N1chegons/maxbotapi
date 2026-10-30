@@ -2,11 +2,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, Request, Response
 
-from src.vk_bot.bot import bot
+from src.vk_bot.bot_instance import bot
 
 confirmation_code: str
 secret_key: str
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

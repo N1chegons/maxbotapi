@@ -7,13 +7,10 @@ from vkbottle_types import GroupEventType
 
 from src.logger_config import setup_logger
 from src.vk_bot.admin_handler.repository import VkAdminRepository
-from src.vk_bot.bot_instance import bot
+from src.vk_bot.bot_instance import bot, labeler
 from src.vk_bot.keyboards import admin_back
 from src.vk_bot.models import AdminStates
 from src.vk_bot.repository import VkFactRepository
-from src.vk_bot.repository import VkUserRepository
-
-fact_labeler = BotLabeler()
 
 logger = setup_logger('fact_handler_vk', 'vk', 'fact_handler_vk.log')
 
@@ -57,7 +54,7 @@ logger = setup_logger('fact_handler_vk', 'vk', 'fact_handler_vk.log')
 #         logger.info(f"Пользователь {user_id} получил неизвестную ошибку: {e}")
 #         await message.answer(f"Неизвестная ошибка")
 
-@fact_labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
+@labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
 async def start_create_fact(message: MessageEvent):
     if message.payload.get("action") != "create_fact":
         return
@@ -81,7 +78,7 @@ async def start_create_fact(message: MessageEvent):
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
         await message.send_message(f"Неизвестная ошибка")
 
-@fact_labeler.message(state=AdminStates.WAITING_FOR_FACT_TEXT)
+@labeler.message(state=AdminStates.WAITING_FOR_FACT_TEXT)
 async def get_fact_text(message: Message):
     user_id = message.from_id
 
@@ -112,7 +109,7 @@ async def get_fact_text(message: Message):
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
         await message.send_message(f"Неизвестная ошибка")
 
-@fact_labeler.message(state=AdminStates.WAITING_FOR_FACT_VIDEO)
+@labeler.message(state=AdminStates.WAITING_FOR_FACT_VIDEO)
 async def save_fact(message: Message):
     user_id = message.from_id
 
