@@ -47,7 +47,7 @@ async def start_handler(message: Message):
 #         keyboard=get_main_menu()
 #     )
 
-@menu_labeler.message(payload={"action": "back_to_admin_menu"})
+@labeler.message(payload={"action": "back_to_admin_menu"})
 async def back_to_admin_menu_handler(message: Message):
     await message.answer(
         "Вы в панели администратора.",
