@@ -1,0 +1,103 @@
+import datetime
+from urllib.parse import urlparse
+
+from vkbottle import Formatter
+from vkbottle.bot import Message, BotLabeler, MessageEvent
+from vkbottle_types import GroupEventType
+
+from src.logger_config import setup_logger
+from src.vk_bot.admin_handler.repository import VkAdminRepository
+from src.vk_bot.bot_instance import bot
+from src.vk_bot.keyboards import admin_back
+from src.vk_bot.models import AdminStates
+from src.vk_bot.repository import VkFactRepository
+
+opinion_labeler = BotLabeler()
+
+logger = setup_logger('opinions_handler_vk', 'vk', 'opinions_handler_vk.log')
+
+@opinion_labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
+async def start_create_opinion(message: MessageEvent):
+    user_id = message.user_id
+    logger.info(f"Админ {user_id} начал создание сбора мнений.")
+
+    try:
+        exists_admin = VkAdminRepository.is_admin(user_id)
+        if not exists_admin:
+            logger.info(f"Пользователь {user_id} не является админом")
+            await message.answer(
+                "⛔ Вы не являетесь администратором. Доступ запрещен."
+            )
+
+
+        await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_OPINION_TEXT)
+        await message.send_message("Введите заголовок сбора мнения (Если хотите отменить начатое действие напишите - 'отмена'):")
+
+    except Exception as e:
+        logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+        await message.send_message(f"Неизвестная ошибка")
+
+@opinion_labeler.message(state=AdminStates.WAITING_FOR_OPINION_TEXT)
+async def get_opinion_text(message: Message):
+    user_id = message.from_id
+
+    if message.text.lower() == 'отмена':
+        await bot.state_dispenser.delete(message.from_id)
+        return await message.answer("Создание отменено.")
+
+    try:
+        payload = message.state_peer.payload.get("fact_title")
+
+        exists_admin = VkAdminRepository.is_admin(user_id)
+        if not exists_admin:
+            logger.info(f"Пользователь {user_id} не является админом")
+            await message.answer(
+                "⛔ Вы не являетесь администратором. Доступ запрещен."
+            )
+
+        await bot.state_dispenser.set(
+            message.peer_id,
+            AdminStates.WAITING_FOR_OPINION_VIDEO,
+            opinion_title=message.text
+        )
+
+        await message.answer(f"Введите ссылку для просмотра материала: ")
+
+    except Exception as e:
+        logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+        await message.send_message(f"Неизвестная ошибка")
+
+@opinion_labeler.message(state=AdminStates.WAITING_FOR_OPINION_VIDEO)
+async def save_opinion(message: Message):
+    user_id = message.from_id
+
+    try:
+        payload = message.state_peer.payload
+        fact_title = payload.get("opinion_title")
+        url = message.text
+
+        parsed_url = urlparse(url)
+        if not parsed_url.netloc:
+            return await message.answer(
+                "❌ Ошибка: неверный формат ссылки. Проверьте, что вы отправили полный адрес."
+            )
+
+        exists_admin = VkAdminRepository.is_admin(user_id)
+        if not exists_admin:
+            logger.info(f"Пользователь {user_id} не является админом")
+            await message.answer(
+                "⛔ Вы не являетесь администратором. Доступ запрещен."
+            )
+
+        await VkFactRepository.create_fact(fact_title, url)
+        logger.info(f"Админ {user_id} успешно создал сбор мнений: {fact_title} - {url}")
+
+        await bot.state_dispenser.delete(message.from_id)
+
+        await message.answer(
+            f"Сбор мнений успешно создан:\n Заголовок сбора: {fact_title}\n Ссылка: {url}",
+            keyboard=admin_back())
+
+    except Exception as e:
+        logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+        await message.send_message(f"Неизвестная ошибка")

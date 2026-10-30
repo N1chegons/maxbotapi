@@ -11,6 +11,7 @@ class ContentType(enum.Enum):
     TEST = "test"
     RIDDLE = "riddle"
     FACT = "fact"
+    OPINION = "opinion"
 
 
 class Question(Base):
@@ -65,3 +66,6 @@ class VKQuizResult(Base):
 class AdminStates(BaseStateGroup):
     WAITING_FOR_FACT_TEXT = "waiting_for_fact_text"
     WAITING_FOR_FACT_VIDEO = "waiting_for_fact_video"
+
+    WAITING_FOR_OPINION_TEXT = "waiting_for_opinion_text"
+    WAITING_FOR_OPINION_VIDEO = "waiting_for_opinion_video"

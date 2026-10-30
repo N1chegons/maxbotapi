@@ -59,3 +59,21 @@ class VkFactRepository:
             stmt = insert(Question).values(type=ContentType.FACT, title=text, video_url=video_url)
             await session.execute(stmt)
             await session.commit()
+
+class VkOpinionRepository:
+    @classmethod
+    async def get_random_opinion(cls):
+        logger.debug(f"Получение рандомного сбора")
+        async with async_session() as session:
+            stmt = select(Question).where(Question.type == ContentType.FACT).order_by(func.random()).limit(1)
+            fact = await session.execute(stmt)
+            logger.debug(f"Получен рандомный сбор")
+            return fact.scalar_one_or_none()
+
+    @classmethod
+    async def create_opinion(cls, text: str, video_url: Optional[str] = None):
+        async with async_session() as session:
+            logger.debug(f"Создание сбора мнений")
+            stmt = insert(Question).values(type=ContentType.OPINION, title=text, video_url=video_url)
+            await session.execute(stmt)
+            await session.commit()
