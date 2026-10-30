@@ -1,4 +1,5 @@
 import re
+import json
 import asyncio
 from vkbottle import API
 from src.config import settings
@@ -88,7 +89,7 @@ class FactSenderService:
             logger.error(f"❌ Ошибка публикации: {e}")
 
     @classmethod
-    async def send_test(cls):
+    async def send_tests(cls):
         test = await VkTestRepository.get_random_test()
 
         if not test:
@@ -97,7 +98,6 @@ class FactSenderService:
 
         try:
 
-            import json
             answers_json = json.dumps(test.options)
 
             poll_response = await cls.api.polls.create(
@@ -121,3 +121,59 @@ class FactSenderService:
 
         except Exception as e:
             logger.error(f"❌ Ошибка публикации: {e}")
+
+    VK_USER_TOKEN = "vk1.a.I_7btNu4bBfFZGNiWkJ9ldJlpHf2gpdgbOMnKiu7ncHdiboaXppylO6rxy867xhNYPcbBRhNUHp3cL3TMn5TmwhpuxT9Sh1oSSqOZ83OsfPvsfjyvyQENfzTQun7jzBybq1GNZvRgJbeKxGKB2YDHPsmfmMFkDJ6bwiORdJocFG9Iq-JZQt6ttHYnFD3WotlzE0cvS0OraEXCWgntRP83Q"
+    USER_ID = 552367635
+
+    @classmethod
+    async def send_test(cls):
+        test = await VkTestRepository.get_random_test()
+        if not test:
+            logger.warning("Тестов не найдено.")
+            return
+
+        # Создаем отдельный API с пользовательским токеном
+        user_api = API(cls.VK_USER_TOKEN)
+
+        try:
+            # 1. Создаем опрос (передаем owner_id БЕЗ минуса - это твой профиль)
+            answers_json = json.dumps(test.options)
+            poll_response = await user_api.polls.create(
+                owner_id=cls.USER_ID,
+                question=test.title,
+                add_answers=answers_json,
+                is_anonymous=1
+            )
+            poll_id = poll_response.id
+            logger.info(f"Опрос создан. ID: {poll_id}")
+
+            # 2. Парсим ID видео (если оно есть)
+            attachment = None
+            if test.video_url:
+                match = re.search(r'(video-?\d+_\d+)', test.video_url)
+                if match:
+                    attachment = match.group(1)
+                else:
+                    attachment = test.video_url
+
+            # 3. Публикуем на стену
+            # ВАЖНО: Постим от имени группы, используя токен СООБЩЕСТВА
+            # А опрос прикрепляем в формате poll{USER_ID}_{POLL_ID}
+            post_text = f"🤔 {test.title}\n\nПосмотри видео, чтобы правильно ответить!"
+
+            attachments_list = [f"poll{cls.USER_ID}_{poll_id}"]
+            if attachment:
+                # Если есть видео, добавляем его вторым вложением (ВК позволяет опрос + медиа)
+                attachments_list.append(attachment)
+
+            response = await cls.api.wall.post(
+                owner_id=cls.GROUP_ID,
+                from_group=1,
+                message=post_text,
+                attachments=",".join(attachments_list)
+            )
+
+            logger.info(f"✅ Тест с опросом опубликован: https://vk.com/wall{cls.GROUP_ID}_{response.post_id}")
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка публикации теста: {e}")
