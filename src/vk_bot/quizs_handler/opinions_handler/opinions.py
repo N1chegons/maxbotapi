@@ -1,8 +1,6 @@
-import datetime
 from urllib.parse import urlparse
 
-from vkbottle import Formatter
-from vkbottle.bot import Message, BotLabeler, MessageEvent
+from vkbottle.bot import Message, MessageEvent
 from vkbottle_types import GroupEventType
 
 from src.logger_config import setup_logger
@@ -10,7 +8,7 @@ from src.vk_bot.admin_handler.repository import VkAdminRepository
 from src.vk_bot.bot_instance import bot, labeler
 from src.vk_bot.keyboards import admin_back
 from src.vk_bot.models import AdminStates
-from src.vk_bot.repository import VkFactRepository, VkOpinionRepository
+from src.vk_bot.repository import VkOpinionRepository
 
 logger = setup_logger('opinions_handler_vk', 'vk', 'opinions_handler_vk.log')
 

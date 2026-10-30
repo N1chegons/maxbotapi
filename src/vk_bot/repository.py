@@ -65,7 +65,7 @@ class VkOpinionRepository:
     async def get_random_opinion(cls):
         logger.debug(f"Получение рандомного сбора")
         async with async_session() as session:
-            stmt = select(Question).where(Question.type == ContentType.FACT).order_by(func.random()).limit(1)
+            stmt = select(Question).where(Question.type == ContentType.OPINION).order_by(func.random()).limit(1)
             fact = await session.execute(stmt)
             logger.debug(f"Получен рандомный сбор")
             return fact.scalar_one_or_none()

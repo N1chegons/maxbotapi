@@ -1,17 +1,8 @@
-import datetime
-from urllib.parse import urlparse
-
-from vkbottle import Formatter
 from vkbottle.bot import Message, BotLabeler, MessageEvent
-from vkbottle_types import GroupEventType
+
 
 from src.logger_config import setup_logger
-from src.vk_bot.admin_handler.repository import VkAdminRepository
-from src.vk_bot.bot_instance import bot
-from src.vk_bot.keyboards import admin_back, get_main_menu, get_video_and_back_keyboard
-from src.vk_bot.models import AdminStates
-from src.vk_bot.repository import VkFactRepository
-from src.vk_bot.repository import VkUserRepository
+
 
 riddle_labeler = BotLabeler()
 

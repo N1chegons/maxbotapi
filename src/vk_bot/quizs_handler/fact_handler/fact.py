@@ -1,7 +1,6 @@
 import datetime
 from urllib.parse import urlparse
 
-from vkbottle import Formatter
 from vkbottle.bot import Message, BotLabeler, MessageEvent
 from vkbottle_types import GroupEventType
 

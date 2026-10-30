@@ -29,3 +29,9 @@ async def vk_handler(req: Request, background_task: BackgroundTasks):
     if data["secret"] == secret_key:
         background_task.add_task(bot.process_event, data)
     return Response("ok")
+
+
+import src.vk_bot.quizs_handler.menu_handler
+import src.vk_bot.quizs_handler.fact_handler.fact
+import src.vk_bot.quizs_handler.opinions_handler.opinions
+import src.vk_bot.admin_handler.admin
