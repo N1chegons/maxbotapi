@@ -23,11 +23,11 @@ from vkbottle import Keyboard, KeyboardButtonColor, Text, OpenLink, Callback
 def get_admin_menu():
     keyboard = Keyboard(one_time=False, inline=True)
 
-    keyboard.add(Callback("Созадть факт", payload={"action": "create_fact"}), color=KeyboardButtonColor.POSITIVE)
-    keyboard.add(Callback("Создать загадку", payload={"action": "create_riddle"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Созадть Факт", payload={"action": "create_fact"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Создать Загадку", payload={"action": "create_riddle"}), color=KeyboardButtonColor.POSITIVE)
     keyboard.row()
     keyboard.add(Callback("Создать Тест", payload={"action": "create_test"}), color=KeyboardButtonColor.POSITIVE)
-    keyboard.add(Callback("Создать Сбор Мнений", payload={"action": "create_opinions"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Создать Сбор Мнений", payload={"action": "create_opinion"}), color=KeyboardButtonColor.POSITIVE)
 
     return keyboard.get_json()
 

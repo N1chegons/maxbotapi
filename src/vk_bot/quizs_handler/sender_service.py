@@ -20,7 +20,7 @@ class FactSenderService:
             logger.warning("Фактов не найдено. База пуста")
             return
 
-        post_text = fact.title
+        post_text = f"Фак дня💡\n{fact.title}"
         full_url = fact.video_url if hasattr(fact, 'video_url') else fact.url
 
         attachment = None

@@ -10,7 +10,7 @@ from src.vk_bot.admin_handler.repository import VkAdminRepository
 from src.vk_bot.bot_instance import bot
 from src.vk_bot.keyboards import admin_back
 from src.vk_bot.models import AdminStates
-from src.vk_bot.repository import VkFactRepository
+from src.vk_bot.repository import VkFactRepository, VkOpinionRepository
 
 opinion_labeler = BotLabeler()
 
@@ -18,6 +18,9 @@ logger = setup_logger('opinions_handler_vk', 'vk', 'opinions_handler_vk.log')
 
 @opinion_labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
 async def start_create_opinion(message: MessageEvent):
+    if message.payload.get("action") != "create_opinion":
+        return
+
     user_id = message.user_id
     logger.info(f"Админ {user_id} начал создание сбора мнений.")
 
@@ -28,7 +31,6 @@ async def start_create_opinion(message: MessageEvent):
             await message.answer(
                 "⛔ Вы не являетесь администратором. Доступ запрещен."
             )
-
 
         await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_OPINION_TEXT)
         await message.send_message("Введите заголовок сбора мнения (Если хотите отменить начатое действие напишите - 'отмена'):")
@@ -73,7 +75,7 @@ async def save_opinion(message: Message):
 
     try:
         payload = message.state_peer.payload
-        fact_title = payload.get("opinion_title")
+        opinion_title = payload.get("opinion_title")
         url = message.text
 
         parsed_url = urlparse(url)
@@ -89,13 +91,13 @@ async def save_opinion(message: Message):
                 "⛔ Вы не являетесь администратором. Доступ запрещен."
             )
 
-        await VkFactRepository.create_fact(fact_title, url)
-        logger.info(f"Админ {user_id} успешно создал сбор мнений: {fact_title} - {url}")
+        await VkOpinionRepository.create_opinion(opinion_title, url)
+        logger.info(f"Админ {user_id} успешно создал сбор мнений: {opinion_title} - {url}")
 
         await bot.state_dispenser.delete(message.from_id)
 
         await message.answer(
-            f"Сбор мнений успешно создан:\n Заголовок сбора: {fact_title}\n Ссылка: {url}",
+            f"Сбор мнений успешно создан:\n Заголовок сбора: {opinion_title}\n Ссылка: {url}",
             keyboard=admin_back())
 
     except Exception as e:

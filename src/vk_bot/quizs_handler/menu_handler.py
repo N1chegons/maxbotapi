@@ -25,14 +25,15 @@ async def start_handler(message: Message):
 
             if message.ref == "opinion":
                 await message.answer(
-                    "Привет! Вижу, ты хочешь высказать мнение. Напиши его сюда."
-                    # keyboard=get_main_menu()
+                    "Привет! Вижу, ты хочешь высказать мнение. Напиши его сюда.",
+                    keyboard = None
+
                 )
                 return
 
         await message.answer(
-            "Привет! Я бот-помощник. Выбирай, что хочешь узнать сегодня."
-            # keyboard=get_main_menu()
+            "Привет! Я бот-помощник. Выбирай, что хочешь узнать сегодня.",
+            keyboard=None
         )
 
     except Exception as e:

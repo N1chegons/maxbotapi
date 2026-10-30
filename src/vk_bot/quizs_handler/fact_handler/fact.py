@@ -59,6 +59,9 @@ logger = setup_logger('fact_handler_vk', 'vk', 'fact_handler_vk.log')
 
 @fact_labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
 async def start_create_fact(message: MessageEvent):
+    if message.payload.get("action") != "create_fact":
+        return
+
     user_id = message.user_id
     logger.info(f"Админ {user_id} начал создание факта.")
 
