@@ -55,27 +55,26 @@ logger = setup_logger('fact_handler_vk', 'vk', 'fact_handler_vk.log')
 
 @labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
 async def start_create_fact(message: MessageEvent):
-    if message.payload.get("action") != "create_fact":
-        return
+    payload = message.object.payload
+    if payload["action"] == "create_fact":
+        user_id = message.user_id
+        logger.info(f"Админ {user_id} начал создание факта.")
 
-    user_id = message.user_id
-    logger.info(f"Админ {user_id} начал создание факта.")
-
-    try:
-        exists_admin = VkAdminRepository.is_admin(user_id)
-        if not exists_admin:
-            logger.info(f"Пользователь {user_id} не является админом")
-            await message.answer(
-                "⛔ Вы не являетесь администратором. Доступ запрещен."
-            )
+        try:
+            exists_admin = VkAdminRepository.is_admin(user_id)
+            if not exists_admin:
+                logger.info(f"Пользователь {user_id} не является админом")
+                await message.answer(
+                    "⛔ Вы не являетесь администратором. Доступ запрещен."
+                )
 
 
-        await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_FACT_TEXT)
-        await message.send_message("Введите название факта (Если хотите отменить начатое действие напишите - 'отмена'):")
+            await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_FACT_TEXT)
+            await message.send_message("Введите название факта (Если хотите отменить начатое действие напишите - 'отмена'):")
 
-    except Exception as e:
-        logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
-        await message.send_message(f"Неизвестная ошибка")
+        except Exception as e:
+            logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+            await message.send_message(f"Неизвестная ошибка")
 
 @labeler.message(state=AdminStates.WAITING_FOR_FACT_TEXT)
 async def get_fact_text(message: Message):

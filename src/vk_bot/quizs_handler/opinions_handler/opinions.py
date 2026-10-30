@@ -14,26 +14,25 @@ logger = setup_logger('opinions_handler_vk', 'vk', 'opinions_handler_vk.log')
 
 @labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
 async def start_create_opinion(message: MessageEvent):
-    if message.payload.get("action") != "create_opinion":
-        return
+    payload = message.object.payload
+    if payload["action"] == "create_opinion":
+        user_id = message.user_id
+        logger.info(f"Админ {user_id} начал создание сбора мнений.")
 
-    user_id = message.user_id
-    logger.info(f"Админ {user_id} начал создание сбора мнений.")
+        try:
+            exists_admin = VkAdminRepository.is_admin(user_id)
+            if not exists_admin:
+                logger.info(f"Пользователь {user_id} не является админом")
+                await message.answer(
+                    "⛔ Вы не являетесь администратором. Доступ запрещен."
+                )
 
-    try:
-        exists_admin = VkAdminRepository.is_admin(user_id)
-        if not exists_admin:
-            logger.info(f"Пользователь {user_id} не является админом")
-            await message.answer(
-                "⛔ Вы не являетесь администратором. Доступ запрещен."
-            )
+            await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_OPINION_TEXT)
+            await message.send_message("Введите заголовок сбора мнения (Если хотите отменить начатое действие напишите - 'отмена'):")
 
-        await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_OPINION_TEXT)
-        await message.send_message("Введите заголовок сбора мнения (Если хотите отменить начатое действие напишите - 'отмена'):")
-
-    except Exception as e:
-        logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
-        await message.send_message(f"Неизвестная ошибка")
+        except Exception as e:
+            logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+            await message.send_message(f"Неизвестная ошибка")
 
 @labeler.message(state=AdminStates.WAITING_FOR_OPINION_TEXT)
 async def get_opinion_text(message: Message):
