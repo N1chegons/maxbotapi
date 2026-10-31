@@ -37,3 +37,4 @@ import src.vk_bot.quizs_handler.opinions_handler.opinions
 import src.vk_bot.admin_handler.admin
 import src.vk_bot.quizs_handler.create_message_event
 import src.vk_bot.quizs_handler.test_handler.test
+import src.vk_bot.quizs_handler.riddle_handler.riddle
