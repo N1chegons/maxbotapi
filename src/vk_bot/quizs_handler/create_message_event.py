@@ -228,7 +228,7 @@ async def start_create(message: MessageEvent):
         for f in tests:
             c += 1
             keyboard.add(
-                Callback(f"ID {f.id}", payload={"action": "edit_this_test", "riddle_id": f.id}),
+                Callback(f"ID {f.id}", payload={"action": "edit_this_test", "test_id": f.id}),
                 color=KeyboardButtonColor.SECONDARY
             )
 
