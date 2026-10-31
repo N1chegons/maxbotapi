@@ -48,6 +48,7 @@ def get_admin_tests_menu():
     keyboard = Keyboard(one_time=False, inline=True)
 
     keyboard.add(Callback("Создать Игру", payload={"action": "create_test"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Редактировать Игру", payload={"action": "edit_test"}), color=KeyboardButtonColor.SECONDARY)
     keyboard.add(Callback("Удалить Игру", payload={"action": "delete_test"}), color=KeyboardButtonColor.NEGATIVE)
     keyboard.row()
     keyboard.add(Text("↩️ В меню", payload={"action": "back_to_admin_menu"}), color=KeyboardButtonColor.SECONDARY)

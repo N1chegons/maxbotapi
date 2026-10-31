@@ -122,6 +122,15 @@ class VkRiddleRepository:
             await session.execute(stmt)
             await session.commit()
 
+    @classmethod
+    async def update_riddle(cls, riddle_id: int, text: str, video_url: Optional[str] = None):
+        async with async_session() as session:
+            logger.debug(f"Обновление задачи по ID {riddle_id}")
+            stmt = update(Question).filter_by(id=riddle_id).values(title=text, video_url=video_url)
+            await session.execute(stmt)
+            await session.commit()
+
+
 class VkOpinionRepository:
     @classmethod
     async def get_opinions_list(cls, limit: int = 10):
@@ -168,10 +177,10 @@ class VkOpinionRepository:
 
 class VkTestRepository:
     @classmethod
-    async def get_tests_list(cls):
+    async def get_tests_list(cls, limit: int = 10):
         logger.debug(f"Получение списка тестов")
         async with async_session() as session:
-            stmt = select(Question).where(Question.type == ContentType.TEST).order_by(Question.created_at.desc()).limit(6)
+            stmt = select(Question).where(Question.type == ContentType.TEST).order_by(Question.created_at.desc()).limit(limit)
             tests = await session.execute(stmt)
             logger.debug(f"Получен список тестов")
             return tests.scalars().all()
@@ -202,3 +211,10 @@ class VkTestRepository:
             await session.execute(stmt)
             await session.commit()
 
+    @classmethod
+    async def update_test(cls, test_id: int, text: str, video_url: Optional[str] = None):
+        async with async_session() as session:
+            logger.debug(f"Обновление теста по ID {test_id}")
+            stmt = update(Question).filter_by(id=test_id).values(title=text, video_url=video_url)
+            await session.execute(stmt)
+            await session.commit()

@@ -137,8 +137,8 @@ async def get_new_riddle_video(message: Message):
 
         new_video += message.text
 
-        await VkFactRepository.update_fact(fact_id, new_text, new_video)
-        logger.info(f"Админ {user_id} успешно обновил факт ID {fact_id}: {new_text} - {new_video}")
+        await VkRiddleRepository.update_riddle(fact_id, new_text, new_video)
+        logger.info(f"Админ {user_id} успешно обновил загадку ID {fact_id}: {new_text} - {new_video}")
         await bot.state_dispenser.delete(message.peer_id)
 
         await message.answer(
