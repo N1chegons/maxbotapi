@@ -132,32 +132,37 @@ class FactSenderService:
         test = await VkTestRepository.get_random_test()
 
         if not test:
-            logger.warning("Тестов не найдено. База пуста")
+            logger.warning("Ролевых Игр не найдено. База пуста")
             return
 
+        post_text = test.title
+        full_url = test.video_url if hasattr(test, 'video_url') else test.url
+        chat_link = f"https://vk.me/club216257056?ref=test_{test.id}"
+        post_text = f"{test.title}\n\n👉 Высказать мнение: {chat_link}"
+
+        attachment = None
+        if full_url:
+            match = re.search(r'(video-?\d+_\d+)', full_url)
+            if match:
+                attachment = match.group(1)
+            else:
+                attachment = full_url
+
         try:
-
-            import json
-            answers_json = json.dumps(test.options)
-
-            poll_response = await cls.api.polls.create(
-                owner_id=cls.GROUP_ID,
-                question=test.title,
-                add_answers=answers_json,
-                is_anonymous=1
-            )
-            poll_id = poll_response.id
-
-            video_link = test.video_url
-            post_text = f"👉 Посмотри видео, чтобы правильно ответить: {video_link}\n\n{test.title}"
-
+            logger.info(
+                f"Попытка отправки поста из БД. Название сбора мнений - {post_text}\nСсылка на факт - {full_url}")
             response = await cls.api.wall.post(
                 owner_id=cls.GROUP_ID,
                 from_group=1,
                 message=post_text,
-                attachments=f"poll{cls.GROUP_ID}_{poll_id}"
+                attachments=attachment
             )
-            logger.info(f"✅ Тест-опрос опубликован. Ссылка: https://vk.com/wall{cls.GROUP_ID}_{response.post_id}")
+
+            post_id = response.post_id
+
+            logger.info(
+                f"✅ Пост опубликован. ID:{post_id}.\nСсылка на пост: https://vk.com/wall{cls.GROUP_ID}_{post_id}")
+
 
         except Exception as e:
             logger.error(f"❌ Ошибка публикации: {e}")

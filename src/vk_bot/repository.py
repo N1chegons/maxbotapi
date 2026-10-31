@@ -81,11 +81,11 @@ class VkRiddleRepository:
 
     @classmethod
     async def get_riddle_by_id(cls, riddle_id: int):
-        logger.debug(f"Получение списка загадок")
+        logger.debug(f"Получение загадки по ID {riddle_id}")
         async with async_session() as session:
             stmt = select(Question).where(Question.type == ContentType.RIDDLE, Question.id == riddle_id)
             riddle = await session.execute(stmt)
-            logger.debug(f"Получен список фактов")
+            logger.debug(f"Получена загадка с ID {riddle_id}")
             return riddle.scalar_one_or_none()
 
     @classmethod
@@ -141,6 +141,15 @@ class VkTestRepository:
             tests = await session.execute(stmt)
             logger.debug(f"Получен список тестов")
             return tests.scalars().all()
+
+    @classmethod
+    async def get_test_by_id(cls, test_id: int):
+        logger.debug(f"Получение теста ID {test_id}")
+        async with async_session() as session:
+            stmt = select(Question).where(Question.type == ContentType.TEST, Question.id == test_id)
+            riddle = await session.execute(stmt)
+            logger.debug(f"Получен тест с ID {test_id}")
+            return riddle.scalar_one_or_none()
 
     @classmethod
     async def get_random_test(cls):

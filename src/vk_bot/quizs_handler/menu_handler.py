@@ -3,7 +3,7 @@ from vkbottle.bot import Message, BotLabeler
 from src.logger_config import setup_logger
 from src.vk_bot.bot_instance import labeler
 from src.vk_bot.keyboards import get_admin_menu
-from src.vk_bot.repository import VkUserRepository, VkRiddleRepository
+from src.vk_bot.repository import VkUserRepository, VkRiddleRepository, VkTestRepository
 
 logger = setup_logger('menu_handler', 'vk', 'menu_handler_work.log')
 
@@ -52,6 +52,27 @@ async def start_handler(message: Message):
                     logger.error(f"Неизвестная ошибка: {e}")
                     pass
 
+            if message.ref and message.ref.startswith("test_"):
+                try:
+                    test_id = int(message.ref.split("_")[1])
+                    test = await VkTestRepository.get_test_by_id(test_id)
+
+                    if not test:
+                        await message.answer(
+                            "Привет! Что бы сделал ты? Напиши в чат."
+
+                        )
+                        return
+
+                    else:
+                        await message.answer(
+                            f"Привет! Что бы сделал ты? Напиши в чат.\n\n📝 Описание игры: {test.title}"
+                        )
+                        return
+
+                except Exception as e:
+                    logger.error(f"Неизвестная ошибка: {e}")
+                    pass
         await message.answer(
             "Привет! Я бот-помощник. По какому вопросу ты здесь?",
             keyboard=None
