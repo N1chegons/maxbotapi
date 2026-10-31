@@ -124,13 +124,22 @@ class VkRiddleRepository:
 
 class VkOpinionRepository:
     @classmethod
-    async def get_opinions_list(cls):
+    async def get_opinions_list(cls, limit: int = 10):
         logger.debug(f"Получение списка сборов")
         async with async_session() as session:
-            stmt = select(Question).where(Question.type == ContentType.OPINION).order_by(Question.created_at.desc()).limit(6)
+            stmt = select(Question).where(Question.type == ContentType.OPINION).order_by(Question.created_at.desc()).limit(limit)
             opinions = await session.execute(stmt)
             logger.debug(f"Получен список сборов")
             return opinions.scalars().all()
+
+    @classmethod
+    async def get_opinion_by_id(cls, op_id: int):
+        logger.debug(f"Получение сбора ID {op_id}")
+        async with async_session() as session:
+            stmt = select(Question).where(Question.id == op_id)
+            opinion = await session.execute(stmt)
+            logger.debug(f"Получен сбор по ID {op_id}")
+            return opinion.scalar_one_or_none()
 
     @classmethod
     async def get_random_opinion(cls):
@@ -146,6 +155,14 @@ class VkOpinionRepository:
         async with async_session() as session:
             logger.debug(f"Создание сбора мнений")
             stmt = insert(Question).values(type=ContentType.OPINION, title=text, video_url=video_url)
+            await session.execute(stmt)
+            await session.commit()
+
+    @classmethod
+    async def update_opinion(cls, opinion_id: int, text: str, video_url: Optional[str] = None):
+        async with async_session() as session:
+            logger.debug(f"Обновление факта ID {opinion_id}")
+            stmt = update(Question).filter_by(id=opinion_id).values(title=text, video_url=video_url)
             await session.execute(stmt)
             await session.commit()
 

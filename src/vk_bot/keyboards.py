@@ -36,6 +36,7 @@ def get_admin_opinions_menu():
     keyboard = Keyboard(one_time=False, inline=True)
 
     keyboard.add(Callback("Создать Сбор Мнений", payload={"action": "create_opinion"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Редактировать Сбор Мнений", payload={"action": "edit_opinion"}), color=KeyboardButtonColor.SECONDARY)
     keyboard.add(Callback("Удалить Сбор Мнений", payload={"action": "delete_opinion"}), color=KeyboardButtonColor.NEGATIVE)
     keyboard.row()
     keyboard.add(Text("↩️ В меню", payload={"action": "back_to_admin_menu"}), color=KeyboardButtonColor.SECONDARY)

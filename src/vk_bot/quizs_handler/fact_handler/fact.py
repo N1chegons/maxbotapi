@@ -82,8 +82,8 @@ async def save_fact(message: Message):
     except Exception as e:
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
         await message.answer(f"Неизвестная ошибка")
-# edited
 
+# edited
 @labeler.message(state=AdminStates.WAITING_FOR_EDIT_FACT_TEXT)
 async def get_new_fact_text(message: Message):
     user_id = message.from_id
@@ -115,7 +115,6 @@ async def get_new_fact_text(message: Message):
     except Exception as e:
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
         await message.answer(f"Неизвестная ошибка")
-
 
 @labeler.message(state=AdminStates.WAITING_FOR_EDIT_FACT_VIDEO)
 async def get_new_fact_video(message: Message):

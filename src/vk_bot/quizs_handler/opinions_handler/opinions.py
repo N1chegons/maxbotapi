@@ -11,6 +11,7 @@ from src.vk_bot.repository import VkOpinionRepository
 
 logger = setup_logger('opinions_handler_vk', 'vk', 'opinions_handler_vk.log')
 
+# created
 @labeler.message(state=AdminStates.WAITING_FOR_OPINION_TEXT)
 async def get_opinion_text(message: Message):
     user_id = message.from_id
@@ -76,6 +77,74 @@ async def save_opinion(message: Message):
         await message.answer(
             f"Сбор мнений успешно создан:\n Заголовок сбора: {opinion_title}\n Ссылка: {url}",
             keyboard=admin_back())
+
+    except Exception as e:
+        logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+        await message.answer(f"Неизвестная ошибка")
+
+# updated
+@labeler.message(state=AdminStates.WAITING_FOR_EDIT_OPINION_TEXT)
+async def get_new_opinion_text(message: Message):
+    user_id = message.from_id
+
+    if message.text.lower() == 'отмена':
+        await bot.state_dispenser.delete(message.peer_id)
+        return await message.answer("Отменено.", keyboard=admin_back())
+
+    try:
+        payload = message.state_peer.payload
+        opinion_id = payload.get("edit_opinion_id")
+
+        exist_opinion = await VkOpinionRepository.get_opinion_by_id(opinion_id)
+        new_text = ""
+
+        if message.text.lower() == 'нет':
+            new_text += exist_opinion.title
+
+        new_text += message.text
+
+        await bot.state_dispenser.set(
+            message.peer_id,
+            AdminStates.WAITING_FOR_EDIT_OPINION_VIDEO,
+            edit_opinion_id=opinion_id,
+            new_title=new_text
+        )
+        await message.answer("Теперь отправьте НОВУЮ ссылку на видео (или 'нет', чтобы оставить старую):")
+
+    except Exception as e:
+        logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+        await message.answer(f"Неизвестная ошибка")
+
+@labeler.message(state=AdminStates.WAITING_FOR_EDIT_OPINION_VIDEO)
+async def get_new_opinion_video(message: Message):
+    user_id = message.from_id
+
+    if message.text.lower() == 'отмена':
+        await bot.state_dispenser.delete(message.peer_id)
+        return await message.answer("Отменено.", keyboard=admin_back())
+
+    try:
+        payload = message.state_peer.payload
+        opinion_id = payload.get("edit_opinion_id")
+        new_text = payload.get("new_title")
+
+        exist_opinion = await VkOpinionRepository.get_opinion_by_id(opinion_id)
+        new_video = ""
+
+        if message.text.lower() == 'нет':
+            new_video += exist_opinion.video_url
+
+        new_video += message.text
+
+        await VkOpinionRepository.update_opinion(opinion_id, new_text, new_video)
+        logger.info(f"Админ {user_id} успешно обновил сбор ID {opinion_id}: {new_text} - {new_video}")
+
+        await bot.state_dispenser.delete(message.peer_id)
+
+        await message.answer(
+            f"✅ Сбор обновлен!\n\nНовый текст: {new_text}\nНовая ссылка: {new_video}",
+            keyboard=admin_back()
+        )
 
     except Exception as e:
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")

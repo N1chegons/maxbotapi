@@ -81,3 +81,6 @@ class AdminStates(BaseStateGroup):
     # edited
     WAITING_FOR_EDIT_FACT_TEXT = "waiting_for_edit_fact_text"
     WAITING_FOR_EDIT_FACT_VIDEO = "waiting_for_edit_fact_video"
+
+    WAITING_FOR_EDIT_OPINION_TEXT = "waiting_for_edit_opinion_text"
+    WAITING_FOR_EDIT_OPINION_VIDEO = "waiting_for_edit_opinion_video"

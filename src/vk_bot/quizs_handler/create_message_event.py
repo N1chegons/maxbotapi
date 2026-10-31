@@ -6,7 +6,7 @@ from src.logger_config import setup_logger
 from src.vk_bot.admin_handler.repository import VkAdminRepository
 from src.vk_bot.bot_instance import bot, labeler
 from src.vk_bot.models import AdminStates
-from src.vk_bot.repository import VkFactRepository
+from src.vk_bot.repository import VkFactRepository, VkOpinionRepository
 
 logger = setup_logger('message_event', 'vk', 'message_event.log')
 
@@ -14,6 +14,7 @@ logger = setup_logger('message_event', 'vk', 'message_event.log')
 async def start_create(message: MessageEvent):
     payload = message.object.payload
 
+    # create
     if payload["action"] == "create_fact":
         user_id = message.user_id
         logger.info(f"Админ {user_id} начал создание факта.")
@@ -91,6 +92,7 @@ async def start_create(message: MessageEvent):
             logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
             await message.send_message(f"Неизвестная ошибка")
 
+    # update
     if payload["action"] == "edit_fact":
 
         facts = await VkFactRepository.get_facts_list(limit=9)
@@ -129,3 +131,42 @@ async def start_create(message: MessageEvent):
 
         await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_EDIT_FACT_TEXT, edit_fact_id=fact_id)
         await message.send_message("Введите НОВЫЙ текст факта (или напишите 'нет', чтобы оставить старый, 'отмена' - если хотите отменить начатое действие):")
+
+    if payload["action"] == "edit_opinion":
+
+        opinions = await VkOpinionRepository.get_opinions_list(limit=9)
+        if not opinions:
+            return await message.answer("Сборов нет.")
+
+        text = ""
+        if not opinions:
+            text += "На данный момент сборов мнений нету.\n"
+        else:
+            for fact in opinions:
+                text += f"💬 Сбор №{fact.id}:\n--> Описание: {fact.title[:20]}...\n\n"
+
+        keyboard = Keyboard(inline=True)
+        c = 0
+        for f in opinions:
+            c += 1
+            keyboard.add(
+                Callback(f"ID {f.id}", payload={"action": "edit_this_opinion", "opinion_id": f.id}),
+                color=KeyboardButtonColor.SECONDARY
+            )
+
+            if c % 3 == 0:
+                keyboard.row()
+
+        if c % 3 != 0:
+            keyboard.row()
+
+        keyboard.add(Text("↩️ В меню", payload={"action": "back_to_admin_menu"}), color=KeyboardButtonColor.SECONDARY)
+
+        await message.send_message(f"Последние сборы:\n{text}\n\nВыберите на кнопках номер сбора мнения для редактирования:",
+                                   keyboard=keyboard.get_json())
+
+    if payload["action"] == "edit_this_opinion":
+        opinion_id = payload["opinion_id"]
+
+        await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_EDIT_OPINION_TEXT, edit_opinion_id=opinion_id)
+        await message.send_message("Введите НОВЫЙ заголовок сбора (или напишите 'нет', чтобы оставить старый, 'отмена' - если хотите отменить начатое действие):")
