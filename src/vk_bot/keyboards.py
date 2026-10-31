@@ -1,33 +1,53 @@
 from vkbottle import Keyboard, KeyboardButtonColor, Text, OpenLink, Callback
 
-
-# def get_main_menu():
-#     keyboard = Keyboard(one_time=False, inline=True)
-#
-#     keyboard.add(Text("💡 Факт дня", payload={"action": "fact"}), color=KeyboardButtonColor.PRIMARY)
-#     keyboard.add(Text("🧩 Загадка", payload={"action": "riddle"}), color=KeyboardButtonColor.PRIMARY)
-#     keyboard.row()
-#     keyboard.add(Text("📝 Тест", payload={"action": "test"}), color=KeyboardButtonColor.PRIMARY)
-#
-#     return keyboard.get_json()
-#
-#
-# def get_video_and_back_keyboard(video_url: str):
-#     keyboard = Keyboard(inline=True)
-#     keyboard.add(OpenLink(video_url, "🎬 Смотреть видео"), color=KeyboardButtonColor.POSITIVE)
-#     keyboard.row()
-#     keyboard.add(Text("↩️ В меню", payload={"action": "back_to_menu"}), color=KeyboardButtonColor.SECONDARY)
-#
-#     return keyboard.get_json()
-
 def get_admin_menu():
     keyboard = Keyboard(one_time=False, inline=True)
 
-    keyboard.add(Callback("Созадть Факт", payload={"action": "create_fact"}), color=KeyboardButtonColor.POSITIVE)
-    keyboard.add(Callback("Создать Загадку", payload={"action": "create_riddle"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Факты", payload={"action": "menu_facts"}), color=KeyboardButtonColor.SECONDARY)
+    keyboard.add(Callback("Загадки", payload={"action": "menu_riddles"}), color=KeyboardButtonColor.SECONDARY)
     keyboard.row()
-    keyboard.add(Callback("Создать Тест", payload={"action": "create_test"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Сборы Мнений", payload={"action": "menu_opinions"}), color=KeyboardButtonColor.SECONDARY)
+    keyboard.add(Callback("Тесты", payload={"action": "menu_tests"}), color=KeyboardButtonColor.SECONDARY)
+
+    return keyboard.get_json()
+
+def get_admin_fact_menu():
+    keyboard = Keyboard(one_time=False, inline=True)
+
+    keyboard.add(Callback("Созадть Факт", payload={"action": "create_fact"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Удалить Факт", payload={"action": "delete_fact"}), color=KeyboardButtonColor.NEGATIVE)
+    keyboard.row()
+    keyboard.add(Text("↩️ В меню", payload={"action": "back_to_admin_menu"}), color=KeyboardButtonColor.SECONDARY)
+
+    return keyboard.get_json()
+
+def get_admin_riddle_menu():
+    keyboard = Keyboard(one_time=False, inline=True)
+
+    keyboard.add(Callback("Создать Загадку", payload={"action": "create_riddle"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Удалить Загадку", payload={"action": "delete_riddle"}), color=KeyboardButtonColor.NEGATIVE)
+    keyboard.row()
+    keyboard.add(Text("↩️ В меню", payload={"action": "back_to_admin_menu"}), color=KeyboardButtonColor.SECONDARY)
+
+    return keyboard.get_json()
+
+def get_admin_opinions_menu():
+    keyboard = Keyboard(one_time=False, inline=True)
+
     keyboard.add(Callback("Создать Сбор Мнений", payload={"action": "create_opinion"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Удалить Сбор Мнений", payload={"action": "delete_opinion"}), color=KeyboardButtonColor.NEGATIVE)
+    keyboard.row()
+    keyboard.add(Text("↩️ В меню", payload={"action": "back_to_admin_menu"}), color=KeyboardButtonColor.SECONDARY)
+
+    return keyboard.get_json()
+
+def get_admin_tests_menu():
+    keyboard = Keyboard(one_time=False, inline=True)
+
+    keyboard.add(Callback("Создать Тест", payload={"action": "create_test"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Удалить Тест", payload={"action": "delete_test"}), color=KeyboardButtonColor.NEGATIVE)
+    keyboard.row()
+    keyboard.add(Text("↩️ В меню", payload={"action": "back_to_admin_menu"}), color=KeyboardButtonColor.SECONDARY)
 
     return keyboard.get_json()
 

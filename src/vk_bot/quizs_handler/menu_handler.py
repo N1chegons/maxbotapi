@@ -40,13 +40,6 @@ async def start_handler(message: Message):
         logger.error(f"Неизвестная ошибка: {e}")
         pass
 
-# @menu_labeler.message(payload={"action": "back_to_menu"})
-# async def back_to_menu_handler(message: Message):
-#     await message.answer(
-#         "Вы в главном меню.",
-#         keyboard=get_main_menu()
-#     )
-
 @labeler.message(payload={"action": "back_to_admin_menu"})
 async def back_to_admin_menu_handler(message: Message):
     await message.answer(

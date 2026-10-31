@@ -11,6 +11,7 @@ logger = setup_logger('message_event', 'vk', 'message_event.log')
 @labeler.raw_event(GroupEventType.MESSAGE_EVENT, dataclass=MessageEvent)
 async def start_create(message: MessageEvent):
     payload = message.object.payload
+
     if payload["action"] == "create_fact":
         user_id = message.user_id
         logger.info(f"Админ {user_id} начал создание факта.")
@@ -25,7 +26,7 @@ async def start_create(message: MessageEvent):
 
 
             await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_FACT_TEXT)
-            await message.send_message("Введите название факта (Если хотите отменить начатое действие напишите - 'отмена'):")
+            await message.send_message("Введите описание факта (Если хотите отменить начатое действие напишите - 'отмена'):")
 
         except Exception as e:
             logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
