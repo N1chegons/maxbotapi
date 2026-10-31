@@ -53,12 +53,12 @@ class VkFactRepository:
             return facts.scalars().all()
 
     @classmethod
-    async def get_fact_by_id(cls, test_id: int):
-        logger.debug(f"Получение теста по ID {test_id}")
+    async def get_fact_by_id(cls, fact_id: int):
+        logger.debug(f"Получение теста по ID {fact_id}")
         async with async_session() as session:
-            stmt = select(Question).where(Question.type == ContentType.TEST, Question.id == test_id)
+            stmt = select(Question).where(Question.type == ContentType.TEST, Question.id == fact_id)
             test = await session.execute(stmt)
-            logger.debug(f"Получен тест с ID {test_id}")
+            logger.debug(f"Получен тест с ID {fact_id}")
             return test.scalar_one_or_none()
 
     @classmethod

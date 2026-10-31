@@ -126,6 +126,6 @@ async def start_create(message: MessageEvent):
 
     if payload["action"] == "edit_this_fact":
         fact_id = payload["fact_id"]
-        print(">>>>>>>>>>>>>>>> FACT ID: ", fact_id)
+        print(">>>>>>>>>>>>>>>> FACT ID: ", fact_id, type(fact_id))
         await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_EDIT_FACT_TEXT, edit_fact_id=fact_id)
         await message.send_message("Введите НОВЫЙ текст факта (или напишите 'нет', чтобы оставить старый, 'отмена' - если хотите отменить начатое действие):")
