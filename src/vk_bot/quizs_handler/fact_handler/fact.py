@@ -138,8 +138,6 @@ async def get_new_fact_video(message: Message):
 
         new_video += message.text
 
-        fact = await VkFactRepository.get_fact_by_id(fact_id)  # Добавь этот метод в репозиторий
-
         await VkFactRepository.update_fact(fact_id, new_text, new_video)
         logger.info(f"Админ {user_id} успешно обновил факт ID {fact_id}: {new_text} - {new_video}")
         await bot.state_dispenser.delete(message.peer_id)
