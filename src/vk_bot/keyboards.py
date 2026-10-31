@@ -15,6 +15,7 @@ def get_admin_fact_menu():
     keyboard = Keyboard(one_time=False, inline=True)
 
     keyboard.add(Callback("Созадть Факт", payload={"action": "create_fact"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Редактировать Факт", payload={"action": "edit_fact"}), color=KeyboardButtonColor.SECONDARY)
     keyboard.add(Callback("Удалить Факт", payload={"action": "delete_fact"}), color=KeyboardButtonColor.NEGATIVE)
     keyboard.row()
     keyboard.add(Text("↩️ В меню", payload={"action": "back_to_admin_menu"}), color=KeyboardButtonColor.SECONDARY)

@@ -12,6 +12,7 @@ from src.vk_bot.repository import VkFactRepository
 
 logger = setup_logger('fact_handler_vk', 'vk', 'fact_handler_vk.log')
 
+# created
 @labeler.message(state=AdminStates.WAITING_FOR_FACT_TEXT)
 async def get_fact_text(message: Message):
     user_id = message.from_id
@@ -77,6 +78,76 @@ async def save_fact(message: Message):
         await message.answer(
             f"Факт успешно создан:\n Название факта: {fact_title}\n Ссылка: {url}",
             keyboard=admin_back())
+
+    except Exception as e:
+        logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+        await message.send_message(f"Неизвестная ошибка")
+# edited
+
+@labeler.message(state=AdminStates.WAITING_FOR_EDIT_FACT_TEXT)
+async def get_new_fact_text(message: Message):
+    user_id = message.from_id
+
+    if message.text.lower() == 'отмена':
+        await bot.state_dispenser.delete(message.peer_id)
+        return await message.answer("Отменено.", keyboard=admin_back())
+
+    try:
+        payload = message.state_peer.payload
+        fact_id = payload.get("edit_fact_id")
+
+        exist_fact = await VkFactRepository.get_fact_by_id(fact_id)
+        new_text = ""
+
+        if message.text.lower() == 'нет':
+            new_text += exist_fact.title
+
+        new_text += message.text
+
+        await bot.state_dispenser.set(
+            message.peer_id,
+            AdminStates.WAITING_FOR_EDIT_FACT_VIDEO,
+            edit_fact_id=fact_id,
+            new_title=new_text
+        )
+        await message.answer("Теперь отправьте НОВУЮ ссылку на видео (или 'нет', чтобы оставить старую):")
+
+    except Exception as e:
+        logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
+        await message.send_message(f"Неизвестная ошибка")
+
+
+@labeler.message(state=AdminStates.WAITING_FOR_EDIT_FACT_VIDEO)
+async def get_new_fact_video(message: Message):
+    user_id = message.from_id
+
+    if message.text.lower() == 'отмена':
+        await bot.state_dispenser.delete(message.peer_id)
+        return await message.answer("Отменено.", keyboard=admin_back())
+
+    try:
+        payload = message.state_peer.payload
+        fact_id = payload.get("edit_fact_id")
+        new_text = payload.get("new_title")
+
+        exist_fact = await VkFactRepository.get_fact_by_id(fact_id)
+        new_video = ""
+
+        if message.text.lower() == 'нет':
+            new_video += exist_fact.video_url
+
+        new_video += message.text
+
+        fact = await VkFactRepository.get_fact_by_id(fact_id)  # Добавь этот метод в репозиторий
+
+        await VkFactRepository.update_fact(fact_id, new_text, new_video)
+        logger.info(f"Админ {user_id} успешно обновил факт ID {fact_id}: {new_text} - {new_video}")
+        await bot.state_dispenser.delete(message.peer_id)
+
+        await message.answer(
+            f"✅ Факт обновлен!\n\nНовый текст: {new_text}\nНовая ссылка: {new_video}",
+            keyboard=admin_back()
+        )
 
     except Exception as e:
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")

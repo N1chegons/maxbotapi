@@ -64,6 +64,7 @@ class VKQuizResult(Base):
 
 
 class AdminStates(BaseStateGroup):
+    # create
     WAITING_FOR_FACT_TEXT = "waiting_for_fact_text"
     WAITING_FOR_FACT_VIDEO = "waiting_for_fact_video"
 
@@ -76,3 +77,7 @@ class AdminStates(BaseStateGroup):
 
     WAITING_FOR_RIDDLE_TEXT = "waiting_for_riddle_text"
     WAITING_FOR_RIDDLE_VIDEO = "waiting_for_riddle_video"
+
+    # edited
+    WAITING_FOR_EDIT_FACT_TEXT = "waiting_for_edit_fact_text"
+    WAITING_FOR_EDIT_FACT_VIDEO = "waiting_for_edit_fact_video"

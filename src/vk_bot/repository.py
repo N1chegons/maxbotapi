@@ -44,13 +44,22 @@ class VkUserRepository:
 
 class VkFactRepository:
     @classmethod
-    async def get_facts_list(cls):
+    async def get_facts_list(cls, limit: int = 10):
         logger.debug(f"Получение списка фактов")
         async with async_session() as session:
-            stmt = select(Question).where(Question.type == ContentType.FACT).order_by(Question.created_at.desc()).limit(10)
+            stmt = select(Question).where(Question.type == ContentType.FACT).order_by(Question.created_at.desc()).limit(limit)
             facts = await session.execute(stmt)
             logger.debug(f"Получен список фактов")
             return facts.scalars().all()
+
+    @classmethod
+    async def get_fact_by_id(cls, test_id: int):
+        logger.debug(f"Получение теста по ID {test_id}")
+        async with async_session() as session:
+            stmt = select(Question).where(Question.type == ContentType.TEST, Question.id == test_id)
+            test = await session.execute(stmt)
+            logger.debug(f"Получен тест с ID {test_id}")
+            return test.scalar_one_or_none()
 
     @classmethod
     async def get_random_fact(cls):
@@ -66,6 +75,14 @@ class VkFactRepository:
         async with async_session() as session:
             logger.debug(f"Создание Факта")
             stmt = insert(Question).values(type=ContentType.FACT, title=text, video_url=video_url)
+            await session.execute(stmt)
+            await session.commit()
+
+    @classmethod
+    async def update_fact(cls, fact_id: int, text: str, video_url: Optional[str] = None):
+        async with async_session() as session:
+            logger.debug(f"Обновление факта ID {fact_id}")
+            stmt = update(Question).filter_by(id=fact_id).values(title=text, video_url=video_url)
             await session.execute(stmt)
             await session.commit()
 

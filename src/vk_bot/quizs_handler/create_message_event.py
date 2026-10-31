@@ -1,3 +1,4 @@
+from vkbottle import Keyboard, Callback, KeyboardButtonColor, Text
 from vkbottle.bot import MessageEvent
 from vkbottle_types import GroupEventType
 
@@ -5,6 +6,7 @@ from src.logger_config import setup_logger
 from src.vk_bot.admin_handler.repository import VkAdminRepository
 from src.vk_bot.bot_instance import bot, labeler
 from src.vk_bot.models import AdminStates
+from src.vk_bot.repository import VkFactRepository
 
 logger = setup_logger('message_event', 'vk', 'message_event.log')
 
@@ -88,3 +90,34 @@ async def start_create(message: MessageEvent):
         except Exception as e:
             logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")
             await message.send_message(f"Неизвестная ошибка")
+
+    if payload["action"] == "edit_fact":
+
+        facts = await VkFactRepository.get_facts_list(limit=9)
+        if not facts:
+            return await message.answer("Фактов нет.")
+
+        text = ""
+        if not facts:
+            text += "На данный момент фактов нету.\n"
+        else:
+            for fact in facts:
+                text += f"💡 Факт №{fact.id}:\n--> Описание: {fact.title[:20]}...\n\n"
+
+
+        keyboard = Keyboard(inline=True)
+        for f in facts:
+            keyboard.add(
+                Callback(f"ID {f.id}", payload={"action": "edit_this_fact", "fact_id": f.id}),
+                color=KeyboardButtonColor.SECONDARY
+            )
+            keyboard.row()
+        keyboard.add(Text("↩️ В меню", payload={"action": "back_to_admin_menu"}), color=KeyboardButtonColor.SECONDARY)
+
+        await message.send_message(f"Последние факты:\n{text}\n\nВыберите на кнопках номер факта для редактирования:", keyboard=keyboard.get_json())
+
+    if payload["action"] == "edit_this_fact":
+        fact_id = payload["fact_id"]
+
+        await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_EDIT_FACT_TEXT, edit_fact_id=fact_id)
+        await message.send_message("Введите НОВЫЙ текст факта (или напишите 'нет', чтобы оставить старый, 'отмена' - если хотите отменить начатое действие):")
