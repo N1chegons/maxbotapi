@@ -106,12 +106,20 @@ async def start_create(message: MessageEvent):
 
 
         keyboard = Keyboard(inline=True)
+        c = 0
         for f in facts:
+            c += 1
             keyboard.add(
                 Callback(f"ID {f.id}", payload={"action": "edit_this_fact", "fact_id": f.id}),
                 color=KeyboardButtonColor.SECONDARY
             )
+
+            if c % 3 == 0:
+                keyboard.row()
+
+        if c % 3 != 0:
             keyboard.row()
+
         keyboard.add(Text("↩️ В меню", payload={"action": "back_to_admin_menu"}), color=KeyboardButtonColor.SECONDARY)
 
         await message.send_message(f"Последние факты:\n{text}\n\nВыберите на кнопках номер факта для редактирования:", keyboard=keyboard.get_json())
