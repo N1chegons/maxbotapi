@@ -64,7 +64,7 @@ async def start_create(message: MessageEvent):
                 )
 
             await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_TEST_QUESTION)
-            await message.send_message("Введите вопрос теста (Если хотите отменить начатое действие напишите - 'отмена'):")
+            await message.send_message("Введите описание игры (Если хотите отменить начатое действие напишите - 'отмена'):")
 
         except Exception as e:
             logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")

@@ -37,7 +37,7 @@ async def get_fact_text(message: Message):
         )
 
         await message.answer(
-            f"Введите ссылку для просмотра материала  (Введите 'нет' - если нет ссылки): ")
+            f"Введите ссылку для просмотра материала (Введите 'нет' - если нет ссылки): ")
 
     except Exception as e:
         logger.info(f"Админ {user_id} получил неизвестную ошибку: {e}")

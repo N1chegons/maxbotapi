@@ -141,7 +141,7 @@ async def admin_test_menu(message: Message):
             text += "На данный момент тестов нету.\n"
         else:
             for fact in test_list:
-                text += f"📝 Тест №{fact.id}\n--> Вопрос: {fact.title}\n--> Ответы: {fact.options}\n> Ссылка: {fact.video_url}\n\n"
+                text += f"📝 Игра №{fact.id}\n--> Вопрос: {fact.title}\n--> Ответы: {fact.options}\n> Ссылка: {fact.video_url}\n\n"
 
         await message.answer(
             f"Вы в меню раздела <Ролевые игры> 📝.\n\nПоследние игры:\n{text}Выберите действия на кнпоках.",

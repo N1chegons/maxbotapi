@@ -152,10 +152,10 @@ class VkTestRepository:
             return test.scalar_one_or_none()
 
     @classmethod
-    async def create_test(cls, title: str, options: list, video_url: Optional[str] = None):
+    async def create_test(cls, title: str, video_url: Optional[str] = None):
         async with async_session() as session:
             logger.debug(f"Создание теста")
-            stmt = insert(Question).values(type=ContentType.TEST, title=title, options=options, video_url=video_url)
+            stmt = insert(Question).values(type=ContentType.TEST, title=title, video_url=video_url)
             await session.execute(stmt)
             await session.commit()
 
