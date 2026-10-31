@@ -32,7 +32,7 @@ async def admin_panel(message: Message):
         logger.error(f"Неизвестная ошибка: {e}")
         pass
 
-@labeler.message(text=["/facts", "Факты", "факты"])
+@labeler.message(text=["/facts", "💡 Факты", "факты"])
 async def admin_facts_menu(message: Message):
     try:
         user_id = message.from_id
@@ -62,7 +62,7 @@ async def admin_facts_menu(message: Message):
         logger.error(f"Неизвестная ошибка: {e}")
         pass
 
-@labeler.message(text=["/riddles", "Загадки", "загадки"])
+@labeler.message(text=["/riddles", "🧩 Загадки", "загадки"])
 async def admin_riddles_menu(message: Message):
     try:
         user_id = message.from_id
@@ -92,7 +92,7 @@ async def admin_riddles_menu(message: Message):
         logger.error(f"Неизвестная ошибка: {e}")
         pass
 
-@labeler.message(text=["/opinions", "Сборы Мнений", "cборы мнений"])
+@labeler.message(text=["/opinions", "💬 Сборы Мнений", "cборы мнений"])
 async def admin_opinions_menu(message: Message):
     try:
         user_id = message.from_id
@@ -122,7 +122,7 @@ async def admin_opinions_menu(message: Message):
         logger.error(f"Неизвестная ошибка: {e}")
         pass
 
-@labeler.message(text=["/tests", "Тесты", "тесты"])
+@labeler.message(text=["/tests", "📝 Тесты", "тесты"])
 async def admin_test_menu(message: Message):
     try:
         user_id = message.from_id
