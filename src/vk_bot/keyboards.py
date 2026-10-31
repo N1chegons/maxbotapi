@@ -7,7 +7,7 @@ def get_admin_menu():
     keyboard.add(Text("🧩 Загадки"), color=KeyboardButtonColor.SECONDARY)
     keyboard.row()
     keyboard.add(Text("💬 Сборы Мнений"), color=KeyboardButtonColor.SECONDARY)
-    keyboard.add(Text("📝 Тесты"), color=KeyboardButtonColor.SECONDARY)
+    keyboard.add(Text("📝 Ролевые игры"), color=KeyboardButtonColor.SECONDARY)
 
     return keyboard.get_json()
 
@@ -44,8 +44,8 @@ def get_admin_opinions_menu():
 def get_admin_tests_menu():
     keyboard = Keyboard(one_time=False, inline=True)
 
-    keyboard.add(Callback("Создать Тест", payload={"action": "create_test"}), color=KeyboardButtonColor.POSITIVE)
-    keyboard.add(Callback("Удалить Тест", payload={"action": "delete_test"}), color=KeyboardButtonColor.NEGATIVE)
+    keyboard.add(Callback("Создать Игру", payload={"action": "create_test"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Удалить Игру", payload={"action": "delete_test"}), color=KeyboardButtonColor.NEGATIVE)
     keyboard.row()
     keyboard.add(Text("↩️ В меню", payload={"action": "back_to_admin_menu"}), color=KeyboardButtonColor.SECONDARY)
 

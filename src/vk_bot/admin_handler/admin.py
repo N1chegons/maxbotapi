@@ -48,7 +48,7 @@ async def admin_facts_menu(message: Message):
         facts_list = await VkFactRepository.get_facts_list()
         text = ""
         if not facts_list:
-            text += "На данный момент фактов нету."
+            text += "На данный момент фактов нету.\n"
         else:
             for fact in facts_list:
                 text += f"💡 Факт №{fact.id}:\n--> Описание: {fact.title}\n--> Ссылка: {fact.video_url}\n\n"
@@ -78,7 +78,7 @@ async def admin_riddles_menu(message: Message):
         riddles_list = await VkRiddleRepository.get_riddle_list()
         text = ""
         if not riddles_list:
-            text += "На данный момент загадок нету."
+            text += "На данный момент загадок нету.\n"
         else:
             for fact in riddles_list:
                 text += f"🧩 Загадка №{fact.id}\n--> Описание: {fact.title}\n--> Ссылка: {fact.video_url}\n\n"
@@ -108,7 +108,7 @@ async def admin_opinions_menu(message: Message):
         opinions_list = await VkOpinionRepository.get_opinions_list()
         text = ""
         if not opinions_list:
-            text += "На данный момент сборов мнений нету."
+            text += "На данный момент сборов мнений нету.\n"
         else:
             for fact in opinions_list:
                 text += f"💬 Сбор №{fact.id}\n--> Описание: {fact.title}\n--> Ссылка: {fact.video_url}\n\n"
@@ -122,7 +122,7 @@ async def admin_opinions_menu(message: Message):
         logger.error(f"Неизвестная ошибка: {e}")
         pass
 
-@labeler.message(text=["/tests", "📝 Тесты", "тесты"])
+@labeler.message(text=["/tests", "📝 Ролевые игры", "ролевые игры"])
 async def admin_test_menu(message: Message):
     try:
         user_id = message.from_id
@@ -138,13 +138,13 @@ async def admin_test_menu(message: Message):
         test_list = await VkTestRepository.get_tests_list()
         text = ""
         if not test_list:
-            text += "На данный момент тестов нету."
+            text += "На данный момент тестов нету.\n"
         else:
             for fact in test_list:
                 text += f"📝 Тест №{fact.id}\n--> Вопрос: {fact.title}\n--> Ответы: {fact.options}\n> Ссылка: {fact.video_url}\n\n"
 
         await message.answer(
-            f"Вы в меню раздела <Тесты> 📝.\n\nПоследние тесты:\n{text}Выберите действия на кнпоках.",
+            f"Вы в меню раздела <Ролевые игры> 📝.\n\nПоследние игры:\n{text}Выберите действия на кнпоках.",
             keyboard=get_admin_tests_menu()
         )
 

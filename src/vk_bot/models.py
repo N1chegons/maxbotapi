@@ -73,3 +73,6 @@ class AdminStates(BaseStateGroup):
     WAITING_FOR_TEST_QUESTION = "waiting_for_test_question"
     WAITING_FOR_TEST_OPTIONS = "waiting_for_test_options"
     WAITING_FOR_TEST_VIDEO = "waiting_for_test_video"
+
+    WAITING_FOR_RIDDLE_TEXT = "waiting_for_riddle_text"
+    WAITING_FOR_RIDDLE_VIDEO = "waiting_for_riddle_video"

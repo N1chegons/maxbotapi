@@ -3,7 +3,7 @@ import asyncio
 from vkbottle import API
 from src.config import settings
 from src.logger_config import setup_logger
-from src.vk_bot.repository import VkFactRepository, VkOpinionRepository, VkTestRepository
+from src.vk_bot.repository import VkFactRepository, VkOpinionRepository, VkTestRepository, VkRiddleRepository
 
 logger = setup_logger('sender_service_vk', 'vk', 'sender_service_vk.log')
 
@@ -71,6 +71,46 @@ class FactSenderService:
 
         try:
             logger.info(f"Попытка отправки поста из БД. Название сбора мнений - {post_text}\nСсылка на факт - {full_url}")
+            response = await cls.api.wall.post(
+                owner_id=cls.GROUP_ID,
+                from_group=1,
+                message=post_text,
+                attachments=attachment
+            )
+
+            post_id = response.post_id
+
+            logger.info(
+                f"✅ Пост опубликован. ID:{post_id}.\nСсылка на пост: https://vk.com/wall{cls.GROUP_ID}_{post_id}")
+
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка публикации: {e}")
+
+    @classmethod
+    async def send_riddle(cls):
+        riddle = await VkRiddleRepository.get_random_riddle()
+
+        if not riddle:
+            logger.warning("Загадок не найдено. База пуста")
+            return
+
+        post_text = riddle.title
+        full_url = riddle.video_url if hasattr(riddle, 'video_url') else riddle.url
+        chat_link = f"https://vk.me/club216257056?ref=riddle_{riddle.id}"
+        post_text = f"Загадка 🧩\n{riddle.title}\nПосмотри видео, чтобы верно ответить на вопрос -> {full_url}\n\n👉 Ответить на вопрос: {chat_link}"
+
+        attachment = None
+        if full_url:
+            match = re.search(r'(video-?\d+_\d+)', full_url)
+            if match:
+                attachment = match.group(1)
+            else:
+                attachment = full_url
+
+        try:
+            logger.info(
+                f"Попытка отправки поста из БД. Текст загадки - {post_text}\nСсылка - {full_url}")
             response = await cls.api.wall.post(
                 owner_id=cls.GROUP_ID,
                 from_group=1,

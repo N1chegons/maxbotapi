@@ -47,7 +47,7 @@ class VkFactRepository:
     async def get_facts_list(cls):
         logger.debug(f"Получение списка фактов")
         async with async_session() as session:
-            stmt = select(Question).where(Question.type == ContentType.FACT).order_by(Question.created_at).limit(10)
+            stmt = select(Question).where(Question.type == ContentType.FACT).order_by(Question.created_at.desc()).limit(10)
             facts = await session.execute(stmt)
             logger.debug(f"Получен список фактов")
             return facts.scalars().all()
@@ -74,10 +74,19 @@ class VkRiddleRepository:
     async def get_riddle_list(cls):
         logger.debug(f"Получение списка загадок")
         async with async_session() as session:
-            stmt = select(Question).where(Question.type == ContentType.RIDDLE).order_by(Question.created_at).limit(6)
+            stmt = select(Question).where(Question.type == ContentType.RIDDLE).order_by(Question.created_at.desc()).limit(6)
             riddles = await session.execute(stmt)
             logger.debug(f"Получен список фактов")
             return riddles.scalars().all()
+
+    @classmethod
+    async def get_riddle_by_id(cls, riddle_id: int):
+        logger.debug(f"Получение списка загадок")
+        async with async_session() as session:
+            stmt = select(Question).where(Question.type == ContentType.RIDDLE, Question.id == riddle_id)
+            riddle = await session.execute(stmt)
+            logger.debug(f"Получен список фактов")
+            return riddle.scalar_one_or_none()
 
     @classmethod
     async def get_random_riddle(cls):
@@ -101,7 +110,7 @@ class VkOpinionRepository:
     async def get_opinions_list(cls):
         logger.debug(f"Получение списка сборов")
         async with async_session() as session:
-            stmt = select(Question).where(Question.type == ContentType.OPINION).order_by(Question.created_at).limit(6)
+            stmt = select(Question).where(Question.type == ContentType.OPINION).order_by(Question.created_at.desc()).limit(6)
             opinions = await session.execute(stmt)
             logger.debug(f"Получен список сборов")
             return opinions.scalars().all()
@@ -128,7 +137,7 @@ class VkTestRepository:
     async def get_tests_list(cls):
         logger.debug(f"Получение списка тестов")
         async with async_session() as session:
-            stmt = select(Question).where(Question.type == ContentType.TEST).order_by(Question.created_at).limit(6)
+            stmt = select(Question).where(Question.type == ContentType.TEST).order_by(Question.created_at.desc()).limit(6)
             tests = await session.execute(stmt)
             logger.debug(f"Получен список тестов")
             return tests.scalars().all()

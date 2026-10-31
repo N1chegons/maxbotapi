@@ -3,7 +3,7 @@ from vkbottle.bot import Message, BotLabeler
 from src.logger_config import setup_logger
 from src.vk_bot.bot_instance import labeler
 from src.vk_bot.keyboards import get_admin_menu
-from src.vk_bot.repository import VkUserRepository
+from src.vk_bot.repository import VkUserRepository, VkRiddleRepository
 
 logger = setup_logger('menu_handler', 'vk', 'menu_handler_work.log')
 
@@ -25,14 +25,35 @@ async def start_handler(message: Message):
 
             if message.ref == "opinion":
                 await message.answer(
-                    "Привет! Вижу, ты хочешь высказать мнение. Напиши его сюда.",
-                    keyboard = None
+                    "Привет! Вижу, ты хочешь высказать мнение. Напиши его сюда."
 
                 )
                 return
 
+            if message.ref and message.ref.startswith("riddle_"):
+                try:
+                    riddle_id = int(message.ref.split("_")[1])
+                    riddle = await VkRiddleRepository.get_riddle_by_id(riddle_id)
+
+                    if not riddle:
+                        await message.answer(
+                            "Привет! Ты знаешь ответ на загадку? Напиши его в чат."
+
+                        )
+                        return
+
+                    else:
+                        await message.answer(
+                            f"Привет! Ты знаешь ответ на загадку? Напиши его в чат.\n\nЗагадка 🧩: {riddle.title}"
+                        )
+                        return
+
+                except Exception as e:
+                    logger.error(f"Неизвестная ошибка: {e}")
+                    pass
+
         await message.answer(
-            "Привет! Я бот-помощник. Выбирай, что хочешь узнать сегодня.",
+            "Привет! Я бот-помощник. По какому вопросу ты здесь?",
             keyboard=None
         )
 
