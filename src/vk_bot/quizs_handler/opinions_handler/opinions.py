@@ -54,11 +54,12 @@ async def save_opinion(message: Message):
         opinion_title = payload.get("opinion_title")
         url = message.text if message.text.lower() != 'нет' else None
 
-        parsed_url = urlparse(url)
-        if not parsed_url.netloc:
-            return await message.answer(
-                "❌ Ошибка: неверный формат ссылки. Проверьте, что вы отправили полный адрес."
-            )
+        if url is not None:
+            parsed_url = urlparse(url)
+            if not parsed_url.netloc:
+                return await message.answer(
+                    "❌ Ошибка: неверный формат ссылки. Проверьте, что вы отправили полный адрес."
+                )
 
         exists_admin = VkAdminRepository.is_admin(user_id)
         if not exists_admin:

@@ -48,7 +48,7 @@ async def save_test(message: Message):
         test_title = payload.get("test_title")
         url = message.text if message.text.lower() != 'нет' else None
 
-        if url:
+        if url is not None:
             parsed_url = urlparse(url)
             if not parsed_url.netloc:
                 return await message.answer("❌ Неверный формат ссылки. Отправь еще раз или напиши 'нет'.")
@@ -59,7 +59,7 @@ async def save_test(message: Message):
         await bot.state_dispenser.delete(message.peer_id)
 
         await message.answer(
-            f"✅ Игра успешно создана!\n\nОписание: {test_title}\n Ссылка: {url}",
+            f"✅ Игра успешно создана!\n\nОписание: {test_title}\nСсылка: {url}",
             keyboard=admin_back()
         )
 
