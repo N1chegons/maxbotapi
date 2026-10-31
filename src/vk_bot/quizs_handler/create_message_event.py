@@ -6,7 +6,7 @@ from src.logger_config import setup_logger
 from src.vk_bot.admin_handler.repository import VkAdminRepository
 from src.vk_bot.bot_instance import bot, labeler
 from src.vk_bot.models import AdminStates
-from src.vk_bot.repository import VkFactRepository, VkOpinionRepository
+from src.vk_bot.repository import VkFactRepository, VkOpinionRepository, VkRiddleRepository
 
 logger = setup_logger('message_event', 'vk', 'message_event.log')
 
@@ -170,3 +170,43 @@ async def start_create(message: MessageEvent):
 
         await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_EDIT_OPINION_TEXT, edit_opinion_id=opinion_id)
         await message.send_message("Введите НОВЫЙ заголовок сбора (или напишите 'нет', чтобы оставить старый, 'отмена' - если хотите отменить начатое действие):")
+
+    if payload["action"] == "edit_riddle":
+
+        riddles = await VkRiddleRepository.get_riddle_list(limit=9)
+        if not riddles:
+            return await message.answer("Загадок нет.")
+
+        text = ""
+        if not riddles:
+            text += "На данный момент загадок нету.\n"
+        else:
+            for fact in riddles:
+                text += f"🧩 Загадка №{fact.id}:\n--> Описание: {fact.title[:20]}...\n\n"
+
+        keyboard = Keyboard(inline=True)
+        c = 0
+        for f in riddles:
+            c += 1
+            keyboard.add(
+                Callback(f"ID {f.id}", payload={"action": "edit_this_riddle", "riddle_id": f.id}),
+                color=KeyboardButtonColor.SECONDARY
+            )
+
+            if c % 3 == 0:
+                keyboard.row()
+
+        if c % 3 != 0:
+            keyboard.row()
+
+        keyboard.add(Text("↩️ В меню", payload={"action": "back_to_admin_menu"}), color=KeyboardButtonColor.SECONDARY)
+
+        await message.send_message(f"Последние загадки:\n{text}\n\nВыберите на кнопках номер загадки для редактирования:",
+                                   keyboard=keyboard.get_json())
+
+    if payload["action"] == "edit_this_riddle":
+        riddle_id = payload["riddle_id"]
+
+        await bot.state_dispenser.set(message.peer_id, AdminStates.WAITING_FOR_EDIT_RIDDLE_TEXT, edit_riddle_id=riddle_id)
+        await message.send_message("Введите НОВЫЙ вопрос загадки (или напишите 'нет', чтобы оставить старый, 'отмена' - если хотите отменить начатое действие):")
+

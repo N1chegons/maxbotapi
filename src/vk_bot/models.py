@@ -72,7 +72,6 @@ class AdminStates(BaseStateGroup):
     WAITING_FOR_OPINION_VIDEO = "waiting_for_opinion_video"
 
     WAITING_FOR_TEST_QUESTION = "waiting_for_test_question"
-    # WAITING_FOR_TEST_OPTIONS = "waiting_for_test_options"
     WAITING_FOR_TEST_VIDEO = "waiting_for_test_video"
 
     WAITING_FOR_RIDDLE_TEXT = "waiting_for_riddle_text"
@@ -84,3 +83,9 @@ class AdminStates(BaseStateGroup):
 
     WAITING_FOR_EDIT_OPINION_TEXT = "waiting_for_edit_opinion_text"
     WAITING_FOR_EDIT_OPINION_VIDEO = "waiting_for_edit_opinion_video"
+
+    WAITING_FOR_EDIT_TEST_TEXT = "waiting_for_edit_test_text"
+    WAITING_FOR_EDIT_TEST_VIDEO = "waiting_for_edit_test_video"
+
+    WAITING_FOR_EDIT_RIDDLE_TEXT = "waiting_for_edit_riddle_text"
+    WAITING_FOR_EDIT_RIDDLE_VIDEO = "waiting_for_edit_riddle_video"

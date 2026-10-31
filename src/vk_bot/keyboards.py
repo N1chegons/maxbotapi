@@ -26,6 +26,7 @@ def get_admin_riddle_menu():
     keyboard = Keyboard(one_time=False, inline=True)
 
     keyboard.add(Callback("Создать Загадку", payload={"action": "create_riddle"}), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Callback("Редактировать Загадку", payload={"action": "edit_riddle"}), color=KeyboardButtonColor.SECONDARY)
     keyboard.add(Callback("Удалить Загадку", payload={"action": "delete_riddle"}), color=KeyboardButtonColor.NEGATIVE)
     keyboard.row()
     keyboard.add(Text("↩️ В меню", payload={"action": "back_to_admin_menu"}), color=KeyboardButtonColor.SECONDARY)

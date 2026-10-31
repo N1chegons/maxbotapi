@@ -88,10 +88,10 @@ class VkFactRepository:
 
 class VkRiddleRepository:
     @classmethod
-    async def get_riddle_list(cls):
+    async def get_riddle_list(cls, limit: int = 10):
         logger.debug(f"Получение списка загадок")
         async with async_session() as session:
-            stmt = select(Question).where(Question.type == ContentType.RIDDLE).order_by(Question.created_at.desc()).limit(6)
+            stmt = select(Question).where(Question.type == ContentType.RIDDLE).order_by(Question.created_at.desc()).limit(limit)
             riddles = await session.execute(stmt)
             logger.debug(f"Получен список фактов")
             return riddles.scalars().all()
