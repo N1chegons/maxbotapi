@@ -51,7 +51,7 @@ async def admin_facts_menu(message: Message):
             text += "На данный момент фактов нету."
         else:
             for fact in facts_list:
-                text += f"Факт №{fact.id}\n> Описание: {fact.title}\n> Ссылка: {fact.url}\n\n"
+                text += f"Факт №{fact.id}\n> Описание: {fact.title}\n> Ссылка: {fact.video_url}\n\n"
 
         await message.answer(
             f"Вы в меню раздела <Факты>.\n\nПоследние факты:\n{text}Выберите действия на кнпоках.",
@@ -81,7 +81,7 @@ async def admin_riddles_menu(message: Message):
             text += "На данный момент загадок нету."
         else:
             for fact in riddles_list:
-                text += f"Загадка №{fact.id}\n> Описание: {fact.title}\n> Ссылка: {fact.url}\n\n"
+                text += f"Загадка №{fact.id}\n> Описание: {fact.title}\n> Ссылка: {fact.video_url}\n\n"
 
         await message.answer(
             f"Вы в меню раздела <Загадки>.\n\nПоследние загадки:\n{text}Выберите действия на кнпоках.",
@@ -111,7 +111,7 @@ async def admin_opinions_menu(message: Message):
             text += "На данный момент сборов мнений нету."
         else:
             for fact in opinions_list:
-                text += f"Сбор №{fact.id}\n> Описание: {fact.title}\n> Ссылка: {fact.url}\n\n"
+                text += f"Сбор №{fact.id}\n> Описание: {fact.title}\n> Ссылка: {fact.video_url}\n\n"
 
         await message.answer(
             f"Вы в меню раздела <Сборы Мнений>.\n\nПоследние сборы:\n{text}Выберите действия на кнпоках.",
@@ -141,7 +141,7 @@ async def admin_test_menu(message: Message):
             text += "На данный момент тестов нету."
         else:
             for fact in test_list:
-                text += f"Тест №{fact.id}\n> Вопрос: {fact.title}\n> Ответы: {fact.options}\n> Ссылка: {fact.url}\n\n"
+                text += f"Тест №{fact.id}\n> Вопрос: {fact.title}\n> Ответы: {fact.options}\n> Ссылка: {fact.video_url}\n\n"
 
         await message.answer(
             f"Вы в меню раздела <Тесты>.\n\nПоследние тесты:\n{text}Выберите действия на кнпоках.",
