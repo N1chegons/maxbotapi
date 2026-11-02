@@ -192,7 +192,6 @@ class VkIntegrationNew:
         self.send_to_channel(message)
         print(f"✅ Отправлено видео из плейлиста {playlist_name}")
 
-
 class VkIntegration:
     def __init__(self):
         self.channel_id = settings.MAX_CHANNEL_ID
@@ -262,13 +261,13 @@ class VkIntegration:
 
         # Файлы для хранения состояния (чтобы помнить, что публиковать по кругу)
         self.state_files = {
-            "type1_index": "/home/psylogic/type1_index.txt",
-            "type2_index": "/home/psylogic/type2_index.txt",
-            "book_index": "/home/psylogic/book_index.txt",  # ← новый для книг
+            "type1_index": "/home/bots/type1_index.txt",
+            "type2_index": "/home/bots/type2_index.txt",
+            "book_index": "/home/bots/book_index.txt",  # ← новый для книг
         }
 
-        self.video_cache_file = "/home/psylogic/video_cache.json"
-        self.book_slugs_cache_file = "/home/psylogic/maxapibotnew/book_slugs_cache.json"
+        self.video_cache_file = "/home/bots/video_cache.json"
+        self.book_slugs_cache_file = "/home/bots/maxbotapi/book_slugs_cache.json"
         self.video_cache = self._load_video_cache()
 
         self.book_min = 9
