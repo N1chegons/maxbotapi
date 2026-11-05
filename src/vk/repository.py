@@ -215,7 +215,7 @@ class VkIntegration:
             "mod": "📘 Четвёртая модернизация России",
             "fa": "🕌 Передай привет иранскому другу",
             "zh": "🇨🇳 Передай привет китайскому другу",
-            "soc": "📖 Социология Неповинных",
+            "soc": "Время социологии 😎",
             "pt": "🇧🇷 Есть друг из Анголы или Бразилии?",
         }
 
@@ -244,7 +244,7 @@ class VkIntegration:
         # Второй лист (общие плейлисты)
         self.playlist_type2 = [
             "Сила",
-            "Специалисты"
+            "Строительство"
         ]
 
         # Ссылки на плейлисты VK
@@ -256,7 +256,7 @@ class VkIntegration:
             "Строительство": "https://vkvideo.ru/playlist/-216257056_4",
             "Логистика": "https://vkvideo.ru/playlist/-216257056_5",
             "Сила": "https://vkvideo.ru/playlist/-216257056_10",
-            "Специалисты": "https://vkvideo.ru/playlist/-216257056_10",
+            "Специалисты": "https://vkvideo.ru/playlist/-216257056_6",
         }
 
         # Файлы для хранения состояния (чтобы помнить, что публиковать по кругу)
@@ -456,6 +456,23 @@ class VkIntegration:
             return None
         return random.choice(links)
 
+    def get_random_from_18h(self) -> str:
+        playlists = [
+            "https://vkvideo.ru/playlist/-216257056_10",  # Сила (7)
+            "https://vkvideo.ru/playlist/-216257056_1",  # Машиностроение (1)
+            "https://vkvideo.ru/playlist/-216257056_4"  # Строительство (4)
+        ]
+        chosen_url = random.choice(playlists)
+
+        # Теперь нужно понять, к какому имени относится этот URL, чтобы взять правильный заголовок (prefix)
+        # Проходимся по self.playlist_urls и ищем совпадение
+        chosen_name = "Сила"  # дефолт
+        for name, url in self.playlist_urls.items():
+            if url == chosen_url:
+                chosen_name = name
+                break
+        return chosen_name
+
     def get_video_description(self, video_url: str) -> str:
         try:
             result = subprocess.run(
@@ -650,7 +667,7 @@ schedule_map = {
     15: lambda: publish_article_async(),
     16: lambda: publish_video_async(publisher.get_next_playlist_type2()),
     17: lambda: publish_pdf_async("soc"),
-    18: lambda: publish_video_async(publisher.get_next_playlist_type2()),
+    18: lambda: publish_video_async(publisher.get_random_from_18h()),
     19: lambda: publish_pdf_async("pt"),
     20: lambda: publish_video_async(publisher.get_next_playlist_type2()),}
 
