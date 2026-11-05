@@ -16,6 +16,7 @@ from playwright.async_api import async_playwright
 import warnings
 
 from src.vk.wall_sync import WallSyncService
+from src.vk.weekly_cache import WeeklyCache
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
@@ -201,7 +202,8 @@ class VkIntegration:
         self.bot_token = settings.MAX_BOT_TOKEN
         self.token = settings.VK_ACCESS_TOKEN
         self.wall_sync = WallSyncService()
-
+        self.weekly_cache_video = WeeklyCache(cache_file="/home/bots/maxbotapi/weekly_videos.json")
+        self.weekly_cache_pdf = WeeklyCache(cache_file="/home/bots/maxbotapi/weekly_pdfs.json")
         # S3 клиент
         self.s3 = get_s3_client()
 
@@ -455,9 +457,29 @@ class VkIntegration:
         playlist_url = self.playlist_urls.get(playlist_name)
         if not playlist_url:
             return None
+
         links = self.get_video_links_from_playlist(playlist_url)
         if not links:
             return None
+
+        random.shuffle(links)
+
+        # 1. Пытаемся найти новое видео
+        for video_url in links:
+            if not self.weekly_cache_video.is_used(video_url):
+                self.weekly_cache_video.mark_used(video_url)
+                return video_url
+
+        # 2. Если все видео перебраны, берем самое старое из кэша (FIFO)
+        logger.warning(f"Все видео из {playlist_name} использованы. Применяем FIFO.")
+        oldest_video = self.weekly_cache_video.get_oldest_and_remove()
+
+        if oldest_video:
+            # Отмечаем его как использованное снова (обновляем дату)
+            self.weekly_cache_video.mark_used(oldest_video)
+            return oldest_video
+
+        # 3. Если кэш вообще пуст (крайний случай)
         return random.choice(links)
 
     def get_random_from_18h(self) -> str:
@@ -520,7 +542,32 @@ class VkIntegration:
             logger.warning(f"Нет PDF в бакете {bucket}")
             return None
 
-        pdf_key = random.choice(pdf_files)
+        # ==================== НОВАЯ ЛОГИКА С КЭШЕМ ====================
+        random.shuffle(pdf_files)  # Перемешиваем, чтобы искать в случайном порядке
+        pdf_key = None
+
+        # 1. Ищем файл, который еще не использовали
+        for key in pdf_files:
+            if not self.weekly_cache_pdf.is_used(key):
+                pdf_key = key
+                self.weekly_cache_pdf.mark_used(key)  # Сразу помечаем использованным
+                break
+
+        # 2. Если все файлы перебраны, берем самый старый из кэша (FIFO)
+        if not pdf_key:
+            logger.warning(f"Все PDF из {prefix} использованы за неделю. Применяем FIFO.")
+            oldest_pdf = self.weekly_cache_pdf.get_oldest_and_remove()
+
+            # Проверяем, что этот старый файл реально еще существует в бакете (вдруг его удалили)
+            if oldest_pdf and oldest_pdf in pdf_files:
+                pdf_key = oldest_pdf
+                self.weekly_cache_pdf.mark_used(pdf_key)  # Обновляем дату
+            else:
+                # Если старого файла больше нет в бакете, берем случайный
+                pdf_key = random.choice(pdf_files)
+                self.weekly_cache_pdf.mark_used(pdf_key)
+        # =============================================================
+
         logger.info(f"Выбран PDF: {pdf_key}")
 
         encoded_key = quote(pdf_key, safe='')
