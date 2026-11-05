@@ -11,7 +11,7 @@ logger = setup_logger('wall_sync', 'vk', 'wall_sync.log')
 
 class WallSyncService:
     def __init__(self, group_id: int = 186451829, cache_file: str = "/home/bots/maxbotapi/wall_cache.json"):
-        self.token = settings.VK_TOKEN_COMMUNITY
+        self.token = settings.VK_ACCESS_TOKEN
         self.group_id = group_id
         self.cache_file = cache_file
         self.api_version = "5.199"
