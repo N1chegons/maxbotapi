@@ -14,6 +14,9 @@ import re
 from playwright.async_api import async_playwright
 
 import warnings
+
+from src.vk.wall_sync import WallSyncService
+
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 
@@ -197,6 +200,7 @@ class VkIntegration:
         self.channel_id = settings.MAX_CHANNEL_ID
         self.bot_token = settings.MAX_BOT_TOKEN
         self.token = settings.VK_ACCESS_TOKEN
+        self.wall_sync = WallSyncService()
 
         # S3 клиент
         self.s3 = get_s3_client()
@@ -631,9 +635,9 @@ class VkIntegration:
 
     def publish_article(self):
         """Опубликовать случайную книгу"""
-        book = self.get_random_book()  # ← вместо get_next_book
+        book = self.wall_sync.get_random_post()
         if not book:
-            logger.error("Нет книги для публикации")
+            logger.error("Нет доступных постов в кэше для публикации")
             return
 
         message = f"📚 Книга\n\n📖 Читать: {book['url']}"
