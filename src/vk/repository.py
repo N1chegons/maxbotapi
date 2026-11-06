@@ -718,9 +718,10 @@ schedule_map = {
     15: lambda: publish_article_async(),
     16: lambda: publish_video_async(publisher.get_next_playlist_type2()),
     17: lambda: publish_pdf_async("soc"),
-    18: lambda: publish_video_async(publisher.get_random_from_18h()),
+    18: lambda: publish_video_async(publisher.get_next_playlist_type2()),
     19: lambda: publish_pdf_async("pt"),
-    20: lambda: publish_video_async(publisher.get_next_playlist_type2()),}
+    20: lambda: publish_video_async(publisher.get_random_from_18h())
+}
 
 def run_by_hour(hour: int):
     if hour in schedule_map:
