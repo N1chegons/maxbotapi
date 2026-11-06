@@ -14,12 +14,10 @@ import re
 from playwright.async_api import async_playwright
 
 import warnings
-
 from src.vk.wall_sync import WallSyncService
 from src.vk.weekly_cache import WeeklyCache
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-
 
 logger = setup_logger('vk_publisher', 'vk_publisher', 'vk_publisher.log')
 
@@ -54,18 +52,13 @@ class VkIntegrationNew:
             "Прохоров": "https://vkvideo.ru/playlist/-141287828_4"
         }
 
+    # ... (методы VkIntegrationNew остаются без изменений) ...
+
     def get_video_links_from_playlist(self, playlist_url: str) -> list:
         try:
             result = subprocess.run(
-                [
-                    "yt-dlp",
-                    "--flat-playlist",
-                    "--print", "webpage_url",
-                    playlist_url
-                ],
-                capture_output=True,
-                text=True,
-                timeout=120
+                ["yt-dlp", "--flat-playlist", "--print", "webpage_url", playlist_url],
+                capture_output=True, text=True, timeout=120
             )
             if result.returncode != 0:
                 print(f"Ошибка yt-dlp: {result.stderr}")
@@ -151,7 +144,6 @@ class VkIntegrationNew:
 
     def send_random_clip(self):
         try:
-            # noinspection PySuspiciousBooleanCondition
             if not os.path.exists(self.clips_file):
                 print("❌ Файл с клипами не найден")
                 return
@@ -174,14 +166,12 @@ class VkIntegrationNew:
             print(f"❌ Ошибка: {e}")
 
     def get_random_video_from_playlist(self, playlist_url: str) -> Any | None:
-        """Возвращает случайную ссылку на видео из плейлиста"""
         links = self.get_video_links_from_playlist(playlist_url)
         if not links:
             return None
         return random.choice(links)
 
     def post_scheduled_video(self, playlist_name: str):
-        """Публикует случайное видео из заданного плейлиста в канал"""
         playlist_url = self.scheduled_playlists.get(playlist_name)
         if not playlist_url:
             print(f"❌ Плейлист {playlist_name} не найден")
@@ -196,18 +186,19 @@ class VkIntegrationNew:
         self.send_to_channel(message)
         print(f"✅ Отправлено видео из плейлиста {playlist_name}")
 
+
 class VkIntegration:
     def __init__(self):
         self.channel_id = settings.MAX_CHANNEL_ID
         self.bot_token = settings.MAX_BOT_TOKEN
         self.token = settings.VK_ACCESS_TOKEN
+
         self.wall_sync = WallSyncService()
         self.weekly_cache_video = WeeklyCache(cache_file="/home/bots/maxbotapi/weekly_videos.json")
         self.weekly_cache_pdf = WeeklyCache(cache_file="/home/bots/maxbotapi/weekly_pdfs.json")
-        # S3 клиент
+
         self.s3 = get_s3_client()
 
-        # Бакеты для PDF
         self.pdf_buckets = {
             "mod": "mod.nepovinnyh.ru",
             "fa": "fa.nepovinnyh.ru",
@@ -216,7 +207,6 @@ class VkIntegration:
             "pt": "pt.nepovinnyh.ru",
         }
 
-        # Префиксы для PDF (заголовки)
         self.pdf_prefixes = {
             "mod": "📘 Четвёртая модернизация России",
             "fa": "🕌 Передай привет иранскому другу",
@@ -225,51 +215,55 @@ class VkIntegration:
             "pt": "🇧🇷 Есть друг из Анголы или Бразилии?",
         }
 
-        # Префиксы для видео (заголовки)
+        # === ОБНОВЛЕННЫЕ ДАННЫЕ ОТ ЗАКАЗЧИКА ===
         self.video_prefixes = {
-            "Здоровье": "Красота России❤️",
-            "Машиностроение": "⚙️ Машиностроение России",
-            "Педагогика": "📚 А ты знал?",
-            "Питание": "Красота России❤️",
-            "Строительство": "🏗️ Строительство России",
-            "Логистика": "🚂 Прокатимся по России",
-            "Сила": "Время социологии😎",
-            "Специалисты": "Время социологии😎",
+            "Машиностроение": "⚙️  Машиностроение России",
+            "Педагогика": "📚  А ты знал?",
+            "Питание": "Поедим❓\n",
+            "Строительство": "🏗️  Строительство России",
+            "Логистика": "🚂  Прокатимся по России",
+            "Специалисты": "Специалисты важны💪 ",
+            "Сила": "Сила и власть🚀\n",
+            "Здоровье": "💉 ",
+            "Красота": "Красота России❤️ ",
+            "Социология": "Время социологии😎 ",
         }
 
-        # Первый лист (тематические плейлисты)
+        self.playlist_urls = {
+            "Машиностроение": "https://vkvideo.ru/playlist/-216257056_1",
+            "Педагогика": "https://vkvideo.ru/playlist/-216257056_2",
+            "Питание": "https://vkvideo.ru/playlist/-216257056_3",
+            "Строительство": "https://vkvideo.ru/playlist/-216257056_4",
+            "Логистика": "https://vkvideo.ru/playlist/-216257056_5",
+            "Специалисты": "https://vkvideo.ru/playlist/-216257056_6",
+            "Сила": "https://vkvideo.ru/playlist/-216257056_7",
+            "Здоровье": "https://vkvideo.ru/playlist/-216257056_8",
+            "Красота": "https://vkvideo.ru/playlist/-216257056_9",
+            "Социология": "https://vkvideo.ru/playlist/-216257056_10",
+        }
+
         self.playlist_type1 = [
             "Здоровье",
-            "Машиностроение",
-            "Педагогика",
             "Питание",
-            "Строительство",
             "Логистика"
         ]
 
-        # Второй лист (общие плейлисты)
         self.playlist_type2 = [
             "Сила",
-            "Строительство"
+            "Строительство",
+            "Машиностроение"  # Заказчик написал "Машины", но в словаре это "Машиностроение"
         ]
 
-        # Ссылки на плейлисты VK
-        self.playlist_urls = {
-            "Здоровье": "https://vkvideo.ru/playlist/-216257056_9",
-            "Машиностроение": "https://vkvideo.ru/playlist/-216257056_1",
-            "Педагогика": "https://vkvideo.ru/playlist/-216257056_2",
-            "Питание": "https://vkvideo.ru/playlist/-216257056_9",
-            "Строительство": "https://vkvideo.ru/playlist/-216257056_4",
-            "Логистика": "https://vkvideo.ru/playlist/-216257056_5",
-            "Сила": "https://vkvideo.ru/playlist/-216257056_10",
-            "Специалисты": "https://vkvideo.ru/playlist/-216257056_6",
-        }
+        self.playlist_type3 = ["Красота"]
+        self.playlist_type4 = ["Педагогика"]
+        self.playlist_type5 = ["Специалисты"]
+        self.playlist_type6 = ["Социология"]
+        # =======================================
 
-        # Файлы для хранения состояния (чтобы помнить, что публиковать по кругу)
         self.state_files = {
             "type1_index": "/home/bots/type1_index.txt",
             "type2_index": "/home/bots/type2_index.txt",
-            "book_index": "/home/bots/book_index.txt",  # ← новый для книг
+            "book_index": "/home/bots/book_index.txt",
         }
 
         self.video_cache_file = "/home/bots/video_cache.json"
@@ -290,8 +284,6 @@ class VkIntegration:
         with open(self.book_slugs_cache_file, "w") as f:
             json.dump(cache, f, indent=2)
 
-
-
     def _load_video_cache(self) -> Dict:
         try:
             with open(self.video_cache_file, "r") as f:
@@ -304,7 +296,6 @@ class VkIntegration:
             json.dump(self.video_cache, f, indent=2)
 
     def _get_next_index(self, file_path: str, max_index: int) -> int:
-        """Получить следующий индекс по кругу"""
         try:
             with open(file_path, "r") as f:
                 index = int(f.read().strip())
@@ -312,10 +303,8 @@ class VkIntegration:
             index = 0
 
         next_index = (index + 1) % max_index
-
         with open(file_path, "w") as f:
             f.write(str(next_index))
-
         return index
 
     def get_next_playlist_type1(self) -> str:
@@ -326,8 +315,20 @@ class VkIntegration:
         index = self._get_next_index(self.state_files["type2_index"], len(self.playlist_type2))
         return self.playlist_type2[index]
 
-    # ==================== КНИГИ (НОВЫЙ МЕТОД) ====================
+    def get_playlist_type3(self) -> str:
+        return random.choice(self.playlist_type3)
 
+    def get_playlist_type4(self) -> str:
+        return random.choice(self.playlist_type4)
+
+    def get_playlist_type5(self) -> str:
+        return random.choice(self.playlist_type5)
+
+    def get_playlist_type6(self) -> str:
+        return random.choice(self.playlist_type6)
+
+    # ==================== КНИГИ (НОВЫЙ МЕТОД) ====================
+    # (Методы get_next_book и get_article_slug_from_post оставляем как есть, они не менялись)
     def _get_current_book_number(self) -> int:
         try:
             with open(self.state_files["book_index"], "r") as f:
@@ -362,10 +363,6 @@ class VkIntegration:
         }
 
     def get_article_slug_from_post(self, post_number: int) -> Optional[str]:
-        """Из поста wall-186451829_XX вытаскивает ссылку на статью"""
-        import requests
-        import re
-
         post_url = f"https://vk.ru/wall-186451829_{post_number}"
 
         try:
@@ -376,9 +373,6 @@ class VkIntegration:
                 logger.error(f"Не удалось получить пост {post_number}")
                 return None
 
-            # Ищем оба варианта ссылок:
-            # 1. vk.ru/@socnep.biblio-...
-            # 2. vk.ru/@-186451829-...
             match = re.search(r'https?://vk\.ru/(@socnep\.biblio-|@-\d+-)[^\s"\'>]+', response.text)
             if not match:
                 match = re.search(r'vk\.ru/(@socnep\.biblio-|@-\d+-)[^\s"\'>]+', response.text)
@@ -396,36 +390,6 @@ class VkIntegration:
         except Exception as e:
             logger.error(f"Ошибка парсинга поста {post_number}: {e}")
             return None
-
-    def get_random_book(self) -> Optional[Dict]:
-        """Получить случайную книгу с человекочитаемой ссылкой (с кэшем)"""
-        import random
-
-        # Загружаем кэш
-        cache = self._load_slugs_cache()
-
-        # Случайный номер
-        random_number = random.randint(self.book_min, self.book_max)
-
-        # Проверяем, есть ли ссылка в кэше
-        if str(random_number) in cache:
-            article_url = cache[str(random_number)]
-            logger.info(f"Случайная книга {random_number} (из кэша): {article_url}")
-        else:
-            # Парсим ссылку
-            article_url = self.get_article_slug_from_post(random_number)
-            if article_url:
-                cache[str(random_number)] = article_url
-                self._save_slugs_cache(cache)
-                logger.info(f"Случайная книга {random_number} (спарсено): {article_url}")
-            else:
-                article_url = f"https://vk.ru/wall-186451829_{random_number}"
-                logger.warning(f"Использую числовую ссылку для {random_number}")
-
-        return {
-            "url": article_url,
-            "description": "📖 Интересная статья"
-        }
 
     # ==================== ОСТАЛЬНЫЕ МЕТОДЫ ====================
 
@@ -464,40 +428,19 @@ class VkIntegration:
 
         random.shuffle(links)
 
-        # 1. Пытаемся найти новое видео
         for video_url in links:
             if not self.weekly_cache_video.is_used(video_url):
                 self.weekly_cache_video.mark_used(video_url)
                 return video_url
 
-        # 2. Если все видео перебраны, берем самое старое из кэша (FIFO)
         logger.warning(f"Все видео из {playlist_name} использованы. Применяем FIFO.")
         oldest_video = self.weekly_cache_video.get_oldest_and_remove()
 
         if oldest_video:
-            # Отмечаем его как использованное снова (обновляем дату)
             self.weekly_cache_video.mark_used(oldest_video)
             return oldest_video
 
-        # 3. Если кэш вообще пуст (крайний случай)
         return random.choice(links)
-
-    def get_random_from_18h(self) -> str:
-        playlists = [
-            "https://vkvideo.ru/playlist/-216257056_10",  # Сила (7)
-            "https://vkvideo.ru/playlist/-216257056_1",  # Машиностроение (1)
-            "https://vkvideo.ru/playlist/-216257056_4"  # Строительство (4)
-        ]
-        chosen_url = random.choice(playlists)
-
-        # Теперь нужно понять, к какому имени относится этот URL, чтобы взять правильный заголовок (prefix)
-        # Проходимся по self.playlist_urls и ищем совпадение
-        chosen_name = "Сила"  # дефолт
-        for name, url in self.playlist_urls.items():
-            if url == chosen_url:
-                chosen_name = name
-                break
-        return chosen_name
 
     def get_video_description(self, video_url: str) -> str:
         try:
@@ -542,31 +485,25 @@ class VkIntegration:
             logger.warning(f"Нет PDF в бакете {bucket}")
             return None
 
-        # ==================== НОВАЯ ЛОГИКА С КЭШЕМ ====================
-        random.shuffle(pdf_files)  # Перемешиваем, чтобы искать в случайном порядке
+        random.shuffle(pdf_files)
         pdf_key = None
 
-        # 1. Ищем файл, который еще не использовали
         for key in pdf_files:
             if not self.weekly_cache_pdf.is_used(key):
                 pdf_key = key
-                self.weekly_cache_pdf.mark_used(key)  # Сразу помечаем использованным
+                self.weekly_cache_pdf.mark_used(key)
                 break
 
-        # 2. Если все файлы перебраны, берем самый старый из кэша (FIFO)
         if not pdf_key:
             logger.warning(f"Все PDF из {prefix} использованы за неделю. Применяем FIFO.")
             oldest_pdf = self.weekly_cache_pdf.get_oldest_and_remove()
 
-            # Проверяем, что этот старый файл реально еще существует в бакете (вдруг его удалили)
             if oldest_pdf and oldest_pdf in pdf_files:
                 pdf_key = oldest_pdf
-                self.weekly_cache_pdf.mark_used(pdf_key)  # Обновляем дату
+                self.weekly_cache_pdf.mark_used(pdf_key)
             else:
-                # Если старого файла больше нет в бакете, берем случайный
                 pdf_key = random.choice(pdf_files)
                 self.weekly_cache_pdf.mark_used(pdf_key)
-        # =============================================================
 
         logger.info(f"Выбран PDF: {pdf_key}")
 
@@ -575,7 +512,6 @@ class VkIntegration:
 
         description = None
 
-        # TXT файл
         txt_key = pdf_key.replace('.pdf', '.txt')
         try:
             txt_obj = self.s3.get_object(Bucket=bucket, Key=txt_key)
@@ -584,7 +520,6 @@ class VkIntegration:
         except:
             logger.debug(f"Нет TXT для {pdf_key}")
 
-        # Парсинг PDF
         if not description:
             try:
                 pdf_obj = self.s3.get_object(Bucket=bucket, Key=pdf_key)
@@ -601,7 +536,6 @@ class VkIntegration:
             except Exception as e:
                 logger.error(f"Ошибка парсинга PDF: {e}")
 
-        # Первый абзац
         if description:
             paragraphs = re.split(r'\n\s*\n', description, maxsplit=1)
             first_paragraph = paragraphs[0].strip()
@@ -658,7 +592,6 @@ class VkIntegration:
         logger.info(f"Опубликовано видео: {playlist_name}")
 
     async def publish_pdf(self, pdf_prefix: str):
-        """Опубликовать PDF"""
         pdf_data = await self.get_pdf_from_s3(pdf_prefix)
         if not pdf_data:
             logger.error(f"❌ Нет PDF для {pdf_prefix}, пропускаем")
@@ -666,12 +599,10 @@ class VkIntegration:
 
         prefix = self.pdf_prefixes.get(pdf_prefix, "📄 Материал")
 
-        # Для иностранных бакетов (pt, fa, zh) — только название файла и ссылка
         if pdf_prefix in ["pt", "fa", "zh"]:
             filename = pdf_data.get('filename', 'Материал')
             message = f"{prefix}\n\n{filename}\n\n📄 Читать: {pdf_data['url']}"
         else:
-            # Для mod и soc — с описанием
             if pdf_data.get('description'):
                 message = f"{prefix}\n\n{pdf_data['description']}\n\n📄 Читать: {pdf_data['url']}"
             else:
@@ -681,7 +612,6 @@ class VkIntegration:
         logger.info(f"✅ Опубликован PDF: {pdf_prefix}")
 
     def publish_article(self):
-        """Опубликовать случайную книгу"""
         book = self.wall_sync.get_random_post()
         if not book:
             logger.error("Нет доступных постов в кэше для публикации")
@@ -696,32 +626,35 @@ class VkIntegration:
 
 publisher = VkIntegration()
 
+
 async def publish_video_async(playlist_name: str):
-    # noinspection PyNoneFunctionAssignment
-    return publisher.publish_video(playlist_name)  # если publish_video синхронная
+    return publisher.publish_video(playlist_name)
+
 
 async def publish_pdf_async(pdf_prefix: str):
-    return await publisher.publish_pdf(pdf_prefix)  # publish_pdf теперь async
+    return await publisher.publish_pdf(pdf_prefix)
+
 
 async def publish_article_async():
-    # noinspection PyNoneFunctionAssignment
     return publisher.publish_article()
 
-# schedule_map с async функциями
+
+# === ОБНОВЛЕННОЕ РАСПИСАНИЕ ОТ ЗАКАЗЧИКА ===
 schedule_map = {
-    9: lambda: publish_video_async(publisher.get_next_playlist_type1()),
+    9: lambda: publish_video_async(publisher.get_playlist_type3()),
     10: lambda: publish_pdf_async("mod"),
-    11: lambda: publish_video_async(publisher.get_next_playlist_type1()),
+    11: lambda: publish_video_async(publisher.get_playlist_type4()),
     12: lambda: publish_video_async(publisher.get_next_playlist_type1()),
     13: lambda: publish_pdf_async("fa"),
     14: lambda: publish_pdf_async("zh"),
     15: lambda: publish_article_async(),
-    16: lambda: publish_video_async(publisher.get_next_playlist_type2()),
+    16: lambda: publish_video_async(publisher.get_playlist_type5()),
     17: lambda: publish_pdf_async("soc"),
     18: lambda: publish_video_async(publisher.get_next_playlist_type2()),
     19: lambda: publish_pdf_async("pt"),
-    20: lambda: publish_video_async(publisher.get_random_from_18h())
+    20: lambda: publish_video_async(publisher.get_playlist_type6())
 }
+
 
 def run_by_hour(hour: int):
     if hour in schedule_map:
@@ -733,6 +666,7 @@ def run_by_hour(hour: int):
 
 if __name__ == "__main__":
     import sys
+
     if len(sys.argv) > 1:
         hour = int(sys.argv[1])
         run_by_hour(hour)
