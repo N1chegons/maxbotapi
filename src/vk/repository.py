@@ -391,6 +391,49 @@ class VkIntegration:
             logger.error(f"Ошибка парсинга поста {post_number}: {e}")
             return None
 
+    # ==================== НОВОЕ: ТЕКСТ ПОСТА ПО ССЫЛКЕ ====================
+    def get_post_text(self, post_url: str) -> Optional[str]:
+        """Извлекает текст поста VK по ссылке вида https://vk.ru/wall-186451829_123"""
+        match = re.search(r'wall(-?\d+_\d+)', post_url)
+        if not match:
+            logger.error(f"Не удалось извлечь ID поста из {post_url}")
+            return None
+
+        post_id = match.group(1)  # например: -186451829_123
+
+        try:
+            response = requests.get(
+                "https://api.vk.com/method/wall.getById",
+                params={
+                    "posts": post_id,
+                    "access_token": self.token,
+                    "v": "5.199"
+                },
+                timeout=15
+            )
+            data = response.json()
+
+            if "error" in data:
+                logger.error(f"VK API error: {data['error'].get('error_msg')}")
+                return None
+
+            items = data.get("response")
+            if not items:
+                logger.warning(f"Пост {post_id} не найден или пуст")
+                return None
+
+            text = items[0].get("text", "").strip()
+            if not text:
+                logger.warning(f"Пост {post_id} не содержит текста")
+                return None
+
+            logger.info(f"Получен текст поста {post_id} ({len(text)} символов)")
+            return text
+
+        except Exception as e:
+            logger.error(f"Ошибка запроса к VK API: {e}")
+            return None
+
     # ==================== ОСТАЛЬНЫЕ МЕТОДЫ ====================
 
     def get_video_links_from_playlist(self, playlist_url: str) -> list:
@@ -559,8 +602,8 @@ class VkIntegration:
         return {'url': pdf_url, 'description': description, 'filename': filename}
 
     def send_to_channel(self, text: str):
-        if len(text) > 4096:
-            text = text[:4093] + "..."
+        if len(text) > 4093:
+            text = text[:4093].rstrip() + "…"
             logger.warning(f"Сообщение обрезано")
 
         url = f"https://platform-api.max.ru/messages?chat_id={self.channel_id}"
@@ -617,7 +660,14 @@ class VkIntegration:
             logger.error("Нет доступных постов в кэше для публикации")
             return
 
-        message = f"📚 Книга\n\n📖 Читать: {book['url']}"
+        post_text = self.get_post_text(book['url'])
+
+        if post_text:
+            message = f"📚 Книга\n\n{post_text}"
+        else:
+            logger.warning(f"Текст поста не получен, публикуем ссылку: {book['url']}")
+            message = f"📚 Книга\n\n📖 Читать: {book['url']}"
+
         self.send_to_channel(message)
         logger.info(f"✅ Опубликована случайная книга")
 
