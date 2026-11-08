@@ -399,7 +399,7 @@ class VkIntegration:
             logger.error(f"Не удалось извлечь ID поста из {post_url}")
             return None
 
-        post_id = match.group(1)  # например: -186451829_123
+        post_id = match.group(1)
 
         try:
             response = requests.get(
@@ -412,12 +412,23 @@ class VkIntegration:
                 timeout=15
             )
             data = response.json()
+            logger.info(f"VK API raw response для {post_id}: {data}")
 
             if "error" in data:
-                logger.error(f"VK API error: {data['error'].get('error_msg')}")
+                logger.error(f"VK API error: {data['error']}")
                 return None
 
-            items = data.get("response")
+            response_data = data.get("response")
+
+            # VK может вернуть список напрямую, либо объект с items
+            if isinstance(response_data, list):
+                items = response_data
+            elif isinstance(response_data, dict):
+                items = response_data.get("items", [])
+            else:
+                logger.error(f"Неожиданный формат response для {post_id}: {type(response_data)}")
+                return None
+
             if not items:
                 logger.warning(f"Пост {post_id} не найден или пуст")
                 return None
@@ -431,7 +442,7 @@ class VkIntegration:
             return text
 
         except Exception as e:
-            logger.error(f"Ошибка запроса к VK API: {e}")
+            logger.exception(f"Ошибка запроса к VK API для {post_id}: {e}")
             return None
 
     # ==================== ОСТАЛЬНЫЕ МЕТОДЫ ====================
