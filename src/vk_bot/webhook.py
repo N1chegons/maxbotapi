@@ -29,10 +29,6 @@ async def vk_handler(req: Request, background_task: BackgroundTasks):
     if data["type"] == "confirmation":
         return Response(confirmation_code)
 
-    # === ДОБАВЬ ЭТУ ПРОВЕРКУ ===
-    if data["type"] != "message_new":
-        return Response("ok")  # Игнорируем всё, кроме новых сообщений
-
     if data.get("secret") == secret_key:
         background_task.add_task(bot.process_event, data)
     return Response("ok")
