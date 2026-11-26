@@ -18,8 +18,15 @@ app = FastAPI(lifespan=lifespan)
 
 @app.post("/vk_webhook")
 async def vk_handler(req: Request, background_task: BackgroundTasks):
+    processed_events = set()
     try:
         data = await req.json()
+        event_id = data.get("event_id")
+
+        if event_id in processed_events:
+            return Response("ok")  # Уже обработали
+
+        processed_events.add(event_id)
     except Exception:
         return Response("not today", status_code=403)
 
