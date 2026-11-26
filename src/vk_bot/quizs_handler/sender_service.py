@@ -8,7 +8,7 @@ from src.vk_bot.repository import VkFactRepository, VkOpinionRepository, VkTestR
 logger = setup_logger('sender_service_vk', 'vk', 'sender_service_vk.log')
 
 class FactSenderService:
-    VK_TOKEN = settings.VK_TOKEN_COMMUNITY
+    VK_TOKEN = settings.VK_ACCESS_TOKEN
     GROUP_ID = -216257056
     api = API(VK_TOKEN)
 
