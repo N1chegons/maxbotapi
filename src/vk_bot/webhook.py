@@ -28,6 +28,7 @@ async def vk_handler(req: Request, background_task: BackgroundTasks):
             return Response("ok")  # Уже обработали
 
         processed_events.add(event_id)
+        logger.info(f"Пришло событие: {data.get('type')}, event_id: {data.get('event_id')}")
     except Exception:
         return Response("not today", status_code=403)
 
