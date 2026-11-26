@@ -2,14 +2,12 @@ from contextlib import asynccontextmanager
 from fastapi import BackgroundTasks, FastAPI, Request, Response
 from src.vk_bot.bot_instance import bot
 
-# Хардкодим код подтверждения (тот, что показывает ВК)
 confirmation_code = "1ce68d2b"
-secret_key: str = "" # сюда можно вставить секретный ключ из настроек Callback API, если он там включен
+secret_key: str = "VkBot_webhook"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global secret_key
-    # Если setup_webhook нужен для получения secret_key, оставь его, но confirmation_code уже жестко задан
     try:
         _, secret_key = await bot.setup_webhook()
     except Exception as e:
