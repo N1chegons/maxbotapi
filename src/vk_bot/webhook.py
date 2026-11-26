@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, Request, Response
@@ -34,7 +35,7 @@ async def vk_handler(req: Request, background_task: BackgroundTasks):
         return Response(confirmation_code)
 
     if data["secret"] == secret_key:
-        background_task.add_task(bot.process_event, data)
+        asyncio.create_task(bot.process_event(data))
     return Response("ok")
 
 
