@@ -3,8 +3,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, Request, Response
 
+from src.logger_config import setup_logger
 from src.vk_bot.bot_instance import bot
 
+logger = setup_logger('max_bot', 'max', 'MAX_bot.log')
 confirmation_code: str
 secret_key: str
 
