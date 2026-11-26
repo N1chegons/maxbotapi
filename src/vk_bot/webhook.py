@@ -21,24 +21,20 @@ app = FastAPI(lifespan=lifespan)
 
 @app.post("/vk_webhook")
 async def vk_handler(req: Request, background_task: BackgroundTasks):
-    processed_events = set()
     try:
         data = await req.json()
-        event_id = data.get("event_id")
-
-        if event_id in processed_events:
-            return Response("ok")  # Уже обработали
-
-        processed_events.add(event_id)
-        logger.info(f"Пришло событие: {data.get('type')}, event_id: {data.get('event_id')}")
     except Exception:
         return Response("not today", status_code=403)
 
     if data["type"] == "confirmation":
         return Response(confirmation_code)
 
-    if data["secret"] == secret_key:
-        asyncio.create_task(bot.process_event(data))
+    # === ДОБАВЬ ЭТУ ПРОВЕРКУ ===
+    if data["type"] != "message_new":
+        return Response("ok")  # Игнорируем всё, кроме новых сообщений
+
+    if data.get("secret") == secret_key:
+        background_task.add_task(bot.process_event, data)
     return Response("ok")
 
 
