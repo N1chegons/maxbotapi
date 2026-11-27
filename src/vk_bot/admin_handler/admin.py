@@ -51,7 +51,8 @@ async def admin_facts_menu(message: Message):
             text += "На данный момент фактов нету.\n"
         else:
             for fact in facts_list:
-                text += f"💡 Факт №{fact.id}:\n--> Описание: {fact.title}\n--> Ссылка: {fact.video_url}\n\n"
+                display_id = VkAdminRepository.get_display_id(fact.video_url, fact.id)
+                text += f"💡 Факт №{display_id}:\n--> Описание: {fact.title}\n--> Ссылка: {fact.video_url}\n\n"
 
         await message.answer(
             f"Вы в меню раздела <Факты> 💡.\n\nПоследние факты:\n{text}Выберите действия на кнпоках.",
@@ -81,7 +82,8 @@ async def admin_riddles_menu(message: Message):
             text += "На данный момент загадок нету.\n"
         else:
             for fact in riddles_list:
-                text += f"🧩 Загадка №{fact.id}\n--> Описание: {fact.title}\n--> Ссылка: {fact.video_url}\n\n"
+                display_id = VkAdminRepository.get_display_id(fact.video_url, fact.id)
+                text += f"🧩 Загадка №{display_id}\n--> Описание: {fact.title}\n--> Ссылка: {fact.video_url}\n\n"
 
         await message.answer(
             f"Вы в меню раздела <Загадки> 🧩.\n\nПоследние загадки:\n{text}Выберите действия на кнпоках.",
@@ -111,7 +113,8 @@ async def admin_opinions_menu(message: Message):
             text += "На данный момент сборов мнений нету.\n"
         else:
             for fact in opinions_list:
-                text += f"💬 Сбор №{fact.id}\n--> Описание: {fact.title}\n--> Ссылка: {fact.video_url}\n\n"
+                display_id = VkAdminRepository.get_display_id(fact.video_url, fact.id)
+                text += f"💬 Сбор №{display_id}\n--> Описание: {fact.title}\n--> Ссылка: {fact.video_url}\n\n"
 
         await message.answer(
             f"Вы в меню раздела <Сборы Мнений> 💬.\n\nПоследние сборы:\n{text}Выберите действия на кнпоках.",
@@ -141,7 +144,8 @@ async def admin_test_menu(message: Message):
             text += "На данный момент ролевых игр нету.\n"
         else:
             for fact in test_list:
-                text += f"📝 Игра №{fact.id}\n--> Вопрос: {fact.title}\n--> Ссылка: {fact.video_url}\n\n"
+                display_id = VkAdminRepository.get_display_id(fact.video_url, fact.id)
+                text += f"📝 Игра №{display_id}\n--> Вопрос: {fact.title}\n--> Ссылка: {fact.video_url}\n\n"
 
         await message.answer(
             f"Вы в меню раздела <Ролевые игры> 📝.\n\nПоследние игры:\n{text}Выберите действия на кнпоках.",

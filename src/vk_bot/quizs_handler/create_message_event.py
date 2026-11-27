@@ -104,15 +104,17 @@ async def start_create(message: MessageEvent):
             text += "На данный момент фактов нету.\n"
         else:
             for fact in facts:
-                text += f"💡 Факт №{fact.id}:\n--> Описание: {fact.title[:20]}...\n\n"
+                display_id = VkAdminRepository.get_display_id(fact.video_url, fact.id)
+                text += f"💡 Факт №{display_id}:\n--> Описание: {fact.title[:20]}...\n\n"
 
 
         keyboard = Keyboard(inline=True)
         c = 0
         for f in facts:
+            display_id = VkAdminRepository.get_display_id(f.video_url, f.id)
             c += 1
             keyboard.add(
-                Callback(f"ID {f.id}", payload={"action": "edit_this_fact", "fact_id": f.id}),
+                Callback(f"ID {display_id}", payload={"action": "edit_this_fact", "fact_id": f.id}),
                 color=KeyboardButtonColor.SECONDARY
             )
 
@@ -143,14 +145,16 @@ async def start_create(message: MessageEvent):
             text += "На данный момент сборов мнений нету.\n"
         else:
             for fact in opinions:
-                text += f"💬 Сбор №{fact.id}:\n--> Описание: {fact.title[:20]}...\n\n"
+                display_id = VkAdminRepository.get_display_id(fact.video_url, fact.id)
+                text += f"💬 Сбор №{display_id}:\n--> Описание: {fact.title[:20]}...\n\n"
 
         keyboard = Keyboard(inline=True)
         c = 0
         for f in opinions:
+            display_id = VkAdminRepository.get_display_id(f.video_url, f.id)
             c += 1
             keyboard.add(
-                Callback(f"ID {f.id}", payload={"action": "edit_this_opinion", "opinion_id": f.id}),
+                Callback(f"ID {display_id}", payload={"action": "edit_this_opinion", "opinion_id": f.id}),
                 color=KeyboardButtonColor.SECONDARY
             )
 
@@ -182,14 +186,16 @@ async def start_create(message: MessageEvent):
             text += "На данный момент загадок нету.\n"
         else:
             for fact in riddles:
-                text += f"🧩 Загадка №{fact.id}:\n--> Описание: {fact.title[:20]}...\n\n"
+                display_id = VkAdminRepository.get_display_id(fact.video_url, fact.id)
+                text += f"🧩 Загадка №{display_id}:\n--> Описание: {fact.title[:20]}...\n\n"
 
         keyboard = Keyboard(inline=True)
         c = 0
         for f in riddles:
+            display_id = VkAdminRepository.get_display_id(f.video_url, f.id)
             c += 1
             keyboard.add(
-                Callback(f"ID {f.id}", payload={"action": "edit_this_riddle", "riddle_id": f.id}),
+                Callback(f"ID {display_id}", payload={"action": "edit_this_riddle", "riddle_id": f.id}),
                 color=KeyboardButtonColor.SECONDARY
             )
 
@@ -221,14 +227,16 @@ async def start_create(message: MessageEvent):
             text += "На данный момент ролевых игр нет.\n"
         else:
             for fact in tests:
-                text += f"📝 Игра №{fact.id}:\n--> Вопрос: {fact.title[:20]}...\n\n"
+                display_id = VkAdminRepository.get_display_id(fact.video_url, fact.id)
+                text += f"📝 Игра №{display_id}:\n--> Вопрос: {fact.title[:20]}...\n\n"
 
         keyboard = Keyboard(inline=True)
         c = 0
         for f in tests:
+            display_id = VkAdminRepository.get_display_id(f.video_url, f.id)
             c += 1
             keyboard.add(
-                Callback(f"ID {f.id}", payload={"action": "edit_this_test", "test_id": f.id}),
+                Callback(f"ID {display_id}", payload={"action": "edit_this_test", "test_id": f.id}),
                 color=KeyboardButtonColor.SECONDARY
             )
 
