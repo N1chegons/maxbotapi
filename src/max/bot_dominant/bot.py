@@ -463,13 +463,13 @@ async def handle_message(event: MessageCreated):
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
-    if not await MaxService.can_send_message(user_id, "MAX_Dominant"):
-        logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
-        await bot.send_message(
-            user_id=user_id,
-            text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
-        )
-        return
+    # if not await MaxService.can_send_message(user_id, "MAX_Dominant"):
+    #     logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
+    #     await bot.send_message(
+    #         user_id=user_id,
+    #         text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
+    #     )
+    #     return
 
     selected_topic = "Мировоззрение"
     index_id = THEMES_INDEXES.get(selected_topic)
@@ -498,12 +498,12 @@ async def handle_voice_message(event: MessageCreated):
 
     await MaxService.update_user_state(user_id, UserState.ACTIVE_SESSION)
 
-    if not await MaxService.can_send_message(user_id, "MAX_Dominant"):
-        logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
-        await bot.send_message(
-            user_id=user_id,
-            text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
-        )
+    # if not await MaxService.can_send_message(user_id, "MAX_Dominant"):
+    #     logger.warning(f"У пользователя {user_id} не активирована подписка - нет возможности писать")
+    #     await bot.send_message(
+    #         user_id=user_id,
+    #         text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
+    #     )
 
     else:
         selected_topic = "Мировоззрение"
