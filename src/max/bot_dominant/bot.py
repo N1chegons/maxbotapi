@@ -505,61 +505,61 @@ async def handle_voice_message(event: MessageCreated):
     #         text="🔒 Ваша подписка не активна.\nПожалуйста, оплатите доступ в /sub"
     #     )
 
-    else:
-        selected_topic = "Мировоззрение"
-        index_id = THEMES_INDEXES.get(selected_topic)
-        history = await MaxService.get_history(user_id, "MAX_Dominant", limit=200)
+    # else:
+    selected_topic = "Мировоззрение"
+    index_id = THEMES_INDEXES.get(selected_topic)
+    history = await MaxService.get_history(user_id, "MAX_Dominant", limit=200)
 
 
-        audio_attachment = None
-        # noinspection PyTypeChecker
-        for att in event.message.body.attachments:
-            if att.type == "audio":
-                audio_attachment = att
-                break
-        if not audio_attachment:
-            return
-        audio_url = audio_attachment.payload.url
-        print(audio_url)
+    audio_attachment = None
+    # noinspection PyTypeChecker
+    for att in event.message.body.attachments:
+        if att.type == "audio":
+            audio_attachment = att
+            break
+    if not audio_attachment:
+        return
+    audio_url = audio_attachment.payload.url
+    print(audio_url)
 
-        try:
-            headers = {"User-Agent": "MAX/1.0", "Referer": "https://max.ru/"}
+    try:
+        headers = {"User-Agent": "MAX/1.0", "Referer": "https://max.ru/"}
 
-            async with aiohttp.ClientSession() as session_audio:
-                async with session_audio.get(audio_url, headers=headers) as resp:
-                    audio_data = await resp.read()
+        async with aiohttp.ClientSession() as session_audio:
+            async with session_audio.get(audio_url, headers=headers) as resp:
+                audio_data = await resp.read()
 
-            mime = magic.from_buffer(audio_data, mime=True)
-            if mime != 'audio/ogg':
-                process = subprocess.run(
-                    ['ffmpeg', '-i', 'pipe:0', '-c:a', 'libopus', '-ar', '48000', '-b:a', '64k', '-f', 'ogg', 'pipe:1'],
-                    input=audio_data,
-                    capture_output=True
-                )
-                if process.returncode != 0:
-                    raise Exception(process.stderr.decode())
-                audio_data = process.stdout
+        mime = magic.from_buffer(audio_data, mime=True)
+        if mime != 'audio/ogg':
+            process = subprocess.run(
+                ['ffmpeg', '-i', 'pipe:0', '-c:a', 'libopus', '-ar', '48000', '-b:a', '64k', '-f', 'ogg', 'pipe:1'],
+                input=audio_data,
+                capture_output=True
+            )
+            if process.returncode != 0:
+                raise Exception(process.stderr.decode())
+            audio_data = process.stdout
 
-            s3_url = await upload_to_s3(audio_data)
+        s3_url = await upload_to_s3(audio_data)
 
-            recognized_text = AudioService.recognize_from_s3(s3_url, settings.YC_API_KEY)
+        recognized_text = AudioService.recognize_from_s3(s3_url, settings.YC_API_KEY)
 
-            answer = ask_ai_with_index(index_id, recognized_text, selected_topic, history)
+        answer = ask_ai_with_index(index_id, recognized_text, selected_topic, history)
 
-            if answer:
-                # if user.memory_mode != MemoryMode.none:
-                await MaxService.add_message(user_id, session_user.id, "user", recognized_text, "MAX_Dominant")
-                await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Dominant")
-                await bot.send_message(user_id=user_id, text=answer)
-                logger.info(f"Пользователь {user_id} успешно получил ответ от ассистента")
-            else:
-                logger.error(f"Пользователь {user_id} не получил ответ")
-                await bot.send_message(
-                    user_id=user_id,
-                    text="⚠️ Не удалось получить ответ. Попробуйте позже."
-                )
+        if answer:
+            # if user.memory_mode != MemoryMode.none:
+            await MaxService.add_message(user_id, session_user.id, "user", recognized_text, "MAX_Dominant")
+            await MaxService.add_message(user_id, session_user.id, "assistant", answer, "MAX_Dominant")
+            await bot.send_message(user_id=user_id, text=answer)
+            logger.info(f"Пользователь {user_id} успешно получил ответ от ассистента")
+        else:
+            logger.error(f"Пользователь {user_id} не получил ответ")
+            await bot.send_message(
+                user_id=user_id,
+                text="⚠️ Не удалось получить ответ. Попробуйте позже."
+            )
 
-        except Exception as e:
+    except Exception as e:
             logger.exception(f"Ошибка обработки голосового сообщения от пользователя {user_id}, ошибка: {e}")
             await bot.send_message(user_id=user_id, text="⚠️ Ошибка обработки голосового. Попробуйте текстом.")
 
